@@ -1,0 +1,15 @@
+# 构建产物
+dist
+dist-ssr
+*.local
+
+# 依赖
+node_modules
+
+# Tauri
+src-tauri
+
+# 配置文件
+*.config.js
+*.config.ts
+.eslintrc.cjs

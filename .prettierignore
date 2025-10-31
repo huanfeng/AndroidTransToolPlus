@@ -1,0 +1,21 @@
+# 构建产物
+dist
+dist-ssr
+*.local
+
+# 依赖
+node_modules
+
+# Tauri
+src-tauri/target
+
+# Git
+.git
+
+# 配置文件
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 文档
+CHANGELOG.md
