@@ -12,32 +12,27 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0",
-    "pinia": "^2.3.0",
-    "vuetify": "^3.7.5",
-    "@mdi/font": "^7.4.47",
-    "axios": "^1.7.9",
-    "fast-xml-parser": "^4.5.3",
-    "lodash-es": "^4.17.21"
+    "axios": "^1.13.1",
+    "fast-xml-parser": "^5.3.1",
+    "lodash-es": "^4.17.21",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.22"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^6.0.5",
-    "vue-tsc": "^2.1.10",
-    "typescript": "~5.7.3",
-    "@types/node": "^22.10.5",
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/cli": "^2.9.2",
+    "@tauri-apps/plugin-dialog": "^2.4.2",
+    "@tauri-apps/plugin-fs": "^2.4.4",
     "@types/lodash-es": "^4.17.12",
-    "vite-plugin-vuetify": "^2.0.4",
-    "sass": "^1.83.4",
-    "@tauri-apps/cli": "^2.3.0",
-    "@tauri-apps/api": "^2.3.0",
-    "@tauri-apps/plugin-fs": "^2.3.0",
-    "@tauri-apps/plugin-dialog": "^2.3.0",
-    "prettier": "^3.4.2",
-    "eslint": "^8.57.1",
-    "eslint-plugin-vue": "^9.31.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0"
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "eslint": "^9.39.0",
+    "eslint-plugin-vue": "^10.5.1",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.12",
+    "vue-tsc": "^3.1.3"
   }
 }

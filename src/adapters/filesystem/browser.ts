@@ -2,7 +2,6 @@ import type {
   FileSystemAdapter,
   DirectoryHandle,
   FileHandle,
-  HandleKind,
 } from '../types'
 
 /**
@@ -31,6 +30,7 @@ export class BrowserFileSystem implements FileSystemAdapter {
 
   async writeFile(handle: FileHandle, content: string): Promise<void> {
     const writable = await handle.createWritable()
+    // @ts-ignore - FileSystemWritableFileStream has write method
     await writable.write(content)
     await writable.close()
   }

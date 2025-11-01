@@ -5,7 +5,7 @@
 ## 📋 前置要求
 
 - ✅ Node.js >= 18
-- ✅ npm >= 9
+- ✅ **pnpm >= 8** (包管理器)
 - ✅ [Just](https://github.com/casey/just)（可选但推荐）
 
 ## 🚀 第一步：安装 Just（推荐）
@@ -27,30 +27,40 @@ brew install just
 cargo install just
 ```
 
-## 🎯 第二步：初始化项目
+## 📦 第二步：安装 pnpm（如果还没有）
 
-```bash
+```powershell
+# Windows
+npm install -g pnpm
+
+# 验证安装
+pnpm --version
+```
+
+## 🎯 第三步：初始化项目
+
+```powershell
 # 克隆或进入项目目录
 cd android_trans_tool_plus
 
 # 安装依赖
 just install
-# 或使用 npm
-npm install
+# 或使用 pnpm
+pnpm install
 ```
 
-## 💻 第三步：启动开发服务器
+## 💻 第四步：启动开发服务器
 
-```bash
+```powershell
 # 启动 Web 版本
 just dev
-# 或使用 npm
-npm run dev
+# 或使用 pnpm
+pnpm dev
 ```
 
 访问 http://localhost:5173
 
-## ⚙️ 第四步：配置 OpenAI API
+## ⚙️ 第五步：配置 OpenAI API
 
 1. 打开应用
 2. 点击 **"设置"** 按钮
@@ -60,7 +70,7 @@ npm run dev
 4. 点击 **"测试连接"** 验证
 5. 在 **"翻译语言"** 标签页选择需要的语言
 
-## 🎉 第五步：开始翻译
+## 🎉 第六步：开始翻译
 
 1. 点击 **"打开 Android 项目"**
 2. 选择 Android 项目根目录
@@ -69,11 +79,12 @@ npm run dev
 
 ## 📝 常用命令速查
 
-| 任务 | Just 命令 | npm 命令 |
+| 任务 | Just 命令 | pnpm 命令 |
 |------|-----------|----------|
-| 安装依赖 | `just install` | `npm install` |
-| 启动开发 | `just dev` | `npm run dev` |
-| 构建生产 | `just build` | `npm run build` |
+| 安装依赖 | `just install` | `pnpm install` |
+| 启动开发 | `just dev` | `pnpm dev` |
+| 构建生产 | `just build` | `pnpm build` |
+| 添加依赖 | `just add <pkg>` | `pnpm add <pkg>` |
 | 代码检查 | `just check` | - |
 | 格式化 | `just format` | - |
 | 清理重置 | `just reset` | - |

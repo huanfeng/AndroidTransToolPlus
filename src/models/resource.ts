@@ -13,6 +13,10 @@ export interface ResItem {
   name: string // 资源ID
   translatable: boolean
   valueMap: Map<Language, string | string[]>
+  getValue(lang: Language): string | string[] | undefined
+  setValue(lang: Language, value: string | string[]): void
+  hasValue(lang: Language): boolean
+  clone(): ResItem
 }
 
 /**

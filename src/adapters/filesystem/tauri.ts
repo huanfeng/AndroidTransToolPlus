@@ -13,7 +13,7 @@ export class TauriFileSystem implements FileSystemAdapter {
   private readTextFile: any
   private writeTextFile: any
   private readDir: any
-  private exists: any
+  private existsFunc: any
   private createDir: any
 
   constructor() {
@@ -30,7 +30,7 @@ export class TauriFileSystem implements FileSystemAdapter {
       this.readTextFile = fs.readTextFile
       this.writeTextFile = fs.writeTextFile
       this.readDir = fs.readDir
-      this.exists = fs.exists
+      this.existsFunc = fs.exists
       this.createDir = fs.mkdir
     } catch (error) {
       console.error('Failed to load Tauri APIs:', error)
@@ -76,7 +76,11 @@ export class TauriFileSystem implements FileSystemAdapter {
   async exists(dirHandle: DirectoryHandle, name: string): Promise<boolean> {
     const dirPath = (dirHandle as any).path
     const path = `${dirPath}/${name}`
-    return await this.exists(path)
+    return await this.existsFunc(path)
+  }
+
+  private async existsPath(path: string): Promise<boolean> {
+    return await this.existsFunc(path)
   }
 
   async *readDirectory(
@@ -112,7 +116,7 @@ export class TauriFileSystem implements FileSystemAdapter {
         options?: { create?: boolean }
       ): Promise<FileHandle> {
         const filePath = `${path}/${name}`
-        if (options?.create && !(await self.exists(filePath))) {
+        if (options?.create && !(await self.existsPath(filePath))) {
           await self.writeTextFile(filePath, '')
         }
         return self.createFileHandle(filePath)
@@ -123,7 +127,7 @@ export class TauriFileSystem implements FileSystemAdapter {
         options?: { create?: boolean }
       ): Promise<DirectoryHandle> {
         const dirPath = `${path}/${name}`
-        if (options?.create && !(await self.exists(dirPath))) {
+        if (options?.create && !(await self.existsPath(dirPath))) {
           await self.createDir(dirPath)
         }
         return self.createDirectoryHandle(dirPath)
