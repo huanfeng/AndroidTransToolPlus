@@ -4,10 +4,7 @@
       <el-icon><Monitor /></el-icon>
       <span class="title">Android Trans Tool Plus</span>
     </div>
-    <div class="center text-ellipsis" :title="projectName">
-      <el-tag v-if="projectName" type="info" round>{{ projectName }}</el-tag>
-      <span v-else class="muted">未打开项目</span>
-    </div>
+    <div class="center" />
     <div class="right">
       <el-button size="small" @click="$emit('toggle-log')">日志</el-button>
       <el-button size="small" @click="$emit('open-settings')">
@@ -23,8 +20,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useProjectStore } from '@/stores/project'
 import { Monitor, Setting, InfoFilled } from '@element-plus/icons-vue'
 
 defineEmits<{
@@ -33,8 +28,6 @@ defineEmits<{
   (e: 'toggle-log'): void
 }>()
 
-const projectStore = useProjectStore()
-const projectName = computed(() => projectStore.project?.name || '')
 </script>
 
 <style scoped>

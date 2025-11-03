@@ -15,6 +15,14 @@ body {
 /* Element Plus 暗色主题变量（用于切换） */
 @import 'element-plus/theme-chalk/dark/css-vars.css';
 
+/* 主题切换时禁用过渡，避免卡顿 */
+.theme-changing *,
+.theme-changing *::before,
+.theme-changing *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 /* Element Plus layout tweaks */
 .el-header {
   display: flex;
@@ -27,6 +35,8 @@ body {
 .el-aside {
   padding: 8px 8px 12px;
   overflow: auto;
+  background-color: var(--ep-fill-color-lighter);
+  border-right: 1px solid var(--ep-border-color);
 }
 
 .el-main {
@@ -34,6 +44,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0; /* 使子元素可使用 height:100% */
+  background-color: var(--ep-bg-color);
 }
 
 /* Utility */
@@ -55,4 +66,9 @@ body {
 
 .muted {
   color: var(--ep-text-color-placeholder);
+}
+
+.app-footer {
+  background-color: var(--ep-fill-color-light);
+  border-top: 1px solid var(--ep-border-color);
 }

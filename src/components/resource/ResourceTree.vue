@@ -9,6 +9,8 @@
           node-key="id"
           :props="{ children: 'children', label: 'label' }"
           :default-expand-all="true"
+          :highlight-current="true"
+          :current-node-key="currentNodeKey"
           @node-click="onNodeClick"
         >
           <template #default="{ data }">
@@ -43,12 +45,25 @@ const treeData = computed<TreeNode[]>(() => {
     type: 'res',
     children: dir.xmlFileNames.map((f) => ({
       id: `${dir.relativePath}/${f}`,
-      label: f,
+      label: fileLabel(dir.relativePath, f),
       type: 'file',
       fileName: f,
     })),
   }))
 })
+
+const currentNodeKey = computed(() => {
+  if (!projectStore.selectedResDir || !projectStore.selectedXmlFile) return projectStore.selectedResDir || ''
+  return `${projectStore.selectedResDir}/${projectStore.selectedXmlFile}`
+})
+
+function fileLabel(resPath: string, fileName: string): string {
+  const xml = projectStore.project?.xmlDataMap.get(resPath)
+  if (!xml) return fileName
+  const dataMap = xml.getFileData(fileName)
+  const count = dataMap ? dataMap.size : 0
+  return count > 0 ? `${fileName} (${count})` : fileName
+}
 
 function onNodeClick(node: TreeNode) {
   if (node.type === 'res') {

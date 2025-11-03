@@ -63,8 +63,13 @@ watch(() => configStore.config.theme, (val) => applyTheme(val))
 
 function applyTheme(theme: 'light' | 'dark') {
   const root = document.documentElement
+  // 禁用过渡避免切换卡顿
+  root.classList.add('theme-changing')
   if (theme === 'dark') root.classList.add('dark')
   else root.classList.remove('dark')
+  window.requestAnimationFrame(() => {
+    root.classList.remove('theme-changing')
+  })
 }
 </script>
 

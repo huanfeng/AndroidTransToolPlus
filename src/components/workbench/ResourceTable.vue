@@ -3,34 +3,45 @@
     <el-empty v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile" description="请选择左侧 XML 文件" />
     <template v-else>
       <div class="table-inner">
-        <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu">
-          <el-table-column prop="name" label="Key" width="260" fixed />
-          <el-table-column label="可翻译" width="90">
-            <template #default="{ row }">
-              <el-tag size="small" :type="row.translatable ? 'success' : 'info'">{{ row.translatable ? '是' : '否' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="langName(Language.DEF)" min-width="220">
-            <template #default="{ row }">
-              <span class="text-ellipsis" :title="getCellValue(row, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column v-for="l in targetLangs" :key="l" :label="langName(l)" min-width="220">
-            <template #default="{ row }">
-              <template v-if="row.type === 'string'">
-                <template v-if="row.translatable">
-                  <el-input v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" :placeholder="getCellValue(row, l) || '—'" />
+        <div class="table-scroll">
+          <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu">
+            <el-table-column prop="name" label="Key" width="260" fixed />
+            <el-table-column label="可翻译" width="90">
+              <template #default="{ row }">
+                <el-tag size="small" :type="row.translatable ? 'success' : 'info'">{{ row.translatable ? '是' : '否' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column :label="langName(Language.DEF)" min-width="220">
+              <template #default="{ row }">
+                <span v-if="!isEditing(row.name, Language.DEF)" class="text-ellipsis" :title="getCellValue(row, Language.DEF)" @dblclick="startEdit(row.name, Language.DEF, row.type)">{{ getCellValue(row, Language.DEF) }}</span>
+                <el-input
+                  v-else-if="row.type==='string'"
+                  v-model="editable[row.name + ':' + Language.DEF]"
+                  size="small"
+                  @change="(val: string) => onEdit(row.name, Language.DEF, val)"
+                  @blur="stopEdit()"
+                />
+                <span v-else class="text-ellipsis" @dblclick="openArrayEditor(row.name, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column v-for="l in targetLangs" :key="l" :label="langName(l)" min-width="220">
+              <template #default="{ row }">
+                <template v-if="row.type === 'string'">
+                  <template v-if="row.translatable">
+                    <span v-if="!isEditing(row.name, l)" class="text-ellipsis" :title="getCellValue(row, l)" @dblclick="startEdit(row.name, l, row.type)">{{ getCellValue(row, l) || '—' }}</span>
+                    <el-input v-else v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" @blur="stopEdit()" />
+                  </template>
+                  <template v-else>
+                    <span class="muted">—</span>
+                  </template>
                 </template>
                 <template v-else>
-                  <span class="muted">—</span>
+                  <span class="text-ellipsis" :title="getCellValue(row, l)" @dblclick="openArrayEditor(row.name, l)">{{ getCellValue(row, l) }}</span>
                 </template>
               </template>
-              <template v-else>
-                <span class="muted">[字符串数组]</span>
-              </template>
-            </template>
-          </el-table-column>
-        </el-table>
+            </el-table-column>
+          </el-table>
+        </div>
         <div class="pagination">
           <el-pagination
             background
@@ -54,6 +65,8 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+
+      <ArrayEditDialog v-model:visible="showArrayEdit" :item-name="arrayEditPayload?.itemName || ''" :lang="arrayEditPayload?.lang || Language.DEF" />
     </template>
   </div>
 </template>
@@ -66,12 +79,14 @@ import { useConfigStore } from '@/stores/config'
 import type { ResItem } from '@/models/resource'
 import { Language, getLanguageName } from '@/models/language'
 import { ElMessage } from 'element-plus'
+import ArrayEditDialog from './ArrayEditDialog.vue'
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const configStore = useConfigStore()
 
 const editable = reactive<Record<string, string | undefined>>({})
+const editing = ref<string | null>(null)
 
 const rows = computed(() => {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return [] as ResItem[]
@@ -104,6 +119,32 @@ function getCellValue(row: ResItem, lang: Language): string {
   const item = data?.items.get(row.name)
   const v = item?.valueMap.get(lang)
   return typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : ''
+}
+
+function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }
+function isEditing(itemName: string, lang: Language) { return editing.value === keyFor(itemName, lang) }
+function startEdit(itemName: string, lang: Language, type: ResItem['type']) {
+  if (type !== 'string') return
+  editing.value = keyFor(itemName, lang)
+  editable[editing.value] = getStringValue(itemName, lang)
+}
+function stopEdit() { editing.value = null }
+
+function getStringValue(itemName: string, lang: Language): string {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return ''
+  if (lang === Language.DEF) {
+    const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+    const def = fileMap?.get(Language.DEF)
+    const it = def?.items.get(itemName)
+    const v = it?.valueMap.get(Language.DEF)
+    return typeof v === 'string' ? v : ''
+  } else {
+    const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+    const data = fileMap?.get(lang)
+    const it = data?.items.get(itemName)
+    const v = it?.valueMap.get(lang)
+    return typeof v === 'string' ? v : ''
+  }
 }
 
 function onEdit(itemName: string, lang: Language, val: string) {
@@ -147,9 +188,20 @@ async function onMenu(cmd: string) {
   }
 }
 
+// 数组编辑
+const showArrayEdit = ref(false)
+const arrayEditPayload = ref<{ itemName: string; lang: Language } | null>(null)
+function openArrayEditor(itemName: string, lang: Language) {
+  arrayEditPayload.value = { itemName, lang }
+  showArrayEdit.value = true
+}
+
 </script>
 
 <style scoped>
 .table-wrap { height: 100%; }
+.table-inner { height: 100%; display: flex; flex-direction: column; }
+.table-scroll { flex: 1; min-height: 0; }
 :deep(.el-table) { --el-table-header-bg-color: var(--ep-fill-color-light); }
+.pagination { padding: 8px 8px 0; border-top: 1px solid var(--ep-border-color); background: var(--ep-bg-color); }
 </style>
