@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import { initAdapters } from './adapters'
+import '@/styles/index.scss'
 
 // 初始化适配器（保留业务层能力）
 await initAdapters()

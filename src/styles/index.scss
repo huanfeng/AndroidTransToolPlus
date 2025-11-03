@@ -1,0 +1,49 @@
+/* Global layout variables */
+$header-height: 48px;
+$aside-width: 280px;
+$log-panel-height: 220px;
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* Element Plus layout tweaks */
+.el-header {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.el-aside {
+  padding: 8px 8px 12px;
+}
+
+.el-main {
+  padding: 0;
+}
+
+/* Utility */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.muted {
+  color: var(--ep-text-color-placeholder);
+}
+

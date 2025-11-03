@@ -485,6 +485,34 @@ export const useTranslationStore = defineStore('translation', () => {
     testConnection,
     startTranslation,
     batchTranslate,
+    async translateSingle(itemName: string, lang: Language): Promise<void> {
+      if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) {
+        throw new Error('No XML data selected')
+      }
+      if (!translator.value) {
+        initTranslator()
+      }
+      const xml = projectStore.selectedXmlData
+      const file = projectStore.selectedXmlFile
+      const fileMap = xml.getFileData(file)
+      if (!fileMap) throw new Error('Selected file not loaded')
+      const defData = fileMap.get(Language.DEF)
+      if (!defData) throw new Error('Default language not available')
+      const item = defData.items.get(itemName)
+      if (!item) throw new Error('Item not found')
+      const originalText = item.valueMap.get(Language.DEF)
+      if (!originalText || Array.isArray(originalText)) {
+        throw new Error('Only single string items supported for quick translate')
+      }
+      if (!translator.value) throw new Error('Translator not initialized')
+      const res = await translator.value.translate({
+        text: originalText,
+        targetLanguage: lang,
+        sourceLanguage: Language.DEF,
+        context: itemName,
+      })
+      xml.updateItem(file, itemName, lang, res.translatedText)
+    },
     pauseTranslation,
     resumeTranslation,
     stopTranslation,
