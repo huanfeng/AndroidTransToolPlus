@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
@@ -42,7 +42,9 @@ const canTranslate = computed(() => projectStore.selectedXmlData && projectStore
 
 async function reloadFile() {
   try {
+    const loading = ElLoading.service({ lock: true, text: '重载中...' })
     await projectStore.reloadSelectedFile()
+    loading.close()
     ElMessage.success('文件已重新加载')
   } catch (e: any) {
     ElMessage.error(e?.message || '重载失败')
@@ -52,7 +54,9 @@ async function reloadFile() {
 async function saveCurrentDir() {
   if (!projectStore.selectedResDir) return
   try {
+    const loading = ElLoading.service({ lock: true, text: '保存中...' })
     await projectStore.saveResDir(projectStore.selectedResDir)
+    loading.close()
     ElMessage.success('保存成功')
   } catch (e: any) {
     ElMessage.error(e?.message || '保存失败')
@@ -63,7 +67,9 @@ async function batchTranslate() {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
   try {
     const merged = projectStore.selectedXmlData.mergeAllItems()
+    const loading = ElLoading.service({ lock: true, text: '翻译中...' })
     await translationStore.batchTranslate(merged, selectedLangs.value)
+    loading.close()
     ElMessage.success('批量翻译完成')
   } catch (e: any) {
     ElMessage.error(e?.message || '翻译失败')
@@ -74,4 +80,3 @@ async function batchTranslate() {
 <style scoped>
 .ops { padding: 8px 12px; border-bottom: 1px solid var(--ep-border-color); }
 </style>
-

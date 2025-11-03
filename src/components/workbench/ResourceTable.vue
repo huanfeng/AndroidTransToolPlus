@@ -2,24 +2,48 @@
   <div class="table-wrap">
     <el-empty v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile" description="请选择左侧 XML 文件" />
     <template v-else>
-      <el-table :data="rows" border height="100%" @cell-contextmenu="onCellContextMenu">
-        <el-table-column prop="name" label="Key" width="260" fixed />
-        <el-table-column :label="langName(Language.DEF)" min-width="220">
-          <template #default="{ row }">
-            <span class="text-ellipsis" :title="getCellValue(row, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column v-for="l in targetLangs" :key="l" :label="langName(l)" min-width="220">
-          <template #default="{ row }">
-            <template v-if="row.type === 'string'">
-              <el-input v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" :placeholder="getCellValue(row, l) || '—'" />
+      <div class="table-inner">
+        <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu">
+          <el-table-column prop="name" label="Key" width="260" fixed />
+          <el-table-column label="可翻译" width="90">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.translatable ? 'success' : 'info'">{{ row.translatable ? '是' : '否' }}</el-tag>
             </template>
-            <template v-else>
-              <span class="muted">[字符串数组]</span>
+          </el-table-column>
+          <el-table-column :label="langName(Language.DEF)" min-width="220">
+            <template #default="{ row }">
+              <span class="text-ellipsis" :title="getCellValue(row, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
             </template>
-          </template>
-        </el-table-column>
-      </el-table>
+          </el-table-column>
+          <el-table-column v-for="l in targetLangs" :key="l" :label="langName(l)" min-width="220">
+            <template #default="{ row }">
+              <template v-if="row.type === 'string'">
+                <template v-if="row.translatable">
+                  <el-input v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" :placeholder="getCellValue(row, l) || '—'" />
+                </template>
+                <template v-else>
+                  <span class="muted">—</span>
+                </template>
+              </template>
+              <template v-else>
+                <span class="muted">[字符串数组]</span>
+              </template>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination">
+          <el-pagination
+            background
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="rows.length"
+            :current-page="page"
+            :page-size="pageSize"
+            :page-sizes="[10,20,50,100]"
+            @update:current-page="(v:number)=>page=v"
+            @update:page-size="(v:number)=>{pageSize=v; page=1}"
+          />
+        </div>
+      </div>
 
       <el-dropdown ref="ctxMenu" trigger="contextmenu" :hide-on-click="true" @command="onMenu">
         <span />
@@ -58,14 +82,28 @@ const rows = computed(() => {
   return Array.from(def.items.values())
 })
 
+const page = ref(1)
+const pageSize = ref(20)
+const pagedRows = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return rows.value.slice(start, start + pageSize.value)
+})
+
 const targetLangs = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
 
 function langName(l: Language) { return getLanguageName(l, 'cn') }
 
 function getCellValue(row: ResItem, lang: Language): string {
-  const v = row.valueMap.get(lang)
-  if (Array.isArray(v)) return v.join(', ')
-  return v ?? ''
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return ''
+  if (lang === Language.DEF) {
+    const v = row.valueMap.get(Language.DEF)
+    return typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : ''
+  }
+  const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+  const data = fileMap?.get(lang)
+  const item = data?.items.get(row.name)
+  const v = item?.valueMap.get(lang)
+  return typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : ''
 }
 
 function onEdit(itemName: string, lang: Language, val: string) {

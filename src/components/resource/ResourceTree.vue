@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ElLoading } from 'element-plus'
 import { useProjectStore } from '@/stores/project'
 
 const projectStore = useProjectStore()
@@ -52,7 +53,8 @@ const treeData = computed<TreeNode[]>(() => {
 function onNodeClick(node: TreeNode) {
   if (node.type === 'res') {
     projectStore.selectResDir(node.id)
-    projectStore.loadResDir(node.id).catch(() => {})
+    const loading = ElLoading.service({ lock: true, text: '加载目录中...' })
+    projectStore.loadResDir(node.id).catch(() => {}).finally(() => loading.close())
   } else if (node.type === 'file') {
     const [resPath, fileName] = [node.id.substring(0, node.id.lastIndexOf('/')), node.fileName!]
     projectStore.selectResDir(resPath)
@@ -64,4 +66,3 @@ function onNodeClick(node: TreeNode) {
 <style scoped>
 .resource-tree { height: 100%; }
 </style>
-

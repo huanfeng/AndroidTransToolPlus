@@ -2,7 +2,11 @@
   <el-container class="app-shell">
     <!-- 顶栏 -->
     <el-header height="48px" class="app-header">
-      <AppHeader @open-settings="showSettings = true" @open-about="showAbout = true" />
+      <AppHeader
+        @open-settings="showSettings = true"
+        @open-about="showAbout = true"
+        @toggle-log="configStore.update('showLogView', !configStore.config.showLogView)"
+      />
     </el-header>
 
     <!-- 主体区域：左侧栏 + 工作区 -->
@@ -23,7 +27,7 @@
     </el-container>
 
     <!-- 底部日志栏（可隐藏） -->
-    <el-footer v-show="configStore.config.showLogView" height="auto" class="app-footer">
+    <el-footer v-show="configStore.config.showLogView" class="app-footer">
       <LogPanel />
     </el-footer>
   </el-container>
@@ -34,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue'
@@ -52,7 +56,16 @@ onMounted(() => {
   if (!configStore.loaded) {
     configStore.load()
   }
+  applyTheme(configStore.config.theme)
 })
+
+watch(() => configStore.config.theme, (val) => applyTheme(val))
+
+function applyTheme(theme: 'light' | 'dark') {
+  const root = document.documentElement
+  if (theme === 'dark') root.classList.add('dark')
+  else root.classList.remove('dark')
+}
 </script>
 
 <style scoped>
@@ -62,5 +75,6 @@ onMounted(() => {
 .app-main { padding: 0; }
 .workbench { display: flex; flex-direction: column; height: 100%; }
 .workbench-table { flex: 1; min-height: 0; padding: 8px 12px 12px; }
-.app-footer { border-top: 1px solid var(--ep-border-color); padding: 0; }
+.app-footer { border-top: 1px solid var(--ep-border-color); padding: 0; height: 220px; }
+.app-body { min-height: 0; }
 </style>

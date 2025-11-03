@@ -9,21 +9,31 @@ html, body, #app {
 
 body {
   margin: 0;
+  overflow: hidden; /* 防止外层滚动，内部区域自滚动 */
 }
+
+/* Element Plus 暗色主题变量（用于切换） */
+@import 'element-plus/theme-chalk/dark/css-vars.css';
 
 /* Element Plus layout tweaks */
 .el-header {
   display: flex;
   align-items: center;
   padding: 0 12px;
+  background-color: var(--ep-bg-color);
+  box-shadow: 0 1px 0 0 var(--ep-border-color);
 }
 
 .el-aside {
   padding: 8px 8px 12px;
+  overflow: auto;
 }
 
 .el-main {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 使子元素可使用 height:100% */
 }
 
 /* Utility */
@@ -46,4 +56,3 @@ body {
 .muted {
   color: var(--ep-text-color-placeholder);
 }
-
