@@ -5,7 +5,7 @@
 
 import type { DirectoryHandle, FileHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
-import { Language, getLanguageByValuesDirName } from '@/models/language'
+import { Language, getLanguageByValuesDirName, getLanguageInfo } from '@/models/language'
 import type { ResItem } from '@/models/resource'
 import { createResItem } from '@/models/resource'
 import { parseXml } from '../xml/parser'
@@ -250,11 +250,25 @@ export class XmlData {
     language: Language,
     value: string | string[]
   ): void {
-    const languageDataMap = this.dataMap.get(fileName)
-    if (!languageDataMap) return
+    let languageDataMap = this.dataMap.get(fileName)
+    if (!languageDataMap) {
+      // 在极端情况下（未加载文件即更新），初始化文件映射
+      languageDataMap = new Map()
+      this.dataMap.set(fileName, languageDataMap)
+    }
 
-    const data = languageDataMap.get(language)
-    if (!data) return
+    let data = languageDataMap.get(language)
+    if (!data) {
+      // 该语言的 values 目录可能不存在；创建占位数据，保存时会自动创建目录/文件
+      const info = getLanguageInfo(language)
+      data = {
+        fileName,
+        language,
+        valuesDirName: info.valuesDirName,
+        items: new Map(),
+      }
+      languageDataMap.set(language, data)
+    }
 
     let item = data.items.get(itemName)
     if (!item) {

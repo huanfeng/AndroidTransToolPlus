@@ -148,6 +148,11 @@ export const useTranslationStore = defineStore('translation', () => {
       }
 
       logStore.info('Starting translation...')
+      logStore.debug(
+        `Context: file=${projectStore.selectedXmlFile}, langs=[${languages.join(
+          ', '
+        )}], items=${items.size}`
+      )
 
       // 清空之前的任务
       tasks.value = []
@@ -169,6 +174,9 @@ export const useTranslationStore = defineStore('translation', () => {
           // 跳过已有翻译的项（可选）
           const existingValue = item.valueMap.get(targetLang)
           if (configStore.config.autoRetry === false && existingValue) {
+            logStore.trace(
+              `Skip existing: ${itemName} for ${targetLang} (autoRetry=false)`
+            )
             continue
           }
 
@@ -195,6 +203,11 @@ export const useTranslationStore = defineStore('translation', () => {
       // 开始翻译
       state.value = TranslationState.TRANSLATING
       await processTranslationTasks()
+      // 翻译结束后触发视图刷新（懒加载数据结构使用 dataVersion 驱动）
+      try {
+        projectStore.dataVersion++
+        logStore.debug('UI refresh triggered after translation (dataVersion++)')
+      } catch {}
     } catch (err: any) {
       logStore.error('Failed to start translation', err)
       error.value = err.message || 'Unknown error'
@@ -220,6 +233,11 @@ export const useTranslationStore = defineStore('translation', () => {
       }
 
       logStore.info('Starting batch translation...')
+      logStore.debug(
+        `Context: file=${projectStore.selectedXmlFile}, langs=[${languages.join(
+          ', '
+        )}], items=${items.size}`
+      )
 
       // 清空之前的任务
       tasks.value = []
@@ -295,6 +313,9 @@ export const useTranslationStore = defineStore('translation', () => {
             targetLang,
             translatedText
           )
+          logStore.trace(
+            `Applied translation: ${itemName} -> ${targetLang}`
+          )
           successCount++
         }
 
@@ -319,6 +340,11 @@ export const useTranslationStore = defineStore('translation', () => {
 
       state.value = TranslationState.COMPLETED
       logStore.info('Batch translation completed')
+      // 批量翻译完成后统一刷新表格视图
+      try {
+        projectStore.dataVersion++
+        logStore.debug('UI refresh triggered after batch translation (dataVersion++)')
+      } catch {}
     } catch (err: any) {
       logStore.error('Batch translation failed', err)
       error.value = err.message || 'Unknown error'
@@ -345,6 +371,9 @@ export const useTranslationStore = defineStore('translation', () => {
         // 翻译
         const originalText = task.originalText
         if (typeof originalText === 'string') {
+          logStore.debug(
+            `Translating ${task.itemName} -> ${task.targetLanguage}`
+          )
           const response = await translator.value!.translate({
             text: originalText,
             targetLanguage: task.targetLanguage,
@@ -362,6 +391,9 @@ export const useTranslationStore = defineStore('translation', () => {
               task.itemName,
               task.targetLanguage,
               response.translatedText
+            )
+            logStore.trace(
+              `Applied translation: ${task.itemName} -> ${task.targetLanguage}`
             )
           }
 
@@ -385,6 +417,11 @@ export const useTranslationStore = defineStore('translation', () => {
     logStore.info(
       `Translation completed: ${progress.value.completed} succeeded, ${progress.value.failed} failed`
     )
+    // 任务模式翻译完成后刷新视图
+    try {
+      projectStore.dataVersion++
+      logStore.debug('UI refresh triggered after tasks (dataVersion++)')
+    } catch {}
   }
 
   /**
@@ -526,6 +563,11 @@ export const useTranslationStore = defineStore('translation', () => {
         context: itemName,
       })
       xml.updateItem(file, itemName, lang, res.translatedText)
+      // 单条翻译后立即刷新视图，获得即时反馈
+      try {
+        projectStore.dataVersion++
+        logStore.debug('UI refresh triggered after single translate (dataVersion++)')
+      } catch {}
     },
     pauseTranslation,
     resumeTranslation,
