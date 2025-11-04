@@ -8,7 +8,7 @@ import { ref, computed } from 'vue'
 import { Language } from '@/models/language'
 import type { ResItem } from '@/models/resource'
 import { OpenAITranslator, type OpenAIConfig } from '@/services/translation/openai'
-import { ElMessage } from 'element-plus'
+import toast from '@/utils/toast'
 import { useConfigStore } from './config'
 import { useLogStore } from './log'
 import { useProjectStore } from './project'
@@ -185,7 +185,7 @@ export const useTranslationStore = defineStore('translation', () => {
       if (tasks.value.length === 0) {
         logStore.warning('No items to translate')
         // Toast to notify when logs panel may be hidden
-        ElMessage.warning('无可翻译的条目')
+        toast.warning('无可翻译的条目')
         state.value = TranslationState.COMPLETED
         return
       }
@@ -311,7 +311,7 @@ export const useTranslationStore = defineStore('translation', () => {
 
       // 如果所有目标语言都没有可翻译项，提示并结束
       if (!hasAnyBatchItems) {
-        ElMessage.warning('无可翻译的条目')
+        toast.warning('无可翻译的条目')
         state.value = TranslationState.COMPLETED
         logStore.info('Batch translation completed (no items)')
         return

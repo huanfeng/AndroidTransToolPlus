@@ -112,7 +112,7 @@ import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
 import type { ResItem } from '@/models/resource'
 import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
-import { ElMessage } from 'element-plus'
+import toast from '@/utils/toast'
 import ArrayEditDialog from './ArrayEditDialog.vue'
 import { Search } from '@element-plus/icons-vue'
 
@@ -266,12 +266,12 @@ async function onMenu(cmd: string) {
   try {
     if (cmd === 'copy' && payload.value !== undefined) {
       await navigator.clipboard.writeText(payload.value || '')
-      ElMessage.success('已复制')
+      toast.success('已复制')
       return
     }
     if (cmd === 'ai' && payload.itemName && payload.lang) {
       await translationStore.translateSingle(payload.itemName, payload.lang)
-      ElMessage.success('已翻译')
+      toast.success('已翻译')
       return
     }
     // Header language actions
@@ -287,7 +287,7 @@ async function onMenu(cmd: string) {
       return
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    toast.fromError(e, '操作失败')
   }
 }
 
@@ -328,7 +328,7 @@ async function translateForLanguage(lang: Language, mode: 'selected' | 'missing'
   }
   await translationStore.startTranslation(items, [lang])
   const p = translationStore.progress
-  ElMessage.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
+  toast.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
 }
 
 async function translateForItem(itemName: string, mode: 'missing' | 'all') {
@@ -346,12 +346,12 @@ async function translateForItem(itemName: string, mode: 'missing' | 'all') {
     return !v || v.length === 0
   })
   if (target.length === 0) {
-    ElMessage.info('无可翻译目标语言')
+    toast.info('无可翻译目标语言')
     return
   }
   await translationStore.startTranslation(items, target)
   const p = translationStore.progress
-  ElMessage.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
+  toast.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
 }
 
 // 单元格双击进入编辑或数组弹窗（整格双击）

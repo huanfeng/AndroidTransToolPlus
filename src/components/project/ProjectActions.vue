@@ -16,7 +16,8 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElLoading } from 'element-plus'
+import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
 import { FolderOpened, CloseBold, Document } from '@element-plus/icons-vue'
 
@@ -28,7 +29,7 @@ async function onOpen() {
     const loading = ElLoading.service({ lock: true, text: '加载项目中...' })
     try {
       await projectStore.loadProject()
-      ElMessage.success('项目已打开')
+    toast.success('项目已打开')
     } catch {
       // error toast 由 store 内日志处理
     } finally {
@@ -42,9 +43,9 @@ async function onSave() {
     const loading = ElLoading.service({ lock: true, text: '保存中...' })
     await projectStore.saveProject()
     loading.close()
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    toast.fromError(e, '保存失败')
   }
 }
 </script>

@@ -51,7 +51,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElLoading } from 'element-plus'
+import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
@@ -89,9 +90,9 @@ async function reloadFile() {
     const loading = ElLoading.service({ lock: true, text: '重载中...' })
     await projectStore.reloadSelectedFile()
     loading.close()
-    ElMessage.success('文件已重新加载')
+    toast.success('文件已重新加载')
   } catch (e: any) {
-    ElMessage.error(e?.message || '重载失败')
+    toast.fromError(e, '重载失败')
   }
 }
 
@@ -101,9 +102,9 @@ async function saveCurrentFile() {
     const loading = ElLoading.service({ lock: true, text: '保存中...' })
     await projectStore.saveSelectedFile()
     loading.close()
-    ElMessage.success('已保存当前文件')
+    toast.success('已保存当前文件')
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    toast.fromError(e, '保存失败')
   }
 }
 
@@ -129,10 +130,10 @@ async function confirmBatchTranslate() {
       configStore.update('autoRetry', prev)
     }
     const p = translationStore.progress
-    ElMessage.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
+    toast.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
     batchDialogVisible.value = false
   } catch (e: any) {
-    ElMessage.error(e?.message || '翻译失败')
+    toast.fromError(e, '翻译失败')
   }
 }
 

@@ -75,7 +75,7 @@ import { computed, ref, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
 import { Language, getAllLanguages, getLanguageName, getLanguageInfo } from '@/models/language'
-import { ElMessage } from 'element-plus'
+import toast from '@/utils/toast'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ (e: 'update:visible', v: boolean): void }>()
@@ -129,9 +129,9 @@ function moveDown(idx: number) {
 async function onTest() {
   try {
     const ok = await translationStore.testConnection()
-    ElMessage[ok ? 'success' : 'error'](ok ? '连接成功' : '连接失败')
+    ok ? toast.success('连接成功') : toast.error('连接失败')
   } catch (e: any) {
-    ElMessage.error(e?.message || '测试失败')
+    toast.fromError(e, '测试失败')
   }
 }
 
@@ -141,10 +141,10 @@ async function onSave() {
     const langs: Language[] = [Language.DEF, ...orderedNonDefault.value]
     configStore.update('enabledLanguages', langs)
     await configStore.save()
-    ElMessage.success('设置已保存')
+    toast.success('设置已保存')
     emit('update:visible', false)
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    toast.fromError(e, '保存失败')
   }
 }
 </script>
