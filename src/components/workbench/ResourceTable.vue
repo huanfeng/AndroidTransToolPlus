@@ -5,9 +5,20 @@
       <div class="table-inner">
         <div class="table-toolbar">
           <el-input v-model="filterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 280px" />
+          <el-divider direction="vertical" />
+          <el-popover placement="bottom-start" trigger="click">
+            <template #reference>
+              <el-button size="small">筛选</el-button>
+            </template>
+            <div style="display:flex; flex-direction:column; gap:6px; min-width:180px;">
+              <el-checkbox v-model="filterIncomplete">仅未完成翻译</el-checkbox>
+              <el-checkbox v-model="filterUntranslatable">仅不可翻译</el-checkbox>
+            </div>
+          </el-popover>
         </div>
         <div class="table-scroll">
-          <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu">
+          <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu" @cell-dblclick="onCellDblClick" @selection-change="onSelectionChange">
+            <el-table-column type="selection" width="48" fixed />
             <el-table-column prop="name" label="Key" width="260" fixed />
             <el-table-column label="可翻译" width="90">
               <template #default="{ row }">
@@ -16,32 +27,33 @@
             </el-table-column>
             <el-table-column :label="langName(Language.DEF)" min-width="220">
               <template #default="{ row }">
-                <span v-if="!isEditing(row.name, Language.DEF)" class="text-ellipsis" :title="getCellValue(row, Language.DEF)" @dblclick="startEdit(row.name, Language.DEF, row.type)">{{ getCellValue(row, Language.DEF) }}</span>
+                <span v-if="!isEditing(row.name, Language.DEF)" :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']" :title="getCellValue(row, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
                 <el-input
                   v-else-if="row.type==='string'"
                   v-model="editable[row.name + ':' + Language.DEF]"
                   size="small"
+                  :ref="setEditRef"
                   @change="(val: string) => onEdit(row.name, Language.DEF, val)"
                   @keydown.enter.prevent="commitEdit()"
                   @keydown.esc="cancelEdit()"
                   @blur="stopEdit()"
                 />
-                <span v-else class="text-ellipsis" @dblclick="openArrayEditor(row.name, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
+                <span v-else :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']">{{ getCellValue(row, Language.DEF) }}</span>
               </template>
             </el-table-column>
             <el-table-column v-for="l in targetLangs" :key="l" :label="langName(l)" min-width="220">
               <template #default="{ row }">
                 <template v-if="row.type === 'string'">
                   <template v-if="row.translatable">
-                    <span v-if="!isEditing(row.name, l)" class="text-ellipsis" :title="getCellValue(row, l)" @dblclick="startEdit(row.name, l, row.type)">{{ getCellValue(row, l) || '—' }}</span>
-                    <el-input v-else v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" @keydown.enter.prevent="commitEdit()" @keydown.esc="cancelEdit()" @blur="stopEdit()" />
+                    <span v-if="!isEditing(row.name, l)" :class="['text-ellipsis', isCellDirty(row.name, l) ? 'dirty' : '']" :title="getCellValue(row, l)">{{ getCellValue(row, l) || '—' }}</span>
+                    <el-input v-else v-model="editable[row.name + ':' + l]" size="small" :ref="setEditRef" @change="(val: string) => onEdit(row.name, l, val)" @keydown.enter.prevent="commitEdit()" @keydown.esc="cancelEdit()" @blur="stopEdit()" />
                   </template>
                   <template v-else>
                     <span class="muted">—</span>
                   </template>
                 </template>
                 <template v-else>
-                  <span class="text-ellipsis" :title="getCellValue(row, l)" @dblclick="openArrayEditor(row.name, l)">{{ getCellValue(row, l) }}</span>
+                  <span :class="['text-ellipsis', isCellDirty(row.name, l) ? 'dirty' : '']" :title="getCellValue(row, l)">{{ getCellValue(row, l) }}</span>
                 </template>
               </template>
             </el-table-column>
@@ -77,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
@@ -93,6 +105,10 @@ const configStore = useConfigStore()
 const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
 const filterText = ref('')
+const filterIncomplete = ref(false)
+const filterUntranslatable = ref(false)
+const selection = ref<any[]>([])
+const editRef = ref<any>(null)
 
 const rows = computed(() => {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return [] as ResItem[]
@@ -107,12 +123,27 @@ const page = ref(1)
 const pageSize = ref(20)
 const filteredRows = computed(() => {
   const q = filterText.value.trim().toLowerCase()
-  if (!q) return rows.value
-  return rows.value.filter(r => {
-    const keyHit = r.name.toLowerCase().includes(q)
-    const def = getCellValue(r, Language.DEF).toLowerCase()
-    return keyHit || def.includes(q)
-  })
+  let list = rows.value
+  if (q) {
+    list = list.filter(r => {
+      const keyHit = r.name.toLowerCase().includes(q)
+      const def = getCellValue(r, Language.DEF).toLowerCase()
+      return keyHit || def.includes(q)
+    })
+  }
+  if (filterUntranslatable.value) {
+    list = list.filter(r => !r.translatable)
+  }
+  if (filterIncomplete.value) {
+    list = list.filter(r => {
+      if (!r.translatable) return false
+      return targetLangs.value.some(l => {
+        const v = getCellValue(r, l)
+        return !v || v.length === 0
+      })
+    })
+  }
+  return list
 })
 const pagedRows = computed(() => {
   const start = (page.value - 1) * pageSize.value
@@ -135,6 +166,9 @@ function getCellValue(row: ResItem, lang: Language): string {
   const v = item?.valueMap.get(lang)
   return typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : ''
 }
+
+watch(filterText, () => { page.value = 1 })
+watch([filterIncomplete, filterUntranslatable], () => { page.value = 1 })
 
 function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }
 function isEditing(itemName: string, lang: Language) { return editing.value === keyFor(itemName, lang) }
@@ -221,6 +255,41 @@ function openArrayEditor(itemName: string, lang: Language) {
   showArrayEdit.value = true
 }
 
+// 单元格双击进入编辑或数组弹窗（整格双击）
+function onCellDblClick(row: any, column: any, _cell: HTMLElement, _event: MouseEvent) {
+  const label: string = column.label
+  if (!label) return
+  // 识别语言
+  let lang: Language | null = null
+  if (label === langName(Language.DEF)) {
+    lang = Language.DEF
+  } else {
+    lang = targetLangs.value.find(l => label.includes(langName(l))) || null
+  }
+  if (!lang) return
+  if (row.type === 'string') startEdit(row.name, lang, row.type)
+  else openArrayEditor(row.name, lang)
+}
+
+function setEditRef(el: any) {
+  if (el && typeof el.focus === 'function') {
+    // 确保渲染后自动聚焦
+    requestAnimationFrame(() => {
+      try { el.focus() } catch {}
+    })
+  }
+}
+
+function onSelectionChange(rows: any[]) {
+  selection.value = rows
+  projectStore.updateSelectedItems(rows.map(r => r.name))
+}
+
+function isCellDirty(itemName: string, lang: Language): boolean {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
+  return projectStore.selectedXmlData.isDirty(projectStore.selectedXmlFile, lang, itemName)
+}
+
 </script>
 
 <style scoped>
@@ -228,5 +297,7 @@ function openArrayEditor(itemName: string, lang: Language) {
 .table-inner { height: 100%; display: flex; flex-direction: column; }
 .table-scroll { flex: 1; min-height: 0; }
 :deep(.el-table) { --el-table-header-bg-color: var(--el-fill-color-light); }
-.pagination { padding: 8px 8px 0; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
+.pagination { padding: 12px; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
+.table-toolbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--el-border-color); }
+.dirty { color: var(--el-color-danger); }
 </style>

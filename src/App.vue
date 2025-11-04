@@ -80,6 +80,6 @@ function applyTheme(theme: 'light' | 'dark') {
 .app-main { padding: 0; }
 .workbench { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .workbench-table { flex: 1; min-height: 0; padding: 0; overflow: hidden; }
-.app-footer { border-top: 1px solid var(--el-border-color); padding: 0; height: 220px; }
+.app-footer { border-top: 1px solid var(--el-border-color); padding: 8px 0; height: 220px; }
 .app-body { min-height: 0; }
 </style>

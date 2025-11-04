@@ -7,6 +7,7 @@ import type { DirectoryHandle, FileHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
 import { Language, getLanguageByValuesDirName } from '@/models/language'
 import type { ResItem } from '@/models/resource'
+import { createResItem } from '@/models/resource'
 import { parseXml } from '../xml/parser'
 import { generateXml } from '../xml/generator'
 import { getValuesDirs, fileExists, getOrCreateValuesDir } from './scanner'
@@ -31,6 +32,7 @@ export class XmlData {
   private relativePath: string
   private xmlFileNames: string[]
   private dataMap: Map<string, Map<Language, XmlFileData>> = new Map()
+  private dirtyKeys: Set<string> = new Set()
 
   constructor(
     resHandle: DirectoryHandle,
@@ -129,6 +131,29 @@ export class XmlData {
     return this.dataMap.get(fileName)?.get(language)
   }
 
+  private makeDirtyKey(fileName: string, language: Language, itemName: string): string {
+    return `${fileName}||${language}||${itemName}`
+  }
+
+  isDirty(fileName: string, language: Language, itemName: string): boolean {
+    return this.dirtyKeys.has(this.makeDirtyKey(fileName, language, itemName))
+  }
+
+  hasDirty(fileName: string, language?: Language): boolean {
+    const prefix = language ? `${fileName}||${language}||` : `${fileName}||`
+    for (const k of this.dirtyKeys) {
+      if (k.startsWith(prefix)) return true
+    }
+    return false
+  }
+
+  private clearDirtyFor(fileName: string, language: Language): void {
+    const prefix = `${fileName}||${language}||`
+    for (const k of Array.from(this.dirtyKeys)) {
+      if (k.startsWith(prefix)) this.dirtyKeys.delete(k)
+    }
+  }
+
   /**
    * 合并所有文件的资源项（按资源名）
    * 返回所有资源项的合并视图
@@ -185,9 +210,19 @@ export class XmlData {
     const data = languageDataMap.get(language)
     if (!data) return
 
-    const item = data.items.get(itemName)
+    let item = data.items.get(itemName)
+    if (!item) {
+      // 如果目标语言不存在该项，则按照默认语言的类型和 translatable 创建
+      const defItem = languageDataMap.get(Language.DEF)?.items.get(itemName)
+      if (defItem) {
+        item = createResItem(defItem.type, defItem.name, defItem.translatable)
+        data.items.set(itemName, item)
+      }
+    }
+
     if (item) {
       item.setValue(language, value)
+      this.dirtyKeys.add(this.makeDirtyKey(fileName, language, itemName))
     }
   }
 
@@ -236,6 +271,9 @@ export class XmlData {
       )
       data.fileHandle = fileHandle
     }
+
+    // 清除对应语言的脏标记
+    this.clearDirtyFor(fileName, language)
   }
 
   /**

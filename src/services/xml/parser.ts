@@ -113,10 +113,13 @@ function parseArrayElements(
       const itemElements = Array.isArray(element.item) ? element.item : [element.item]
       for (const itemElement of itemElements) {
         let value = ''
-        if (itemElement && typeof itemElement === 'object' && itemElement['#text'] !== undefined) {
-          value = String(itemElement['#text'])
+        if (itemElement && typeof itemElement === 'object' && (itemElement as any)['#text'] !== undefined) {
+          value = String((itemElement as any)['#text'])
         } else if (typeof itemElement === 'string') {
           value = itemElement
+        } else if (typeof itemElement === 'number' || typeof itemElement === 'boolean') {
+          // 处理 fast-xml-parser 将纯数字/布尔解析为非字符串的情况
+          value = String(itemElement)
         }
         values.push(trimQuotes(value))
       }

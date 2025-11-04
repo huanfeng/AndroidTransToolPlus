@@ -9,6 +9,7 @@ import type { DirectoryHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
 import { scanProjectResDirs, type ResDirInfo } from '@/services/project/scanner'
 import { XmlData } from '@/services/project/xmldata'
+import { Language } from '@/models/language'
 import { useLogStore } from './log'
 
 /**
@@ -42,6 +43,7 @@ export const useProjectStore = defineStore('project', () => {
   const error = ref<string | null>(null)
   const selectedResDir = ref<string | null>(null) // 当前选中的 res 目录
   const selectedXmlFile = ref<string | null>(null) // 当前选中的 XML 文件
+  const selectedItemNames = ref<string[]>([]) // 表格当前选中的条目名
 
   // 计算属性
   const isIdle = computed(() => state.value === ProjectState.IDLE)
@@ -295,6 +297,34 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 仅保存当前选中的 XML 文件（只保存有修改的语言）
+   */
+  async function saveSelectedFile(): Promise<void> {
+    if (!selectedXmlData.value || !selectedXmlFile.value) {
+      throw new Error('No file selected')
+    }
+    const fileName = selectedXmlFile.value
+    const xml = selectedXmlData.value
+    const dataMap = xml.getFileData(fileName)
+    if (!dataMap) return
+
+    const languages = Array.from(dataMap.keys())
+    const errors: Array<{ language: Language; error: any }> = []
+    for (const lang of languages) {
+      try {
+        if (xml.hasDirty(fileName, lang)) {
+          await xml.saveFile(fileName, lang)
+        }
+      } catch (e) {
+        errors.push({ language: lang, error: e })
+      }
+    }
+    if (errors.length > 0) {
+      throw new Error(`Failed to save ${fileName}: ${errors.map(e => String(e.language)).join(', ')}`)
+    }
+  }
+
+  /**
    * 关闭项目
    */
   function closeProject(): void {
@@ -337,7 +367,13 @@ export const useProjectStore = defineStore('project', () => {
     }
 
     selectedXmlFile.value = fileName
+    selectedItemNames.value = []
     logStore.debug(`Selected XML file: ${fileName}`)
+  }
+
+  /** 更新表格选中项 */
+  function updateSelectedItems(names: string[]): void {
+    selectedItemNames.value = names
   }
 
   /**
@@ -373,6 +409,7 @@ export const useProjectStore = defineStore('project', () => {
     error,
     selectedResDir,
     selectedXmlFile,
+    selectedItemNames,
 
     // 计算属性
     isIdle,
@@ -392,9 +429,11 @@ export const useProjectStore = defineStore('project', () => {
     loadResDir,
     saveProject,
     saveResDir,
+    saveSelectedFile,
     closeProject,
     selectResDir,
     selectXmlFile,
+    updateSelectedItems,
     reloadSelectedFile,
   }
 })
