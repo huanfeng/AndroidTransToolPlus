@@ -26,8 +26,8 @@
           </el-form-item>
           <el-form-item label="主题">
             <el-radio-group v-model="form.theme">
-              <el-radio-button label="light">浅色</el-radio-button>
-              <el-radio-button label="dark">深色</el-radio-button>
+              <el-radio-button value="light">浅色</el-radio-button>
+              <el-radio-button value="dark">深色</el-radio-button>
             </el-radio-group>
           </el-form-item>
           <div style="padding: 8px 0;">
