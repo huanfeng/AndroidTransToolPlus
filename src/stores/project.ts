@@ -44,6 +44,7 @@ export const useProjectStore = defineStore('project', () => {
   const selectedResDir = ref<string | null>(null) // 当前选中的 res 目录
   const selectedXmlFile = ref<string | null>(null) // 当前选中的 XML 文件
   const selectedItemNames = ref<string[]>([]) // 表格当前选中的条目名
+  const dataVersion = ref(0) // 数据变更版本号（懒加载/重载后触发视图刷新）
 
   // 计算属性
   const isIdle = computed(() => state.value === ProjectState.IDLE)
@@ -185,25 +186,9 @@ export const useProjectStore = defineStore('project', () => {
     try {
       logStore.info('Loading project data...')
 
-      const errors: string[] = []
+      // 懒加载策略：打开项目时不加载内容，仅扫描目录和文件列表
 
-      // 加载所有 XmlData
-      for (const [relativePath, xmlData] of project.value.xmlDataMap) {
-        try {
-          logStore.debug(`Loading ${relativePath}...`)
-          await xmlData.loadAll()
-        } catch (err: any) {
-          const errMsg = `Failed to load ${relativePath}: ${err.message}`
-          logStore.error(errMsg)
-          errors.push(errMsg)
-        }
-      }
-
-      if (errors.length > 0) {
-        logStore.warning(`Loaded with ${errors.length} error(s)`)
-      } else {
-        logStore.info('Project loaded successfully')
-      }
+      logStore.info('Project ready (lazy loading enabled)')
 
       state.value = ProjectState.LOADED
     } catch (err: any) {
@@ -228,13 +213,27 @@ export const useProjectStore = defineStore('project', () => {
     }
 
     try {
-      logStore.info(`Loading ${relativePath}...`)
-      await xmlData.loadAll()
-      logStore.info(`Loaded ${relativePath}`)
+      // 目录级加载取消，保留方法以兼容旧调用
+      logStore.info(`Skip eager loading for ${relativePath} (lazy mode)`)
     } catch (err: any) {
       logStore.error(`Failed to load ${relativePath}`, err)
       throw err
     }
+  }
+
+  /**
+   * 按需加载当前选中的 XML 文件
+   */
+  async function loadSelectedFile(): Promise<void> {
+    if (!selectedXmlData.value || !selectedXmlFile.value) {
+      throw new Error('No file selected')
+    }
+    const xml = selectedXmlData.value
+    const file = selectedXmlFile.value
+    const exists = xml.getFileData(file)
+    if (exists) return
+    await xml.loadFile(file)
+    dataVersion.value++
   }
 
   /**
@@ -387,6 +386,7 @@ export const useProjectStore = defineStore('project', () => {
     try {
       logStore.info(`Reloading ${selectedXmlFile.value}...`)
       await selectedXmlData.value.reloadFile(selectedXmlFile.value)
+      dataVersion.value++
       logStore.info(`Reloaded ${selectedXmlFile.value}`)
     } catch (err: any) {
       logStore.error(`Failed to reload ${selectedXmlFile.value}`, err)
@@ -419,6 +419,7 @@ export const useProjectStore = defineStore('project', () => {
     hasError,
     hasProject,
     selectedXmlData,
+    dataVersion,
     projectStats,
     selectedFileStats,
 
@@ -430,6 +431,7 @@ export const useProjectStore = defineStore('project', () => {
     saveProject,
     saveResDir,
     saveSelectedFile,
+    loadSelectedFile,
     closeProject,
     selectResDir,
     selectXmlFile,

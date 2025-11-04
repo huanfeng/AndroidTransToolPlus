@@ -128,6 +128,8 @@ const filterUntranslatable = ref(false)
 const selection = ref<any[]>([])
 
 const rows = computed(() => {
+  // 依赖数据版本，按需加载完成后刷新
+  void projectStore.dataVersion
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return [] as ResItem[]
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
   if (!fileMap) return [] as ResItem[]

@@ -115,6 +115,52 @@ export class XmlData {
   }
 
   /**
+   * 按需加载单个 XML 文件（所有语言）
+   */
+  async loadFile(fileName: string): Promise<void> {
+    const fs = getFileSystemAdapter()
+    const valuesDirs = await getValuesDirs(this.resHandle)
+
+    const languageDataMap = new Map<Language, XmlFileData>()
+
+    for (const [valuesDirName, valuesHandle] of valuesDirs) {
+      const language = getLanguageByValuesDirName(valuesDirName)
+      if (!language) continue
+
+      try {
+        const exists = await fileExists(valuesHandle, fileName)
+        if (!exists) {
+          languageDataMap.set(language, {
+            fileName,
+            language,
+            valuesDirName,
+            items: new Map(),
+          })
+          continue
+        }
+
+        const fileHandle = await valuesHandle.getFileHandle(fileName)
+        const content = await fs.readFile(fileHandle)
+        const items = parseXml(content, language)
+
+        languageDataMap.set(language, {
+          fileName,
+          language,
+          valuesDirName,
+          items,
+          fileHandle,
+        })
+      } catch (error) {
+        console.warn(`Failed to load ${valuesDirName}/${fileName}:`, error)
+      }
+    }
+
+    if (languageDataMap.size > 0) {
+      this.dataMap.set(fileName, languageDataMap)
+    }
+  }
+
+  /**
    * 获取指定文件的所有语言数据
    */
   getFileData(fileName: string): Map<Language, XmlFileData> | undefined {

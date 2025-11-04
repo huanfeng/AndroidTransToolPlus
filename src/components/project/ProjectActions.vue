@@ -26,15 +26,8 @@ const projectStore = useProjectStore()
 async function onOpen() {
   const ok = await projectStore.openProject()
   if (ok) {
-    const loading = ElLoading.service({ lock: true, text: '加载项目中...' })
-    try {
-      await projectStore.loadProject()
+    // 懒加载模式：扫描完目录即可使用
     toast.success('项目已打开')
-    } catch {
-      // error toast 由 store 内日志处理
-    } finally {
-      loading.close()
-    }
   }
 }
 

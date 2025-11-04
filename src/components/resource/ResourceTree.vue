@@ -72,14 +72,26 @@ function fileLabel(resPath: string, fileName: string): string {
 }
 
 function onNodeClick(node: TreeNode) {
-  if (node.type === 'res') {
-    projectStore.selectResDir(node.id)
-    const loading = ElLoading.service({ lock: true, text: '加载目录中...' })
-    projectStore.loadResDir(node.id).catch(() => {}).finally(() => loading.close())
-  } else if (node.type === 'file') {
-    const [resPath, fileName] = [node.id.substring(0, node.id.lastIndexOf('/')), node.fileName!]
-    projectStore.selectResDir(resPath)
-    projectStore.selectXmlFile(fileName)
+  try {
+    if (node.type === 'res') {
+      // 仅选择目录，不再触发目录级加载
+      projectStore.selectResDir(node.id)
+    } else if (node.type === 'file') {
+      const [resPath, fileName] = [node.id.substring(0, node.id.lastIndexOf('/')), node.fileName!]
+      projectStore.selectResDir(resPath)
+      projectStore.selectXmlFile(fileName)
+      const loading = ElLoading.service({ lock: true, text: '加载文件中...' })
+      const fn: any = (projectStore as any).loadSelectedFile
+      if (typeof fn === 'function') {
+        fn.call(projectStore)
+          .catch(() => {})
+          .finally(() => loading.close())
+      } else {
+        loading.close()
+      }
+    }
+  } catch {
+    // swallow to avoid unhandled error in ElTree native handler
   }
 }
 </script>
