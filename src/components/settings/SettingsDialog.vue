@@ -91,7 +91,6 @@ const form = computed({
 const allLangs = getAllLanguages()
 const defLang = Language.DEF
 const nonDefaultLangs = allLangs.filter(l => l !== Language.DEF)
-function langName(l: Language) { return getLanguageName(l, 'cn') }
 function langLabel(l: Language) { const info = getLanguageInfo(l); return `${getLanguageName(l, 'cn')} (${info.androidCode})` }
 
 // 启用语言（不包含默认）

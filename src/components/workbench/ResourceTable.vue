@@ -4,17 +4,14 @@
     <template v-else>
       <div class="table-inner">
         <div class="table-toolbar">
-          <el-input v-model="filterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 280px" />
-          <el-divider direction="vertical" />
-          <el-popover placement="bottom-start" trigger="click">
-            <template #reference>
-              <el-button size="small">筛选</el-button>
+          <el-input v-model="filterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 280px">
+            <template #prefix>
+              <el-icon><Search /></el-icon>
             </template>
-            <div style="display:flex; flex-direction:column; gap:6px; min-width:180px;">
-              <el-checkbox v-model="filterIncomplete">仅未完成翻译</el-checkbox>
-              <el-checkbox v-model="filterUntranslatable">仅不可翻译</el-checkbox>
-            </div>
-          </el-popover>
+          </el-input>
+          <el-divider direction="vertical" />
+          <el-check-tag :checked="filterIncomplete" @change="filterIncomplete = !filterIncomplete">未完成</el-check-tag>
+          <el-check-tag :checked="filterUntranslatable" @change="filterUntranslatable = !filterUntranslatable">不可翻译</el-check-tag>
           <div class="toolbar-spacer"></div>
           <el-tag size="small" type="info">筛选: {{ filteredRows.length }}</el-tag>
           <el-tag size="small" type="success" style="margin-left:6px;">选中: {{ selection.length }}</el-tag>
@@ -45,6 +42,9 @@
               </template>
             </el-table-column>
             <el-table-column v-for="l in targetLangs" :key="l" :label="langHeader(l)" min-width="220">
+              <template #header>
+                <span class="lang-header" @contextmenu.prevent="onLangHeaderContextMenu(l, $event)">{{ langHeader(l) }}</span>
+              </template>
               <template #default="{ row }">
                 <template v-if="row.type === 'string'">
                   <template v-if="row.translatable">
@@ -80,8 +80,22 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="ai">AI 翻译此单元格</el-dropdown-item>
-            <el-dropdown-item divided command="copy">复制内容</el-dropdown-item>
+            <!-- 单元格菜单 -->
+            <template v-if="ctxType==='cell'">
+              <el-dropdown-item command="ai">AI 翻译此单元格</el-dropdown-item>
+              <el-dropdown-item divided command="copy">复制内容</el-dropdown-item>
+            </template>
+            <!-- 语言标题菜单 -->
+            <template v-else-if="ctxType==='lang-header'">
+              <el-dropdown-item command="lang:selected">翻译此语言-已选中</el-dropdown-item>
+              <el-dropdown-item command="lang:missing">翻译此语言-未翻译</el-dropdown-item>
+              <el-dropdown-item divided command="lang:all">翻译此语言-所有</el-dropdown-item>
+            </template>
+            <!-- Key 单元格菜单 -->
+            <template v-else>
+              <el-dropdown-item command="item:missing">翻译此条目-未翻译</el-dropdown-item>
+              <el-dropdown-item divided command="item:all">翻译此条目-所有</el-dropdown-item>
+            </template>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -100,6 +114,7 @@ import type { ResItem } from '@/models/resource'
 import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
 import { ElMessage } from 'element-plus'
 import ArrayEditDialog from './ArrayEditDialog.vue'
+import { Search } from '@element-plus/icons-vue'
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
@@ -111,7 +126,6 @@ const filterText = ref('')
 const filterIncomplete = ref(false)
 const filterUntranslatable = ref(false)
 const selection = ref<any[]>([])
-const editRef = ref<any>(null)
 
 const rows = computed(() => {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return [] as ResItem[]
@@ -220,14 +234,23 @@ function onEdit(itemName: string, lang: Language, val: string) {
 }
 
 const ctxMenu = ref()
-const ctxPayload = ref<{ itemName: string; lang: Language; value: string } | null>(null)
+const ctxPayload = ref<{ itemName?: string; lang?: Language; value?: string } | null>(null)
+const ctxType = ref<'cell' | 'lang-header' | 'key'>('cell')
 
 function onCellContextMenu(row: any, column: any, _cell: HTMLElement, event: MouseEvent) {
+  event.preventDefault()
   // Only for target columns
   const label: string = column.label
-  const lang = targetLangs.value.find(l => label.includes(getLanguageName(l, 'cn')))
-  if (!lang) return
-  ctxPayload.value = { itemName: row.name, lang, value: getCellValue(row, lang) }
+  if (column.property === 'name') {
+    // Key cell
+    ctxType.value = 'key'
+    ctxPayload.value = { itemName: row.name }
+  } else {
+    const lang = targetLangs.value.find(l => label.includes(getLanguageName(l, 'cn')))
+    if (!lang) return
+    ctxType.value = 'cell'
+    ctxPayload.value = { itemName: row.name, lang, value: getCellValue(row, lang) }
+  }
   // show dropdown at cursor
   const dropdown = (ctxMenu.value as any)
   dropdown.handleOpen()
@@ -239,19 +262,32 @@ function onCellContextMenu(row: any, column: any, _cell: HTMLElement, event: Mou
 
 async function onMenu(cmd: string) {
   if (!ctxPayload.value) return
-  const { itemName, lang, value } = ctxPayload.value
-  if (cmd === 'copy') {
-    try {
-      await navigator.clipboard.writeText(value || '')
+  const payload = ctxPayload.value
+  try {
+    if (cmd === 'copy' && payload.value !== undefined) {
+      await navigator.clipboard.writeText(payload.value || '')
       ElMessage.success('已复制')
-    } catch {}
-  } else if (cmd === 'ai') {
-    try {
-      await translationStore.translateSingle(itemName, lang)
-      ElMessage.success('已翻译')
-    } catch (e: any) {
-      ElMessage.error(e?.message || '翻译失败')
+      return
     }
+    if (cmd === 'ai' && payload.itemName && payload.lang) {
+      await translationStore.translateSingle(payload.itemName, payload.lang)
+      ElMessage.success('已翻译')
+      return
+    }
+    // Header language actions
+    if (cmd.startsWith('lang:') && payload.lang) {
+      const mode = cmd.split(':')[1] as 'selected' | 'missing' | 'all'
+      await translateForLanguage(payload.lang as Language, mode)
+      return
+    }
+    // Key cell actions
+    if (cmd.startsWith('item:') && payload.itemName) {
+      const mode = cmd.split(':')[1] as 'missing' | 'all'
+      await translateForItem(payload.itemName, mode)
+      return
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
   }
 }
 
@@ -261,6 +297,61 @@ const arrayEditPayload = ref<{ itemName: string; lang: Language } | null>(null)
 function openArrayEditor(itemName: string, lang: Language) {
   arrayEditPayload.value = { itemName, lang }
   showArrayEdit.value = true
+}
+
+function onLangHeaderContextMenu(lang: Language, event: MouseEvent) {
+  event.preventDefault()
+  ctxType.value = 'lang-header'
+  ctxPayload.value = { lang }
+  const dropdown = (ctxMenu.value as any)
+  dropdown.handleOpen()
+  const el = dropdown.$el as HTMLElement
+  el.style.position = 'fixed'
+  el.style.left = event.clientX + 'px'
+  el.style.top = event.clientY + 'px'
+}
+
+async function translateForLanguage(lang: Language, mode: 'selected' | 'missing' | 'all') {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
+  const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+  const def = fileMap?.get(Language.DEF)
+  if (!def) return
+  const selectedSet = new Set(selection.value.map((r: any) => r.name))
+  const items = new Map<string, ResItem>()
+  for (const [name, item] of def.items) {
+    if (mode === 'selected' && !selectedSet.has(name)) continue
+    if (mode === 'missing') {
+      const v = getCellValue(item as any, lang)
+      if (v && v.length > 0) continue
+    }
+    items.set(name, item)
+  }
+  await translationStore.startTranslation(items, [lang])
+  const p = translationStore.progress
+  ElMessage.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
+}
+
+async function translateForItem(itemName: string, mode: 'missing' | 'all') {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
+  const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+  const def = fileMap?.get(Language.DEF)
+  if (!def) return
+  const it = def.items.get(itemName)
+  if (!it) return
+  const items = new Map<string, ResItem>([[itemName, it]])
+  const langs = configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+  const target = langs.filter(l => {
+    if (mode === 'all') return true
+    const v = getCellValue(it as any, l)
+    return !v || v.length === 0
+  })
+  if (target.length === 0) {
+    ElMessage.info('无可翻译目标语言')
+    return
+  }
+  await translationStore.startTranslation(items, target)
+  const p = translationStore.progress
+  ElMessage.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
 }
 
 // 单元格双击进入编辑或数组弹窗（整格双击）

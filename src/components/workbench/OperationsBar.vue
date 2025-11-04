@@ -22,7 +22,7 @@
         <el-button type="primary" @click="applyLangSelection">应用</el-button>
       </template>
     </el-dialog>
-    <el-button size="small" type="primary" @click="batchTranslate" :disabled="!canTranslate || isTranslating">
+    <el-button size="small" type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate || isTranslating">
       批量翻译
     </el-button>
     <div class="toolbar-spacer"></div>
@@ -32,6 +32,21 @@
       <span class="muted" style="margin-left:8px;">{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span>
     </template>
   </div>
+  <el-dialog v-model="batchDialogVisible" title="批量翻译" width="520px">
+    <el-descriptions :column="1" border>
+      <el-descriptions-item label="目标语言数量">{{ selectedLangs.length }}</el-descriptions-item>
+      <el-descriptions-item label="选中条目数">
+        {{ projectStore.selectedItemNames.length || '（未选择，默认全部）' }}
+      </el-descriptions-item>
+    </el-descriptions>
+    <div style="margin-top:12px;">
+      <el-checkbox v-model="updateExisting">更新已翻译部分</el-checkbox>
+    </div>
+    <template #footer>
+      <el-button @click="batchDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="confirmBatchTranslate">开始翻译</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -49,12 +64,13 @@ const configStore = useConfigStore()
 
 const selectedLangs = ref<Language[]>([])
 const langDialogVisible = ref(false)
+const batchDialogVisible = ref(false)
+const updateExisting = ref(true)
 
-const fileStats = computed(() => projectStore.selectedFileStats)
+// removed unused fileStats to satisfy TS build
 
 const allTargetLanguages = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
 
-function langName(l: Language) { return getLanguageName(l, 'cn') }
 function langLabel(l: Language) { const info = getLanguageInfo(l); return `${getLanguageName(l, 'cn')} (${info.androidCode})` }
 
 const canTranslate = computed(() => projectStore.selectedXmlData && projectStore.selectedXmlFile && selectedLangs.value.length > 0)
@@ -91,7 +107,7 @@ async function saveCurrentFile() {
   }
 }
 
-async function batchTranslate() {
+async function confirmBatchTranslate() {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
   try {
     // 仅对当前文件，且仅对表格选中的条目进行翻译（若有选中）
@@ -105,8 +121,16 @@ async function batchTranslate() {
         items.set(name, item)
       }
     }
-    await translationStore.startTranslation(items, selectedLangs.value)
-    ElMessage.success('批量翻译完成')
+    const prev = configStore.config.autoRetry
+    configStore.update('autoRetry', updateExisting.value)
+    try {
+      await translationStore.startTranslation(items, selectedLangs.value)
+    } finally {
+      configStore.update('autoRetry', prev)
+    }
+    const p = translationStore.progress
+    ElMessage.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
+    batchDialogVisible.value = false
   } catch (e: any) {
     ElMessage.error(e?.message || '翻译失败')
   }

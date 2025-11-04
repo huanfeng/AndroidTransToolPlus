@@ -2,18 +2,18 @@
   <div class="sidebar">
     <div class="top">
       <div class="title-row">
-        <el-icon><Monitor /></el-icon>
+        <el-icon><Flag /></el-icon>
         <span class="title">Android Trans Tool Plus</span>
       </div>
       <div class="btn-row">
         <el-button size="small" @click="toggleLog">日志</el-button>
-        <el-button size="small" @click="$emit('open-settings')">
+        <el-button size="small" class="icon-text" @click="$emit('open-settings')">
           <el-icon><Setting /></el-icon>
-          设置
+          <span class="btn-text">设置</span>
         </el-button>
-        <el-button size="small" @click="$emit('open-about')">
+        <el-button size="small" class="icon-text" @click="$emit('open-about')">
           <el-icon><InfoFilled /></el-icon>
-          关于
+          <span class="btn-text">关于</span>
         </el-button>
       </div>
       <el-divider style="margin:8px 0" />
@@ -40,7 +40,7 @@ import ResourceTree from '@/components/resource/ResourceTree.vue'
 import { useProjectStore } from '@/stores/project'
 import { useConfigStore } from '@/stores/config'
 import { computed } from 'vue'
-import { Folder, Monitor, Setting, InfoFilled } from '@element-plus/icons-vue'
+import { Folder, Flag, Setting, InfoFilled } from '@element-plus/icons-vue'
 
 const projectStore = useProjectStore()
 const configStore = useConfigStore()
@@ -58,10 +58,12 @@ function toggleLog() {
 .sidebar { display: flex; flex-direction: column; height: 100%; }
 .top { padding: 8px 8px 0; }
 .title-row { display:flex; align-items:center; gap:8px; font-weight: 600; }
-.btn-row { display:flex; gap:8px; margin-top:6px; }
-.project-info { display:flex; align-items:center; gap:8px; padding: 6px 0 0; font-weight: 600; }
+.btn-row { display:flex; justify-content:center; gap:8px; margin-top:6px; }
+.project-info { display:flex; align-items:center; gap:8px; padding: 6px 0 10px; font-weight: 600; }
 .name { max-width: 220px; }
-.actions { padding: 4px 0; }
+.actions { padding: 4px 0; display:flex; justify-content:center; }
 .tree { flex: 1; min-height: 0; overflow: auto; }
-.status { border-top: 1px solid var(--el-border-color); padding:6px 8px; display:flex; align-items:center; gap:8px; color: var(--ep-text-color-secondary); }
+.status { border-top: 1px solid var(--el-border-color); padding:6px 8px; display:flex; align-items:center; gap:8px; font-size: 12px; color: var(--ep-text-color-placeholder); }
+.icon-text { display: inline-flex; align-items: center; }
+.btn-text { margin-left: 4px; position: relative; top: 0.5px; }
 </style>
