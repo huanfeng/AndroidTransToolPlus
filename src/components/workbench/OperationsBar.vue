@@ -10,11 +10,16 @@
     <el-select v-model="selectedLangs" multiple collapse-tags size="small" placeholder="选择目标语言" style="min-width: 280px;">
       <el-option v-for="l in allTargetLanguages" :key="l" :label="langName(l)" :value="l" />
     </el-select>
-    <el-button size="small" type="primary" @click="batchTranslate" :disabled="!canTranslate">
+    <el-button size="small" type="primary" @click="batchTranslate" :disabled="!canTranslate || isTranslating">
       批量翻译
     </el-button>
     <div class="toolbar-spacer"></div>
     <el-tag size="small" v-if="fileStats">项目: {{ projectStore.projectStats.totalItems }} 项 | 文件: {{ fileStats.totalItems }} 项</el-tag>
+    <template v-if="isTranslating">
+      <el-divider direction="vertical" />
+      <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 160px" />
+      <span class="muted" style="margin-left:8px;">{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span>
+    </template>
   </div>
 </template>
 
@@ -39,6 +44,8 @@ const allTargetLanguages = computed(() => configStore.config.enabledLanguages.fi
 function langName(l: Language) { return getLanguageName(l, 'cn') }
 
 const canTranslate = computed(() => projectStore.selectedXmlData && projectStore.selectedXmlFile && selectedLangs.value.length > 0)
+const isTranslating = computed(() => translationStore.isTranslating)
+const progress = computed(() => translationStore.progress)
 
 async function reloadFile() {
   try {
@@ -67,9 +74,7 @@ async function batchTranslate() {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
   try {
     const merged = projectStore.selectedXmlData.mergeAllItems()
-    const loading = ElLoading.service({ lock: true, text: '翻译中...' })
-    await translationStore.batchTranslate(merged, selectedLangs.value)
-    loading.close()
+    await translationStore.startTranslation(merged, selectedLangs.value)
     ElMessage.success('批量翻译完成')
   } catch (e: any) {
     ElMessage.error(e?.message || '翻译失败')

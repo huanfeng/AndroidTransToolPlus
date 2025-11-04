@@ -75,11 +75,11 @@ function applyTheme(theme: 'light' | 'dark') {
 
 <style scoped>
 .app-shell { height: 100vh; }
-.app-header { border-bottom: 1px solid var(--ep-border-color); }
-.app-aside { border-right: 1px solid var(--ep-border-color); }
+.app-header { border-bottom: 1px solid var(--el-border-color); }
+.app-aside { border-right: 1px solid var(--el-border-color); }
 .app-main { padding: 0; }
-.workbench { display: flex; flex-direction: column; height: 100%; }
-.workbench-table { flex: 1; min-height: 0; padding: 8px 12px 12px; }
-.app-footer { border-top: 1px solid var(--ep-border-color); padding: 0; height: 220px; }
+.workbench { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.workbench-table { flex: 1; min-height: 0; padding: 0; overflow: hidden; }
+.app-footer { border-top: 1px solid var(--el-border-color); padding: 0; height: 220px; }
 .app-body { min-height: 0; }
 </style>

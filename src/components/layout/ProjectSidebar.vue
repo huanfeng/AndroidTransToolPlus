@@ -1,10 +1,11 @@
 <template>
   <div class="sidebar">
+    <ProjectActions class="actions" />
     <div class="project-info">
       <el-icon><Folder /></el-icon>
-      <span class="name text-ellipsis" :title="projectName">{{ projectName || '未打开项目' }}</span>
+      <el-tag v-if="projectName" type="info" effect="light" round>{{ projectName }}</el-tag>
+      <el-tag v-else type="info" effect="light" round>未打开项目</el-tag>
     </div>
-    <ProjectActions class="actions" />
     <el-divider style="margin:8px 0" />
     <ResourceTree class="tree" />
   </div>

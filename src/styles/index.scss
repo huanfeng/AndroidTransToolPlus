@@ -28,15 +28,15 @@ body {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  background-color: var(--ep-bg-color);
-  box-shadow: 0 1px 0 0 var(--ep-border-color);
+  background-color: var(--el-bg-color);
+  box-shadow: 0 1px 0 0 var(--el-border-color);
 }
 
 .el-aside {
   padding: 8px 8px 12px;
   overflow: auto;
-  background-color: var(--ep-fill-color-lighter);
-  border-right: 1px solid var(--ep-border-color);
+  background-color: var(--el-fill-color-lighter);
+  border-right: 1px solid var(--el-border-color);
 }
 
 .el-main {
@@ -44,7 +44,8 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0; /* 使子元素可使用 height:100% */
-  background-color: var(--ep-bg-color);
+  background-color: var(--el-bg-color);
+  overflow: hidden; /* 避免右侧轻微滚动条 */
 }
 
 /* Utility */
@@ -65,10 +66,10 @@ body {
 }
 
 .muted {
-  color: var(--ep-text-color-placeholder);
+  color: var(--el-text-color-placeholder);
 }
 
 .app-footer {
-  background-color: var(--ep-fill-color-light);
-  border-top: 1px solid var(--ep-border-color);
+  background-color: var(--el-fill-color-light);
+  border-top: 1px solid var(--el-border-color);
 }

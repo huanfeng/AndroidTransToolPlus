@@ -3,6 +3,9 @@
     <el-empty v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile" description="请选择左侧 XML 文件" />
     <template v-else>
       <div class="table-inner">
+        <div class="table-toolbar">
+          <el-input v-model="filterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 280px" />
+        </div>
         <div class="table-scroll">
           <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu">
             <el-table-column prop="name" label="Key" width="260" fixed />
@@ -19,6 +22,8 @@
                   v-model="editable[row.name + ':' + Language.DEF]"
                   size="small"
                   @change="(val: string) => onEdit(row.name, Language.DEF, val)"
+                  @keydown.enter.prevent="commitEdit()"
+                  @keydown.esc="cancelEdit()"
                   @blur="stopEdit()"
                 />
                 <span v-else class="text-ellipsis" @dblclick="openArrayEditor(row.name, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
@@ -29,7 +34,7 @@
                 <template v-if="row.type === 'string'">
                   <template v-if="row.translatable">
                     <span v-if="!isEditing(row.name, l)" class="text-ellipsis" :title="getCellValue(row, l)" @dblclick="startEdit(row.name, l, row.type)">{{ getCellValue(row, l) || '—' }}</span>
-                    <el-input v-else v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" @blur="stopEdit()" />
+                    <el-input v-else v-model="editable[row.name + ':' + l]" size="small" @change="(val: string) => onEdit(row.name, l, val)" @keydown.enter.prevent="commitEdit()" @keydown.esc="cancelEdit()" @blur="stopEdit()" />
                   </template>
                   <template v-else>
                     <span class="muted">—</span>
@@ -46,7 +51,7 @@
           <el-pagination
             background
             layout="total, sizes, prev, pager, next, jumper"
-            :total="rows.length"
+            :total="filteredRows.length"
             :current-page="page"
             :page-size="pageSize"
             :page-sizes="[10,20,50,100]"
@@ -87,6 +92,7 @@ const configStore = useConfigStore()
 
 const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
+const filterText = ref('')
 
 const rows = computed(() => {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return [] as ResItem[]
@@ -99,9 +105,18 @@ const rows = computed(() => {
 
 const page = ref(1)
 const pageSize = ref(20)
+const filteredRows = computed(() => {
+  const q = filterText.value.trim().toLowerCase()
+  if (!q) return rows.value
+  return rows.value.filter(r => {
+    const keyHit = r.name.toLowerCase().includes(q)
+    const def = getCellValue(r, Language.DEF).toLowerCase()
+    return keyHit || def.includes(q)
+  })
+})
 const pagedRows = computed(() => {
   const start = (page.value - 1) * pageSize.value
-  return rows.value.slice(start, start + pageSize.value)
+  return filteredRows.value.slice(start, start + pageSize.value)
 })
 
 const targetLangs = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
@@ -129,6 +144,16 @@ function startEdit(itemName: string, lang: Language, type: ResItem['type']) {
   editable[editing.value] = getStringValue(itemName, lang)
 }
 function stopEdit() { editing.value = null }
+function commitEdit() {
+  if (!editing.value) return
+  const [itemName, lang] = editing.value.split(':') as [string, Language]
+  const val = editable[editing.value] ?? ''
+  onEdit(itemName, lang, val)
+  editing.value = null
+}
+function cancelEdit() {
+  editing.value = null
+}
 
 function getStringValue(itemName: string, lang: Language): string {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return ''
@@ -202,6 +227,6 @@ function openArrayEditor(itemName: string, lang: Language) {
 .table-wrap { height: 100%; }
 .table-inner { height: 100%; display: flex; flex-direction: column; }
 .table-scroll { flex: 1; min-height: 0; }
-:deep(.el-table) { --el-table-header-bg-color: var(--ep-fill-color-light); }
-.pagination { padding: 8px 8px 0; border-top: 1px solid var(--ep-border-color); background: var(--ep-bg-color); }
+:deep(.el-table) { --el-table-header-bg-color: var(--el-fill-color-light); }
+.pagination { padding: 8px 8px 0; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
 </style>

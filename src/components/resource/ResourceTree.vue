@@ -61,7 +61,13 @@ function fileLabel(resPath: string, fileName: string): string {
   const xml = projectStore.project?.xmlDataMap.get(resPath)
   if (!xml) return fileName
   const dataMap = xml.getFileData(fileName)
-  const count = dataMap ? dataMap.size : 0
+  // 只统计真实存在的文件（有 fileHandle）
+  let count = 0
+  if (dataMap) {
+    for (const [, data] of dataMap) {
+      if (data.fileHandle) count++
+    }
+  }
   return count > 0 ? `${fileName} (${count})` : fileName
 }
 
