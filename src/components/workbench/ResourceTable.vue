@@ -15,6 +15,9 @@
               <el-checkbox v-model="filterUntranslatable">仅不可翻译</el-checkbox>
             </div>
           </el-popover>
+          <div class="toolbar-spacer"></div>
+          <el-tag size="small" type="info">筛选: {{ filteredRows.length }}</el-tag>
+          <el-tag size="small" type="success" style="margin-left:6px;">选中: {{ selection.length }}</el-tag>
         </div>
         <div class="table-scroll">
           <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu" @cell-dblclick="onCellDblClick" @selection-change="onSelectionChange">
@@ -41,7 +44,7 @@
                 <span v-else :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']">{{ getCellValue(row, Language.DEF) }}</span>
               </template>
             </el-table-column>
-            <el-table-column v-for="l in targetLangs" :key="l" :label="langName(l)" min-width="220">
+            <el-table-column v-for="l in targetLangs" :key="l" :label="langHeader(l)" min-width="220">
               <template #default="{ row }">
                 <template v-if="row.type === 'string'">
                   <template v-if="row.translatable">
@@ -94,7 +97,7 @@ import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
 import type { ResItem } from '@/models/resource'
-import { Language, getLanguageName } from '@/models/language'
+import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
 import { ElMessage } from 'element-plus'
 import ArrayEditDialog from './ArrayEditDialog.vue'
 
@@ -153,6 +156,11 @@ const pagedRows = computed(() => {
 const targetLangs = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
 
 function langName(l: Language) { return getLanguageName(l, 'cn') }
+function langHeader(l: Language) {
+  if (l === Language.DEF) return getLanguageName(l, 'cn')
+  const info = getLanguageInfo(l)
+  return `${getLanguageName(l, 'cn')} (${info.androidCode})`
+}
 
 function getCellValue(row: ResItem, lang: Language): string {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return ''

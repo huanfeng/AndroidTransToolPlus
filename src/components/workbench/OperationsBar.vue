@@ -7,7 +7,7 @@
       保存当前文件
     </el-button>
     <el-divider direction="vertical" />
-    <el-button size="small" @click="langDialogVisible = true">目标语言</el-button>
+    <el-button size="small" @click="langDialogVisible = true">目标语言{{ selectedLangs.length ? `(${selectedLangs.length})` : '' }}</el-button>
     <el-dialog v-model="langDialogVisible" title="选择目标语言" width="520px">
       <div style="display:flex; gap:8px; margin-bottom:8px;">
         <el-button size="small" @click="selectAllLangs">全选</el-button>
@@ -15,7 +15,7 @@
         <el-button size="small" @click="invertLangs">反选</el-button>
       </div>
       <el-checkbox-group v-model="selectedLangs" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
-        <el-checkbox v-for="l in allTargetLanguages" :key="l" :label="l">{{ langName(l) }}</el-checkbox>
+        <el-checkbox v-for="l in allTargetLanguages" :key="l" :label="l">{{ langLabel(l) }}</el-checkbox>
       </el-checkbox-group>
       <template #footer>
         <el-button @click="langDialogVisible = false">取消</el-button>
@@ -26,7 +26,6 @@
       批量翻译
     </el-button>
     <div class="toolbar-spacer"></div>
-    <el-tag size="small" v-if="fileStats">项目: {{ projectStore.projectStats.totalItems }} 项 | 文件: {{ fileStats.totalItems }} 项</el-tag>
     <template v-if="isTranslating">
       <el-divider direction="vertical" />
       <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 160px" />
@@ -41,7 +40,7 @@ import { ElMessage, ElLoading } from 'element-plus'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
-import { Language, getLanguageName } from '@/models/language'
+import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
 import type { ResItem } from '@/models/resource'
 
 const projectStore = useProjectStore()
@@ -56,6 +55,7 @@ const fileStats = computed(() => projectStore.selectedFileStats)
 const allTargetLanguages = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
 
 function langName(l: Language) { return getLanguageName(l, 'cn') }
+function langLabel(l: Language) { const info = getLanguageInfo(l); return `${getLanguageName(l, 'cn')} (${info.androidCode})` }
 
 const canTranslate = computed(() => projectStore.selectedXmlData && projectStore.selectedXmlFile && selectedLangs.value.length > 0)
 const isTranslating = computed(() => translationStore.isTranslating)

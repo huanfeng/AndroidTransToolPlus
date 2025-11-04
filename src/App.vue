@@ -1,18 +1,9 @@
 <template>
   <el-container class="app-shell">
-    <!-- 顶栏 -->
-    <el-header height="48px" class="app-header">
-      <AppHeader
-        @open-settings="showSettings = true"
-        @open-about="showAbout = true"
-        @toggle-log="configStore.update('showLogView', !configStore.config.showLogView)"
-      />
-    </el-header>
-
-    <!-- 主体区域：左侧栏 + 工作区 -->
+    <!-- 主体区域：左侧栏（含顶栏内容） + 工作区 -->
     <el-container class="app-body">
       <el-aside width="280px" class="app-aside">
-        <ProjectSidebar />
+        <ProjectSidebar @open-settings="showSettings = true" @open-about="showAbout = true" />
       </el-aside>
 
       <el-main class="app-main">
@@ -40,7 +31,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
-import AppHeader from '@/components/layout/AppHeader.vue'
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue'
 import OperationsBar from '@/components/workbench/OperationsBar.vue'
 import ResourceTable from '@/components/workbench/ResourceTable.vue'
@@ -75,7 +65,6 @@ function applyTheme(theme: 'light' | 'dark') {
 
 <style scoped>
 .app-shell { height: 100vh; }
-.app-header { border-bottom: 1px solid var(--el-border-color); }
 .app-aside { border-right: 1px solid var(--el-border-color); }
 .app-main { padding: 0; }
 .workbench { display: flex; flex-direction: column; height: 100%; min-height: 0; }
