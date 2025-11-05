@@ -6,7 +6,6 @@
         <span class="title">Android Trans Tool Plus</span>
       </div>
       <div class="btn-row">
-        <el-button size="small" @click="toggleLog">日志</el-button>
         <el-button size="small" class="icon-text" @click="$emit('open-settings')">
           <el-icon><Setting /></el-icon>
           <span class="btn-text">设置</span>
@@ -17,21 +16,23 @@
         </el-button>
       </div>
       <el-divider style="margin:8px 0" />
-      <ProjectActions class="actions" />
       <div class="project-info">
         <el-icon><Folder /></el-icon>
         <el-tag v-if="projectName" type="info" effect="light" round>{{ projectName }}</el-tag>
         <el-tag v-else type="info" effect="light" round>未打开项目</el-tag>
       </div>
+      <ProjectActions class="actions" />
     </div>
     <ResourceTree class="tree" />
     <div class="status">
-      <span>项目: {{ projectStore.projectStats.totalItems }} 项</span>
+      <span>目录: {{ dirCount }}</span>
       <el-divider direction="vertical" />
-      <span>文件: {{ fileStats?.totalItems ?? 0 }} 项</span>
+      <span>资源文件: {{ fileCount }}</span>
+      <div class="toolbar-spacer" />
+      <el-link type="primary" :underline="false" @click="toggleLog">日志</el-link>
     </div>
   </div>
-  
+
 </template>
 
 <script setup lang="ts">
@@ -45,7 +46,14 @@ import { Folder, Flag, Setting, InfoFilled } from '@element-plus/icons-vue'
 const projectStore = useProjectStore()
 const configStore = useConfigStore()
 const projectName = computed(() => projectStore.project?.name || '')
-const fileStats = computed(() => projectStore.selectedFileStats)
+const dirCount = computed(() => projectStore.project?.resDirs.length || 0)
+const fileCount = computed(() => {
+  const p = projectStore.project
+  if (!p) return 0
+  let total = 0
+  for (const rd of p.resDirs) total += rd.xmlFileNames.length
+  return total
+})
 
 defineEmits<{ (e: 'open-settings'): void; (e: 'open-about'): void }>()
 
@@ -63,7 +71,12 @@ function toggleLog() {
 .name { max-width: 220px; }
 .actions { padding: 4px 0; display:flex; justify-content:center; }
 .tree { flex: 1; min-height: 0; overflow: auto; }
-.status { border-top: 1px solid var(--el-border-color); padding:6px 8px; display:flex; align-items:center; gap:8px; font-size: 12px; color: var(--ep-text-color-placeholder); }
+.status { border-top: 1px solid var(--el-border-color); padding:4px 8px; display:flex; align-items:center; gap:6px; font-size: 11px; color: var(--ep-text-color-placeholder); line-height: 1.2; }
 .icon-text { display: inline-flex; align-items: center; }
 .btn-text { margin-left: 4px; position: relative; top: 0.5px; }
+.toolbar-spacer { flex: 1; }
+/* tighten el-link inside status */
+:deep(.status .el-link) { padding: 0; line-height: 1.2; }
+/* ensure sidebar sits flush to bottom */
+.sidebar { padding-bottom: 0; }
 </style>

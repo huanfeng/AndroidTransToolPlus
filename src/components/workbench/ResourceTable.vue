@@ -65,6 +65,7 @@
         <div class="pagination">
           <el-pagination
             background
+            small
             layout="total, sizes, prev, pager, next, jumper"
             :total="filteredRows.length"
             :current-page="page"
@@ -398,7 +399,7 @@ function isCellDirty(itemName: string, lang: Language): boolean {
 .table-inner { height: 100%; display: flex; flex-direction: column; }
 .table-scroll { flex: 1; min-height: 0; }
 :deep(.el-table) { --el-table-header-bg-color: var(--el-fill-color-light); }
-.pagination { padding: 12px; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
+.pagination { padding: 6px 8px; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
 .table-toolbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--el-border-color); }
 .dirty { color: var(--el-color-danger); }
 </style>
