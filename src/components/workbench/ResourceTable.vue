@@ -113,7 +113,7 @@ const editing = ref<string | null>(null)
 const filterText = computed({ get: () => projectStore.tableFilterText, set: v => projectStore.tableFilterText = v })
 const filterIncomplete = computed({ get: () => projectStore.tableFilterIncomplete, set: v => projectStore.tableFilterIncomplete = v })
 const filterUntranslatable = computed({ get: () => projectStore.tableFilterUntranslatable, set: v => projectStore.tableFilterUntranslatable = v })
-const filterTranslated = computed({ get: () => projectStore.tableFilterTranslated, set: v => projectStore.tableFilterTranslated = v })
+const filterEdited = computed({ get: () => projectStore.tableFilterEdited, set: v => projectStore.tableFilterEdited = v })
 const selection = ref<any[]>([])
 
 const rows = computed(() => {
@@ -151,14 +151,12 @@ const filteredRows = computed(() => {
       })
     })
   }
-  if (filterTranslated.value) {
+  if (filterEdited.value) {
     list = list.filter(r => {
-      if (!r.translatable) return false
-      if (targetLangs.value.length === 0) return false
-      return targetLangs.value.every(l => {
-        const v = getCellValue(r, l)
-        return !!v && v.length > 0
-      })
+      // “已编辑” = 任一语言（默认或目标）有未保存修改
+      if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
+      const langs: Language[] = [Language.DEF, ...targetLangs.value]
+      return langs.some(l => projectStore.selectedXmlData!.isDirty(projectStore.selectedXmlFile!, l, r.name))
     })
   }
   return list
@@ -191,7 +189,7 @@ function getCellValue(row: ResItem, lang: Language): string {
 }
 
 watch(filterText, () => { page.value = 1 })
-watch([filterIncomplete, filterUntranslatable, filterTranslated], () => { page.value = 1 })
+watch([filterIncomplete, filterUntranslatable, filterEdited], () => { page.value = 1 })
 watch(() => filteredRows.value.length, (n) => { projectStore.tableFilteredCount = n })
 
 function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }

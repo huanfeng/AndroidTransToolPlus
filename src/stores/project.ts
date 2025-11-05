@@ -50,7 +50,7 @@ export const useProjectStore = defineStore('project', () => {
   const tableFilterText = ref('')
   const tableFilterIncomplete = ref(false)
   const tableFilterUntranslatable = ref(false)
-  const tableFilterTranslated = ref(false)
+  const tableFilterEdited = ref(false)
   const tableFilteredCount = ref(0)
   const tableSelectionCount = ref(0)
 
@@ -435,7 +435,7 @@ export const useProjectStore = defineStore('project', () => {
     tableFilterText,
     tableFilterIncomplete,
     tableFilterUntranslatable,
-    tableFilterTranslated,
+    tableFilterEdited,
     tableFilteredCount,
     tableSelectionCount,
 

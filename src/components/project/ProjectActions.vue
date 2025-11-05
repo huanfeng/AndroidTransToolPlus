@@ -1,15 +1,12 @@
 <template>
   <div class="toolbar">
-    <el-button size="small" type="primary" @click="onOpen" :loading="projectStore.isScanning || projectStore.isLoading">
-      <el-icon><FolderOpened /></el-icon>
+    <el-button size="small" type="primary" :icon="FolderOpened" @click="onOpen" :loading="projectStore.isScanning || projectStore.isLoading">
       打开
     </el-button>
-    <el-button size="small" @click="projectStore.closeProject" :disabled="!projectStore.hasProject">
-      <el-icon><CloseBold /></el-icon>
+    <el-button size="small" :icon="CloseBold" @click="projectStore.closeProject" :disabled="!projectStore.hasProject">
       关闭
     </el-button>
-    <el-button size="small" type="success" @click="onSave" :disabled="!projectStore.isLoaded">
-      <el-icon><Document /></el-icon>
+    <el-button size="small" :icon="Document" type="success" @click="onSave" :disabled="!projectStore.isLoaded">
       保存
     </el-button>
   </div>

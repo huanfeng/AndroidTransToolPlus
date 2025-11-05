@@ -6,14 +6,8 @@
         <span class="title">Android Trans Tool Plus</span>
       </div>
       <div class="btn-row">
-        <el-button size="small" class="icon-text" @click="$emit('open-settings')">
-          <el-icon><Setting /></el-icon>
-          <span class="btn-text">设置</span>
-        </el-button>
-        <el-button size="small" class="icon-text" @click="$emit('open-about')">
-          <el-icon><InfoFilled /></el-icon>
-          <span class="btn-text">关于</span>
-        </el-button>
+        <el-button size="small" :icon="Setting" @click="$emit('open-settings')">设置</el-button>
+        <el-button size="small" :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
       </div>
       <el-divider style="margin:8px 0" />
       <div class="project-info">
@@ -72,8 +66,7 @@ function toggleLog() {
 .actions { padding: 4px 0; display:flex; justify-content:center; }
 .tree { flex: 1; min-height: 0; overflow: auto; }
 .status { border-top: 1px solid var(--el-border-color); padding:4px 8px; display:flex; align-items:center; gap:6px; font-size: 11px; color: var(--ep-text-color-placeholder); line-height: 1.2; }
-.icon-text { display: inline-flex; align-items: center; }
-.btn-text { margin-left: 4px; position: relative; top: 0.5px; }
+/* icon spacing handled by :icon prop */
 .toolbar-spacer { flex: 1; }
 /* tighten el-link inside status */
 :deep(.status .el-link) { padding: 0; line-height: 1.2; }

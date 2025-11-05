@@ -1,19 +1,19 @@
 <template>
   <div class="toolbar ops">
-    <el-button @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
-    <el-button type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile">保存当前文件</el-button>
+    <el-button size="small" @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
+    <el-button size="small" type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile">保存当前文件</el-button>
     <el-divider direction="vertical" />
     <!-- 搜索 / 筛选 放到与操作同一行 -->
-    <el-input v-model="projectStore.tableFilterText" clearable placeholder="搜索 Key / 默认文本" style="max-width: 320px">
+    <el-input v-model="projectStore.tableFilterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 320px">
       <template #prefix>
         <el-icon><Search /></el-icon>
       </template>
     </el-input>
-    <el-checkbox v-model="projectStore.tableFilterIncomplete" border>未完成</el-checkbox>
-    <el-checkbox v-model="projectStore.tableFilterUntranslatable" border>不可翻译</el-checkbox>
-    <el-checkbox v-model="projectStore.tableFilterTranslated" border>已翻译</el-checkbox>
+    <el-checkbox v-model="projectStore.tableFilterIncomplete" size="small" border>未完成</el-checkbox>
+    <el-checkbox v-model="projectStore.tableFilterUntranslatable" size="small" border>不可翻译</el-checkbox>
+    <el-checkbox v-model="projectStore.tableFilterEdited" size="small" border>已编辑</el-checkbox>
     <el-divider direction="vertical" />
-    <el-button @click="langDialogVisible = true">目标语言{{ selectedTargetCount ? `(${selectedTargetCount})` : '' }}</el-button>
+    <el-button size="small" @click="langDialogVisible = true">目标语言{{ selectedTargetCount ? `(${selectedTargetCount})` : '' }}</el-button>
     <el-dialog v-model="langDialogVisible" title="选择目标语言" width="520px">
       <div style="display:flex; gap:8px; margin-bottom:8px;">
         <el-button size="small" @click="selectAllLangs">全选</el-button>
@@ -28,7 +28,7 @@
         <el-button type="primary" @click="applyLangSelection">应用</el-button>
       </template>
     </el-dialog>
-    <el-button type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate || isTranslating">
+    <el-button size="small" type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate || isTranslating">
       批量翻译
     </el-button>
     <div class="toolbar-spacer"></div>
