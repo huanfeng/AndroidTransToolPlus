@@ -74,7 +74,7 @@ const translationStore = useTranslationStore()
 const configStore = useConfigStore()
 
 const selectedLangs = ref<Language[]>([])
-const selectedTargetCount = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF).length)
+const selectedTargetCount = computed(() => configStore.config.targetLanguages.length)
 const langDialogVisible = ref(false)
 const batchDialogVisible = ref(false)
 const updateExisting = ref(true)
@@ -87,7 +87,7 @@ function langLabel(l: Language) { const info = getLanguageInfo(l); return `${get
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
-  const targets = configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+  const targets = configStore.config.targetLanguages
   return hasFile && targets.length > 0
 })
 const isTranslating = computed(() => translationStore.isTranslating)
@@ -95,8 +95,8 @@ const progress = computed(() => translationStore.progress)
 
 watch(langDialogVisible, (v) => {
   if (v) {
-    // 打开时同步当前配置
-    selectedLangs.value = configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+    // 打开时同步目标语言配置（与启用语言分离）
+    selectedLangs.value = configStore.config.targetLanguages.slice()
   }
 })
 
@@ -163,13 +163,14 @@ function invertLangs() {
   selectedLangs.value = allTargetLanguages.value.filter(l => !set.has(l))
 }
 function applyLangSelection() {
-  // 更新配置以便表格列记忆
-  const langs = [Language.DEF, ...selectedLangs.value]
-  configStore.update('enabledLanguages', langs)
+  // 仅更新“目标语言”，不影响“启用语言”（表格列）
+  configStore.update('targetLanguages', selectedLangs.value.slice())
   langDialogVisible.value = false
 }
 </script>
 
 <style scoped>
 .ops { padding: 8px 12px; border-bottom: 1px solid var(--ep-border-color); flex-wrap: wrap; row-gap: 6px; }
+.ops :deep(.el-checkbox) { margin-right: 6px; }
+.ops :deep(.el-checkbox:last-child) { margin-right: 0; }
 </style>

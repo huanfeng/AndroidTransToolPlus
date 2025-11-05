@@ -11,6 +11,7 @@ export interface AppConfig {
   apiToken: string
   httpProxy: string
   enabledLanguages: Language[]
+  targetLanguages: Language[]
   maxItemsPerRequest: number
   autoRetry: boolean
   maxRetries: number
@@ -27,6 +28,7 @@ const DEFAULT_CONFIG: AppConfig = {
   apiToken: '',
   httpProxy: '',
   enabledLanguages: getAllLanguages(),
+  targetLanguages: [],
   maxItemsPerRequest: 20,
   autoRetry: true,
   maxRetries: 3,
