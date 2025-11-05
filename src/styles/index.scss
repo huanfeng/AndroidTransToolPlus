@@ -76,3 +76,71 @@ body {
   background-color: var(--el-fill-color-light);
   border-top: 1px solid var(--el-border-color);
 }
+
+/* src/styles/index.scss */
+
+/* 先引入 Element Plus 的基础样式（如果你的项目已经全局引入，这行可省略） */
+// @import "element-plus/dist/index.css";
+
+/* 现代清爽主题（亮色） */
+:root,
+:root[data-theme="light"] {
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: color-mix(in oklab, var(--el-color-primary), white 30%);
+  --el-color-primary-light-5: color-mix(in oklab, var(--el-color-primary), white 50%);
+  --el-color-primary-light-7: color-mix(in oklab, var(--el-color-primary), white 70%);
+  --el-color-primary-light-8: color-mix(in oklab, var(--el-color-primary), white 80%);
+  --el-color-primary-light-9: color-mix(in oklab, var(--el-color-primary), white 90%);
+  --el-color-primary-dark-2: color-mix(in oklab, var(--el-color-primary), black 20%);
+
+  --el-color-success: #22c55e;
+  --el-color-warning: #f59e0b;
+  --el-color-danger: #ef4444;
+
+  --el-border-radius-base: 12px;
+  --el-border-radius-small: 10px;
+  --el-border-radius-round: 9999px;
+
+  --el-font-size-base: 14px;
+  --el-font-size-medium: 15px;
+  --el-font-size-large: 16px;
+
+  --el-text-color-primary: #0f172a;
+  /* slate-900 */
+  --el-text-color-regular: #334155;
+  /* slate-700 */
+  --el-border-color: #e2e8f0;
+  /* slate-200 */
+
+  --el-bg-color: #ffffff;
+  --el-bg-color-page: #f8fafc;
+  /* slate-50 */
+  --el-bg-color-overlay: #ffffff;
+
+  --el-box-shadow: 0 10px 30px rgba(2, 6, 23, .06);
+  --el-box-shadow-light: 0 6px 18px rgba(2, 6, 23, .05);
+  --el-box-shadow-lighter: 0 2px 10px rgba(2, 6, 23, .04);
+
+  --el-component-size-small: 28px;
+  --el-component-size: 36px;
+  --el-component-size-large: 42px;
+
+  --el-border-color-light: #eaeef3;
+}
+
+/* 暗色主题（可选） */
+:root[data-theme="dark"] {
+  --el-color-primary: #8b93ff;
+  --el-bg-color: #0b1220;
+  --el-bg-color-page: #0b1220;
+  --el-bg-color-overlay: #111827;
+
+  --el-text-color-primary: #e5e7eb;
+  --el-text-color-regular: #cbd5e1;
+  --el-border-color: #1f2937;
+
+  --el-box-shadow: 0 12px 36px rgba(0, 0, 0, .45);
+}
+
+/* 如果只想让某个容器用新风格，可以加容器类选择器： */
+// .modern-theme { /* 覆盖同上面那组变量 */ }
