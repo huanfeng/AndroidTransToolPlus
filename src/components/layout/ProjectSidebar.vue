@@ -10,12 +10,12 @@
         <el-button size="small" :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
       </div>
       <el-divider style="margin:8px 0" />
+      <div><ProjectActions class="actions" /></div>
       <div class="project-info">
         <el-icon><Folder /></el-icon>
         <el-tag v-if="projectName" type="info" effect="light" round>{{ projectName }}</el-tag>
         <el-tag v-else type="info" effect="light" round>未打开项目</el-tag>
       </div>
-      <ProjectActions class="actions" />
     </div>
     <ResourceTree class="tree" />
     <div class="status">
@@ -23,7 +23,7 @@
       <el-divider direction="vertical" />
       <span>资源文件: {{ fileCount }}</span>
       <div class="toolbar-spacer" />
-      <el-link type="primary" :underline="false" @click="toggleLog">日志</el-link>
+      <el-button type="" size="small" :underline="true" @click="toggleLog">日志</el-button>
     </div>
   </div>
 
