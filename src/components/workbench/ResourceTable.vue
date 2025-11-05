@@ -3,19 +3,6 @@
     <el-empty v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile" description="请选择左侧 XML 文件" />
     <template v-else>
       <div class="table-inner">
-        <div class="table-toolbar">
-          <el-input v-model="filterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 280px">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          <el-divider direction="vertical" />
-          <el-check-tag :checked="filterIncomplete" @change="filterIncomplete = !filterIncomplete">未完成</el-check-tag>
-          <el-check-tag :checked="filterUntranslatable" @change="filterUntranslatable = !filterUntranslatable">不可翻译</el-check-tag>
-          <div class="toolbar-spacer"></div>
-          <el-tag size="small" type="info">筛选: {{ filteredRows.length }}</el-tag>
-          <el-tag size="small" type="success" style="margin-left:6px;">选中: {{ selection.length }}</el-tag>
-        </div>
         <div class="table-scroll">
           <el-table :data="pagedRows" border height="100%" @cell-contextmenu="onCellContextMenu" @cell-dblclick="onCellDblClick" @selection-change="onSelectionChange">
             <el-table-column type="selection" width="48" fixed />
@@ -115,7 +102,6 @@ import type { ResItem } from '@/models/resource'
 import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
 import toast from '@/utils/toast'
 import ArrayEditDialog from './ArrayEditDialog.vue'
-import { Search } from '@element-plus/icons-vue'
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
@@ -123,9 +109,11 @@ const configStore = useConfigStore()
 
 const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
-const filterText = ref('')
-const filterIncomplete = ref(false)
-const filterUntranslatable = ref(false)
+// 共享筛选状态来自 store
+const filterText = computed({ get: () => projectStore.tableFilterText, set: v => projectStore.tableFilterText = v })
+const filterIncomplete = computed({ get: () => projectStore.tableFilterIncomplete, set: v => projectStore.tableFilterIncomplete = v })
+const filterUntranslatable = computed({ get: () => projectStore.tableFilterUntranslatable, set: v => projectStore.tableFilterUntranslatable = v })
+const filterTranslated = computed({ get: () => projectStore.tableFilterTranslated, set: v => projectStore.tableFilterTranslated = v })
 const selection = ref<any[]>([])
 
 const rows = computed(() => {
@@ -163,6 +151,16 @@ const filteredRows = computed(() => {
       })
     })
   }
+  if (filterTranslated.value) {
+    list = list.filter(r => {
+      if (!r.translatable) return false
+      if (targetLangs.value.length === 0) return false
+      return targetLangs.value.every(l => {
+        const v = getCellValue(r, l)
+        return !!v && v.length > 0
+      })
+    })
+  }
   return list
 })
 const pagedRows = computed(() => {
@@ -193,7 +191,8 @@ function getCellValue(row: ResItem, lang: Language): string {
 }
 
 watch(filterText, () => { page.value = 1 })
-watch([filterIncomplete, filterUntranslatable], () => { page.value = 1 })
+watch([filterIncomplete, filterUntranslatable, filterTranslated], () => { page.value = 1 })
+watch(() => filteredRows.value.length, (n) => { projectStore.tableFilteredCount = n })
 
 function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }
 function isEditing(itemName: string, lang: Language) { return editing.value === keyFor(itemName, lang) }
@@ -385,6 +384,7 @@ function setEditRef(el: any) {
 function onSelectionChange(rows: any[]) {
   selection.value = rows
   projectStore.updateSelectedItems(rows.map(r => r.name))
+  projectStore.tableSelectionCount = rows.length
 }
 
 function isCellDirty(itemName: string, lang: Language): boolean {
@@ -400,6 +400,6 @@ function isCellDirty(itemName: string, lang: Language): boolean {
 .table-scroll { flex: 1; min-height: 0; }
 :deep(.el-table) { --el-table-header-bg-color: var(--el-fill-color-light); }
 .pagination { padding: 6px 8px; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
-.table-toolbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--el-border-color); }
+.table-toolbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--el-border-color); flex-wrap: wrap; row-gap: 6px; }
 .dirty { color: var(--el-color-danger); }
 </style>

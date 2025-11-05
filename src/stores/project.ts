@@ -46,6 +46,14 @@ export const useProjectStore = defineStore('project', () => {
   const selectedItemNames = ref<string[]>([]) // 表格当前选中的条目名
   const dataVersion = ref(0) // 数据变更版本号（懒加载/重载后触发视图刷新）
 
+  // 表格筛选/选择 UI 状态（供 OperationsBar 与 ResourceTable 共享）
+  const tableFilterText = ref('')
+  const tableFilterIncomplete = ref(false)
+  const tableFilterUntranslatable = ref(false)
+  const tableFilterTranslated = ref(false)
+  const tableFilteredCount = ref(0)
+  const tableSelectionCount = ref(0)
+
   // 计算属性
   const isIdle = computed(() => state.value === ProjectState.IDLE)
   const isScanning = computed(() => state.value === ProjectState.SCANNING)
@@ -422,6 +430,14 @@ export const useProjectStore = defineStore('project', () => {
     dataVersion,
     projectStats,
     selectedFileStats,
+
+    // 表格筛选/选择状态
+    tableFilterText,
+    tableFilterIncomplete,
+    tableFilterUntranslatable,
+    tableFilterTranslated,
+    tableFilteredCount,
+    tableSelectionCount,
 
     // 方法
     openProject,
