@@ -58,19 +58,62 @@ function toggleLog() {
 </script>
 
 <style scoped>
-.sidebar { display: flex; flex-direction: column; height: 100%; }
-.top { padding: 8px 8px 0; }
-.title-row { display:flex; align-items:center; gap:8px; font-weight: 600; }
-.btn-row { display:flex; justify-content:center; gap:8px; margin-top:6px; }
-.project-info { display:flex; align-items:center; gap:8px; padding: 6px 0 10px; font-weight: 600; }
-.name { max-width: 220px; }
-.actions { padding: 4px 0; display:flex; justify-content:center; }
-.tree { flex: 1; min-height: 0; overflow: auto; }
-.status { border-top: 1px solid var(--el-border-color); padding:4px 8px; display:flex; align-items:center; gap:6px; font-size: 11px; color: var(--ep-text-color-placeholder); line-height: 1.2; }
-/* icon spacing handled by :icon prop */
-.toolbar-spacer { flex: 1; }
-/* tighten el-link inside status */
-:deep(.status .el-link) { padding: 0; line-height: 1.2; }
-/* ensure sidebar sits flush to bottom */
-.sidebar { padding-bottom: 0; }
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.top {
+  padding: 10px 12px 0;
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.btn-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.project-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 12px;
+  font-weight: 600;
+}
+.name {
+  max-width: 220px;
+}
+.actions {
+  padding: 4px 0;
+  display: flex;
+  justify-content: center;
+}
+.tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 8px;
+}
+.status {
+  border-top: 1px solid var(--el-border-color);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.2;
+}
+.toolbar-spacer {
+  flex: 1;
+}
+:deep(.status .el-link) {
+  padding: 0;
+  line-height: 1.2;
+}
 </style>
