@@ -1,7 +1,11 @@
 <template>
   <el-config-provider :locale="zhCn">
   <el-container class="app-shell">
-    <!-- 主体区域：左侧栏（含顶栏内容） + 工作区 -->
+    <!-- 顶部栏：标题 + 设置/关于 -->
+    <el-header class="app-header">
+      <AppHeader @open-settings="showSettings = true" @open-about="showAbout = true" />
+    </el-header>
+    <!-- 主体区域：左侧栏 + 工作区 -->
     <el-container class="app-body">
       <el-aside width="280px" class="app-aside">
         <ProjectSidebar @open-settings="showSettings = true" @open-about="showAbout = true" />
@@ -34,6 +38,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import AppHeader from '@/components/layout/AppHeader.vue'
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue'
 import OperationsBar from '@/components/workbench/OperationsBar.vue'
 import ResourceTable from '@/components/workbench/ResourceTable.vue'

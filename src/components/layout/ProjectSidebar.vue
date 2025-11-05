@@ -1,15 +1,16 @@
 <template>
   <div class="sidebar">
     <div class="top">
-      <div class="title-row">
+      <!-- 顶部标题与按钮暂时隐藏以对比顶栏实现 -->
+      <div class="title-row" v-if="false">
         <el-icon><Flag /></el-icon>
         <span class="title">Android Trans Tool Plus</span>
       </div>
-      <div class="btn-row">
+      <div class="btn-row" v-if="false">
         <el-button size="small" :icon="Setting" @click="$emit('open-settings')">设置</el-button>
         <el-button size="small" :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
       </div>
-      <el-divider style="margin:8px 0" />
+      <el-divider style="margin:8px 0" v-if="false" />
       <div><ProjectActions class="actions" /></div>
       <div class="project-info">
         <el-icon><Folder /></el-icon>

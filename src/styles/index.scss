@@ -1,5 +1,5 @@
 /* Global layout variables */
-$header-height: 48px;
+$header-height: 40px;
 $aside-width: 280px;
 $log-panel-height: 220px;
 
@@ -25,11 +25,14 @@ body {
 
 /* Element Plus layout tweaks */
 .el-header {
+  --el-header-padding: 0; /* 覆盖 Element Plus 默认的 padding 变量 */
+  --el-header-height: #{$header-height}; /* 使用统一的高度变量 */
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  background-color: var(--el-bg-color);
-  box-shadow: 0 1px 0 0 var(--el-border-color);
+  height: $header-height;
+  padding: 0; /* 由 AppHeader 自行控制内边距 */
+  background-color: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 
 .el-aside {
