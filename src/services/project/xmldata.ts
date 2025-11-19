@@ -5,7 +5,7 @@
 
 import type { DirectoryHandle, FileHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
-import { Language, getLanguageByValuesDirName, getLanguageInfo } from '@/models/language'
+import { Language, getLanguageByValuesDirName, getLanguageInfo, LanguageManager } from '@/models/language'
 import type { ResItem } from '@/models/resource'
 import { createResItem } from '@/models/resource'
 import { parseXml } from '../xml/parser'
@@ -69,7 +69,19 @@ export class XmlData {
       const languageDataMap = new Map<Language, XmlFileData>()
 
       for (const [valuesDirName, valuesHandle] of valuesDirs) {
-        const language = getLanguageByValuesDirName(valuesDirName)
+        // 优先使用新的语言管理器
+        let language: Language | null = null
+        try {
+          const langManager = LanguageManager.getInstance()
+          const langInfo = langManager.getLanguageInfoByValuesDir(valuesDirName)
+          if (langInfo) {
+            language = langManager.toLanguageEnum(langInfo.code)
+          }
+        } catch {
+          // 回退到旧的查找方式
+          language = getLanguageByValuesDirName(valuesDirName)
+        }
+
         if (!language) continue
 
         try {
@@ -124,7 +136,19 @@ export class XmlData {
     const languageDataMap = new Map<Language, XmlFileData>()
 
     for (const [valuesDirName, valuesHandle] of valuesDirs) {
-      const language = getLanguageByValuesDirName(valuesDirName)
+      // 优先使用新的语言管理器
+      let language: Language | null = null
+      try {
+        const langManager = LanguageManager.getInstance()
+        const langInfo = langManager.getLanguageInfoByValuesDir(valuesDirName)
+        if (langInfo) {
+          language = langManager.toLanguageEnum(langInfo.code)
+        }
+      } catch {
+        // 回退到旧的查找方式
+        language = getLanguageByValuesDirName(valuesDirName)
+      }
+
       if (!language) continue
 
       try {

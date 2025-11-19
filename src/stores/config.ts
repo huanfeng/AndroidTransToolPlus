@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { getStorageAdapter } from '@/adapters'
-import { Language, getAllLanguages } from '@/models/language'
+import { Language, getAllLanguages, LanguageManager, type CustomLanguage } from '@/models/language'
 import { DEFAULT_AI_MODEL_PRESET } from '@/models/ai'
 
 /**
@@ -13,6 +13,7 @@ export interface AppConfig {
   httpProxy: string
   enabledLanguages: Language[]
   targetLanguages: Language[]
+  customLanguages: CustomLanguage[]
   maxItemsPerRequest: number
   autoRetry: boolean
   maxRetries: number
@@ -33,6 +34,7 @@ const DEFAULT_CONFIG: AppConfig = {
   httpProxy: '',
   enabledLanguages: getAllLanguages(),
   targetLanguages: [],
+  customLanguages: [],
   maxItemsPerRequest: 20,
   autoRetry: true,
   maxRetries: 3,
@@ -62,6 +64,11 @@ export const useConfigStore = defineStore('config', () => {
       if (saved) {
         config.value = { ...DEFAULT_CONFIG, ...saved }
       }
+
+      // 初始化语言管理器中的自定义语言
+      const langManager = LanguageManager.getInstance()
+      langManager.setCustomLanguages(config.value.customLanguages)
+
       loaded.value = true
       console.log('[Config] Configuration loaded')
     } catch (error) {
@@ -107,6 +114,32 @@ export const useConfigStore = defineStore('config', () => {
   // 重置配置
   function reset(): void {
     config.value = { ...DEFAULT_CONFIG }
+    // 同时清空语言管理器的自定义语言
+    const langManager = LanguageManager.getInstance()
+    langManager.setCustomLanguages([])
+  }
+
+  // 添加自定义语言
+  function addCustomLanguage(lang: CustomLanguage): void {
+    const langManager = LanguageManager.getInstance()
+    langManager.addCustomLanguage(lang)
+    config.value.customLanguages = langManager.getCustomLanguages()
+  }
+
+  // 删除自定义语言
+  function removeCustomLanguage(androidCode: string): boolean {
+    const langManager = LanguageManager.getInstance()
+    const success = langManager.removeCustomLanguage(androidCode)
+    if (success) {
+      config.value.customLanguages = langManager.getCustomLanguages()
+    }
+    return success
+  }
+
+  // 获取所有语言（默认 + 自定义）
+  function getAllAvailableLanguages() {
+    const langManager = LanguageManager.getInstance()
+    return langManager.getAllLanguages()
   }
 
   // 验证配置
@@ -147,5 +180,8 @@ export const useConfigStore = defineStore('config', () => {
     updateBatch,
     reset,
     validate,
+    addCustomLanguage,
+    removeCustomLanguage,
+    getAllAvailableLanguages,
   }
 })
