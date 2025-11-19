@@ -2,13 +2,14 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { getStorageAdapter } from '@/adapters'
 import { Language, getAllLanguages } from '@/models/language'
+import { DEFAULT_AI_MODEL_PRESET } from '@/models/ai'
 
 /**
  * 应用配置接口
  */
 export interface AppConfig {
   apiUrl: string
-  apiToken: string
+  apiKey: string
   httpProxy: string
   enabledLanguages: Language[]
   targetLanguages: Language[]
@@ -18,6 +19,9 @@ export interface AppConfig {
   requestTimeout: number
   theme: 'light' | 'dark'
   showLogView: boolean
+  aiModelPreset: string
+  aiCustomModel: string
+  aiPromptExtra: string
 }
 
 /**
@@ -25,7 +29,7 @@ export interface AppConfig {
  */
 const DEFAULT_CONFIG: AppConfig = {
   apiUrl: 'https://api.openai.com/v1',
-  apiToken: '',
+  apiKey: '',
   httpProxy: '',
   enabledLanguages: getAllLanguages(),
   targetLanguages: [],
@@ -35,6 +39,9 @@ const DEFAULT_CONFIG: AppConfig = {
   requestTimeout: 120000,
   theme: 'light',
   showLogView: false,
+  aiModelPreset: DEFAULT_AI_MODEL_PRESET,
+  aiCustomModel: '',
+  aiPromptExtra: '',
 }
 
 /**
@@ -110,8 +117,8 @@ export const useConfigStore = defineStore('config', () => {
       errors.push('API URL is required')
     }
 
-    if (!config.value.apiToken) {
-      errors.push('API Token is required')
+    if (!config.value.apiKey) {
+      errors.push('API Key is required')
     }
 
     if (config.value.maxItemsPerRequest < 1 || config.value.maxItemsPerRequest > 100) {

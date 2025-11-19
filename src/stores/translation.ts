@@ -6,6 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { Language } from '@/models/language'
+import { resolveAiModel } from '@/models/ai'
 import type { ResItem } from '@/models/resource'
 import { OpenAITranslator, type OpenAIConfig } from '@/services/translation/openai'
 import toast from '@/utils/toast'
@@ -89,20 +90,27 @@ export const useTranslationStore = defineStore('translation', () => {
   function initTranslator(): void {
     const config = configStore.config
 
-    if (!config.apiUrl || !config.apiToken) {
-      throw new Error('API URL and Token are required')
+    if (!config.apiUrl || !config.apiKey) {
+      throw new Error('API URL and Key are required')
     }
 
     const translatorConfig: OpenAIConfig = {
       apiUrl: config.apiUrl,
-      apiToken: config.apiToken,
+      apiToken: config.apiKey,
       httpProxy: config.httpProxy,
       maxRetries: config.maxRetries,
       timeout: config.requestTimeout,
+      model: resolveAiModel(config.aiModelPreset, config.aiCustomModel),
+      promptExtra: config.aiPromptExtra?.trim() || undefined,
     }
 
-    translator.value = new OpenAITranslator(translatorConfig)
-    logStore.info('Translation service initialized')
+    if (!translator.value) {
+      translator.value = new OpenAITranslator(translatorConfig)
+      logStore.info('Translation service initialized')
+    } else {
+      translator.value.updateConfig(translatorConfig)
+      logStore.debug('Translation service config refreshed')
+    }
   }
 
   /**
@@ -110,9 +118,7 @@ export const useTranslationStore = defineStore('translation', () => {
    */
   async function testConnection(): Promise<boolean> {
     try {
-      if (!translator.value) {
-        initTranslator()
-      }
+      initTranslator()
 
       logStore.info('Testing OpenAI connection...')
       const result = await translator.value!.testConnection()
@@ -142,10 +148,8 @@ export const useTranslationStore = defineStore('translation', () => {
     }
 
     try {
-      // 初始化翻译器
-      if (!translator.value) {
-        initTranslator()
-      }
+      // 初始化 / 刷新翻译器
+      initTranslator()
 
       logStore.info('Starting translation...')
       logStore.debug(
@@ -228,9 +232,7 @@ export const useTranslationStore = defineStore('translation', () => {
     }
 
     try {
-      if (!translator.value) {
-        initTranslator()
-      }
+      initTranslator()
 
       logStore.info('Starting batch translation...')
       logStore.debug(
@@ -540,9 +542,7 @@ export const useTranslationStore = defineStore('translation', () => {
       if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) {
         throw new Error('No XML data selected')
       }
-      if (!translator.value) {
-        initTranslator()
-      }
+      initTranslator()
       const xml = projectStore.selectedXmlData
       const file = projectStore.selectedXmlFile
       const fileMap = xml.getFileData(file)

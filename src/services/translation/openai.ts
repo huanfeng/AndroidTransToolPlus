@@ -6,6 +6,7 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { Language, LANGUAGE_MAP } from '@/models/language'
+import { BATCH_PROMPT_TEMPLATE, SINGLE_PROMPT_TEMPLATE, renderPromptTemplate } from '@/models/ai'
 
 /**
  * 翻译请求
@@ -57,12 +58,13 @@ export type ProgressCallback = (current: number, total: number) => void
  */
 export interface OpenAIConfig {
   apiUrl: string // API URL
-  apiToken: string // API Token
+  apiToken: string // API Key
   model?: string // 模型名称（默认 gpt-4o-mini）
   httpProxy?: string // HTTP 代理
   maxRetries?: number // 最大重试次数
   timeout?: number // 超时时间（毫秒）
   temperature?: number // 温度参数（0-1）
+  promptExtra?: string // 额外提示词
 }
 
 /**
@@ -280,21 +282,19 @@ export class OpenAITranslator {
     targetLang: string,
     context?: string
   ): string {
-    let prompt = `Translate the following text from ${sourceLang} to ${targetLang}.\n\n`
-
-    if (context) {
-      prompt += `Context: This is an Android string resource named "${context}".\n\n`
-    }
-
-    prompt += `Original text:\n${text}\n\n`
-    prompt += `Requirements:\n`
-    prompt += `- Maintain the original meaning and tone\n`
-    prompt += `- Keep any placeholders like %s, %d, %1$s unchanged\n`
-    prompt += `- Preserve special characters and formatting\n`
-    prompt += `- Return ONLY the translated text, no explanations\n\n`
-    prompt += `Translation:`
-
-    return prompt
+    const contextBlock = context
+      ? `Context: This is an Android string resource named "${context}".\n\n`
+      : ''
+    const extraPromptBlock = this.config.promptExtra
+      ? `- Additional context: ${this.config.promptExtra}\n`
+      : ''
+    return renderPromptTemplate(SINGLE_PROMPT_TEMPLATE, {
+      sourceLanguage: sourceLang,
+      targetLanguage: targetLang,
+      contextBlock,
+      text,
+      extraPromptBlock,
+    })
   }
 
   /**
@@ -305,23 +305,23 @@ export class OpenAITranslator {
     sourceLang: string,
     targetLang: string
   ): string {
-    let prompt = `Translate the following texts from ${sourceLang} to ${targetLang}.\n\n`
-    prompt += `Requirements:\n`
-    prompt += `- Maintain the original meaning and tone\n`
-    prompt += `- Keep any placeholders like %s, %d, %1$s unchanged\n`
-    prompt += `- Preserve special characters and formatting\n`
-    prompt += `- Return results in JSON format: {"key": "translation"}\n\n`
-    prompt += `Texts to translate:\n`
-
     const textsObj: Record<string, string> = {}
     for (const item of items) {
       textsObj[item.key] = item.text
     }
 
-    prompt += JSON.stringify(textsObj, null, 2)
-    prompt += `\n\nTranslations (JSON only):`
+    const extraPromptBlock = this.config.promptExtra
+      ? `- Additional context: ${this.config.promptExtra}\n`
+      : ''
 
-    return prompt
+    return renderPromptTemplate(BATCH_PROMPT_TEMPLATE, {
+      sourceLanguage: sourceLang,
+      targetLanguage: targetLang,
+      textsJson: JSON.stringify(textsObj, null, 2),
+      extraPromptBlock,
+      contextBlock: '',
+      text: '',
+    })
   }
 
   /**
@@ -337,7 +337,7 @@ export class OpenAITranslator {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const response = await this.client.post('/chat/completions', {
-          model: this.config.model,
+          model: this.config.model || DEFAULT_CONFIG.model,
           messages: [
             {
               role: 'system',
