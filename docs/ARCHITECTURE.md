@@ -1379,7 +1379,8 @@ export default defineConfig({
 
 ## 7. 安全考虑
 
-### 7.1 API Token 存储
+### 7.1 API Key 存储
+
 - 加密存储到本地存储
 - 不在日志中输出
 - 支持环境变量配置

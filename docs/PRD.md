@@ -482,7 +482,7 @@ interface LogEntry {
    ↓
 3. 配置 API 设置
    - 输入 API URL
-   - 输入 API Token
+   - 输入 API Key
    - （可选）配置代理
    ↓
 4. 点击"测试连接"验证配置
@@ -565,7 +565,8 @@ interface LogEntry {
   - Linux（主流发行版）
 
 ### 4.3 安全要求
-- API Token 加密存储
+
+- API Key 加密存储
 - HTTPS 通信
 - 不上传项目文件到服务器
 - 本地处理所有数据

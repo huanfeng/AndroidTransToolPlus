@@ -227,7 +227,7 @@ pnpm tauri build
 2. 点击"设置"按钮
 3. 在"API 设置"标签页中：
    - 输入 **API URL**（默认：https://api.openai.com/v1）
-   - 输入 **API Token**（从 OpenAI 获取）
+   - 输入 **API Key**（从 OpenAI 获取）
    - （可选）配置 HTTP 代理
 4. 点击"测试连接"验证配置
 5. 在"翻译语言"标签页选择需要的语言
@@ -313,7 +313,7 @@ android_trans_tool_plus/
 
 - **本地处理**：所有文件操作和数据处理都在本地进行
 - **不上传文件**：项目文件不会上传到任何服务器
-- **API 加密存储**：API Token 加密存储在本地
+- **API 加密存储**：API Key 加密存储在本地
 - **HTTPS 通信**：与 OpenAI API 的通信使用 HTTPS 加密
 
 ## 📝 配置文件

@@ -66,7 +66,7 @@ pnpm dev
 2. 点击 **"设置"** 按钮
 3. 在 **"API 设置"** 标签页：
    - 输入 API URL（默认：`https://api.openai.com/v1`）
-   - 输入 API Token（从 [OpenAI](https://platform.openai.com/api-keys) 获取）
+   - 输入 API Key（从 [OpenAI](https://platform.openai.com/api-keys) 获取）
 4. 点击 **"测试连接"** 验证
 5. 在 **"翻译语言"** 标签页选择需要的语言
 
