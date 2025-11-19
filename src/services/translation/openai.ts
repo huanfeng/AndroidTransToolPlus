@@ -54,6 +54,11 @@ export interface BatchTranslateResponse {
 export type ProgressCallback = (current: number, total: number) => void
 
 /**
+ * 取消检查回调
+ */
+export type CancellationCallback = () => boolean
+
+/**
  * OpenAI 翻译配置
  */
 export interface OpenAIConfig {
@@ -156,7 +161,8 @@ export class OpenAITranslator {
    */
   async batchTranslate(
     request: BatchTranslateRequest,
-    onProgress?: ProgressCallback
+    onProgress?: ProgressCallback,
+    checkCancellation?: CancellationCallback
   ): Promise<BatchTranslateResponse> {
     const { items, targetLanguage, sourceLanguage = Language.DEF } = request
     const results = new Map<string, string | string[]>()
@@ -166,6 +172,11 @@ export class OpenAITranslator {
     let current = 0
 
     for (const item of items) {
+      // 检查是否取消
+      if (checkCancellation && checkCancellation()) {
+        throw new Error('Translation cancelled')
+      }
+
       try {
         if (typeof item.text === 'string') {
           // 单个字符串翻译
@@ -201,7 +212,8 @@ export class OpenAITranslator {
   async batchTranslateChunked(
     request: BatchTranslateRequest,
     chunkSize: number = 20,
-    onProgress?: ProgressCallback
+    onProgress?: ProgressCallback,
+    checkCancellation?: CancellationCallback
   ): Promise<BatchTranslateResponse> {
     const { items, targetLanguage, sourceLanguage = Language.DEF } = request
     const results = new Map<string, string | string[]>()
@@ -212,6 +224,11 @@ export class OpenAITranslator {
 
     // 分批处理
     for (let i = 0; i < items.length; i += chunkSize) {
+      // 检查是否取消
+      if (checkCancellation && checkCancellation()) {
+        throw new Error('Translation cancelled')
+      }
+
       const chunk = items.slice(i, i + chunkSize)
 
       try {
@@ -228,6 +245,11 @@ export class OpenAITranslator {
       } catch (error: any) {
         // 如果批量翻译失败，逐个翻译该批次
         for (const item of chunk) {
+          // 检查是否取消
+          if (checkCancellation && checkCancellation()) {
+            throw new Error('Translation cancelled')
+          }
+
           try {
             if (typeof item.text === 'string') {
               const response = await this.translate({

@@ -60,6 +60,7 @@ export const useTranslationStore = defineStore('translation', () => {
   const currentTaskIndex = ref<number>(0)
   const targetLanguages = ref<Language[]>([])
   const error = ref<string | null>(null)
+  const isCancelled = ref<boolean>(false) // 取消标记
 
   // 计算属性
   const isIdle = computed(() => state.value === TranslationState.IDLE)
@@ -163,6 +164,7 @@ export const useTranslationStore = defineStore('translation', () => {
       currentTaskIndex.value = 0
       targetLanguages.value = languages
       error.value = null
+      isCancelled.value = false // 重置取消标记
 
       // 创建翻译任务
       for (const [itemName, item] of items) {
@@ -246,6 +248,7 @@ export const useTranslationStore = defineStore('translation', () => {
       currentTaskIndex.value = 0
       targetLanguages.value = languages
       error.value = null
+      isCancelled.value = false // 重置取消标记
       state.value = TranslationState.TRANSLATING
 
       // 按语言分组翻译
@@ -301,6 +304,10 @@ export const useTranslationStore = defineStore('translation', () => {
           maxItemsPerRequest,
           (current, total) => {
             logStore.debug(`Progress: ${current}/${total}`)
+          },
+          () => {
+            // 取消检查回调
+            return isCancelled.value
           }
         )
 
@@ -346,6 +353,14 @@ export const useTranslationStore = defineStore('translation', () => {
         logStore.debug('UI refresh triggered after batch translation (dataVersion++)')
       } catch {}
     } catch (err: any) {
+      // 检查是否是取消错误
+      if (err.message === 'Translation cancelled') {
+        logStore.info('Batch translation cancelled by user')
+        // 如果是取消，不设置为 ERROR 状态，保持 IDLE
+        // 已经在 stopTranslation() 中设置状态
+        return
+      }
+
       logStore.error('Batch translation failed', err)
       error.value = err.message || 'Unknown error'
       state.value = TranslationState.ERROR
@@ -358,6 +373,13 @@ export const useTranslationStore = defineStore('translation', () => {
    */
   async function processTranslationTasks(): Promise<void> {
     while (currentTaskIndex.value < tasks.value.length) {
+      // 检查是否取消
+      if (isCancelled.value) {
+        logStore.info('Translation cancelled')
+        state.value = TranslationState.IDLE
+        return
+      }
+
       // 检查是否暂停
       if (state.value === TranslationState.PAUSED) {
         logStore.info('Translation paused')
@@ -490,6 +512,7 @@ export const useTranslationStore = defineStore('translation', () => {
    * 停止翻译
    */
   function stopTranslation(): void {
+    isCancelled.value = true
     state.value = TranslationState.IDLE
     currentTaskIndex.value = 0
     logStore.info('Translation stopped')
@@ -562,6 +585,7 @@ export const useTranslationStore = defineStore('translation', () => {
     currentTaskIndex,
     targetLanguages,
     error,
+    isCancelled,
 
     // 计算属性
     isIdle,

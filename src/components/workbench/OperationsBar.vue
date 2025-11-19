@@ -39,6 +39,7 @@
       <el-divider direction="vertical" />
       <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 160px" />
       <span class="muted" style="margin-left:8px;">{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span>
+      <el-button size="small" type="danger" @click="confirmStopTranslation" style="margin-left:8px;">停止翻译</el-button>
     </template>
   </div>
   <el-dialog v-model="batchDialogVisible" title="批量翻译" width="520px">
@@ -54,6 +55,16 @@
     <template #footer>
       <el-button @click="batchDialogVisible = false">取消</el-button>
       <el-button type="primary" @click="confirmBatchTranslate">开始翻译</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 停止翻译确认对话框 -->
+  <el-dialog v-model="stopDialogVisible" title="确认停止翻译" width="400px">
+    <p>翻译正在进行中，确定要停止吗？</p>
+    <p class="muted" style="margin-top:8px;">已完成的翻译将会保留。</p>
+    <template #footer>
+      <el-button @click="stopDialogVisible = false">取消</el-button>
+      <el-button type="danger" @click="stopTranslation">确定停止</el-button>
     </template>
   </el-dialog>
  </template>
@@ -78,6 +89,7 @@ const selectedTargetCount = computed(() => configStore.config.targetLanguages.le
 const langDialogVisible = ref(false)
 const batchDialogVisible = ref(false)
 const updateExisting = ref(true)
+const stopDialogVisible = ref(false)
 
 // removed unused fileStats to satisfy TS build
 
@@ -163,9 +175,19 @@ function invertLangs() {
   selectedLangs.value = allTargetLanguages.value.filter(l => !set.has(l))
 }
 function applyLangSelection() {
-  // 仅更新“目标语言”，不影响“启用语言”（表格列）
+  // 仅更新"目标语言"，不影响"启用语言"（表格列）
   configStore.update('targetLanguages', selectedLangs.value.slice())
   langDialogVisible.value = false
+}
+
+function confirmStopTranslation() {
+  stopDialogVisible.value = true
+}
+
+function stopTranslation() {
+  translationStore.stopTranslation()
+  stopDialogVisible.value = false
+  toast.info('翻译已停止')
 }
 </script>
 
