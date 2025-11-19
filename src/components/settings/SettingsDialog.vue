@@ -109,6 +109,98 @@
               </el-tag>
             </div>
           </div>
+
+          <!-- 自定义语言管理 -->
+          <div style="margin-top: 30px;">
+            <el-divider content-position="left">
+              <span style="font-weight: 600;">自定义语言管理</span>
+            </el-divider>
+
+            <el-alert
+              type="info"
+              show-icon
+              :closable="false"
+              style="margin-bottom: 16px;"
+            >
+              <template #title>
+                支持添加任意 Android 语言代码（如 th, vi, es 等）
+              </template>
+            </el-alert>
+
+            <!-- 添加自定义语言表单 -->
+            <div style="margin-bottom: 20px;">
+              <div style="font-weight: 600; margin-bottom: 12px;">添加自定义语言</div>
+              <el-form label-width="120px" :model="customLangForm" style="background: var(--el-fill-color-lighter); padding: 16px; border-radius: 8px;">
+                <el-form-item label="Android 代码">
+                  <el-input
+                    v-model="customLangForm.androidCode"
+                    placeholder="例如：th, vi, es"
+                    style="width: 200px;"
+                    @blur="formatAndroidCode"
+                  />
+                </el-form-item>
+                <el-form-item label="中文名称">
+                  <el-input
+                    v-model="customLangForm.nameCn"
+                    placeholder="例如：泰语、越南语"
+                    style="width: 200px;"
+                  />
+                </el-form-item>
+                <el-form-item label="英文名称">
+                  <el-input
+                    v-model="customLangForm.nameEn"
+                    placeholder="例如：Thai, Vietnamese"
+                    style="width: 200px;"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="addCustomLanguage" :disabled="!canAddCustomLang">
+                    添加语言
+                  </el-button>
+                  <el-button @click="resetCustomLangForm">重置</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+
+            <!-- 自定义语言列表 -->
+            <div v-if="customLanguages.length > 0">
+              <div style="font-weight: 600; margin-bottom: 12px;">
+                已添加的自定义语言 ({{ customLanguages.length }})
+              </div>
+              <el-table :data="customLanguages" style="width: 100%;" size="small">
+                <el-table-column prop="androidCode" label="Android 代码" width="120">
+                  <template #default="{ row }">
+                    <el-tag size="small">{{ row.androidCode }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="nameCn" label="中文名称" width="150" />
+                <el-table-column prop="nameEn" label="英文名称" width="150" />
+                <el-table-column prop="valuesDirName" label="Values 目录">
+                  <template #default="{ row }">
+                    <code style="background: var(--el-fill-color-lighter); padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+                      {{ row.valuesDirName || `values-${row.androidCode}` }}
+                    </code>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="100" align="center">
+                  <template #default="{ row }">
+                    <el-button
+                      type="danger"
+                      size="small"
+                      text
+                      @click="removeCustomLanguage(row.androidCode)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <div v-else style="text-align: center; color: var(--el-text-color-secondary); padding: 20px;">
+              暂无自定义语言
+            </div>
+          </div>
         </div>
       </el-tab-pane>
 
@@ -211,7 +303,7 @@ import { computed, ref, watch } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
-import { Language, getAllLanguages, getLanguageInfo, getLanguageName } from '@/models/language'
+import { Language, getAllLanguages, getLanguageInfo, getLanguageName, type CustomLanguage } from '@/models/language'
 import {
   AI_MODEL_PRESETS,
   BATCH_PROMPT_TEMPLATE,
@@ -265,7 +357,7 @@ function clearAllLanguages() {
   enabledLangCodes.value = []
 }
 
-function onDragStart(event: DragEvent, index: number) {
+function onDragStart(_event: DragEvent, index: number) {
   dragIndex.value = index
 }
 
@@ -293,14 +385,6 @@ watch(
 
 const modelPresets = AI_MODEL_PRESETS
 const isCustomModel = computed(() => form.value.aiModelPreset === 'custom')
-
-const currentModelName = computed(() => {
-  const preset = AI_MODEL_PRESETS.find(p => p.id === form.value.aiModelPreset)
-  if (preset && preset.id !== 'custom') {
-    return preset.model
-  }
-  return form.value.aiCustomModel?.trim() || '未设置'
-})
 
 const singlePromptPreview = computed(() => {
   const extra = form.value.aiPromptExtra?.trim()
@@ -376,4 +460,97 @@ async function onSave() {
 function closeDialog() {
   emit('update:visible', false)
 }
+
+// ========== 自定义语言管理 ==========
+const customLanguages = ref<CustomLanguage[]>([])
+
+const customLangForm = ref<CustomLanguage>({
+  androidCode: '',
+  nameCn: '',
+  nameEn: '',
+  valuesDirName: '',
+})
+
+const canAddCustomLang = computed(() => {
+  return customLangForm.value.androidCode.trim() &&
+         customLangForm.value.nameCn.trim() &&
+         customLangForm.value.nameEn.trim()
+})
+
+function formatAndroidCode() {
+  // 自动转换为小写
+  customLangForm.value.androidCode = customLangForm.value.androidCode.toLowerCase()
+}
+
+function resetCustomLangForm() {
+  customLangForm.value = {
+    androidCode: '',
+    nameCn: '',
+    nameEn: '',
+    valuesDirName: '',
+  }
+}
+
+function addCustomLanguage() {
+  if (!canAddCustomLang.value) {
+    toast.warning('请填写完整信息')
+    return
+  }
+
+  try {
+    const langData: CustomLanguage = {
+      androidCode: customLangForm.value.androidCode.trim(),
+      nameCn: customLangForm.value.nameCn.trim(),
+      nameEn: customLangForm.value.nameEn.trim(),
+      valuesDirName: customLangForm.value.valuesDirName?.trim() || undefined,
+    }
+
+    configStore.addCustomLanguage(langData)
+    customLanguages.value = configStore.getAllAvailableLanguages().filter(l => !l.isDefault)
+      .map(l => ({
+        androidCode: l.androidCode,
+        nameCn: l.nameCn,
+        nameEn: l.nameEn,
+        valuesDirName: l.valuesDirName,
+      }))
+
+    toast.success('自定义语言添加成功')
+    resetCustomLangForm()
+  } catch (error: any) {
+    toast.error(error.message || '添加自定义语言失败')
+  }
+}
+
+function removeCustomLanguage(androidCode: string) {
+  try {
+    configStore.removeCustomLanguage(androidCode)
+    customLanguages.value = customLanguages.value.filter(l => l.androidCode !== androidCode)
+    toast.success('自定义语言删除成功')
+  } catch (error: any) {
+    toast.error(error.message || '删除自定义语言失败')
+  }
+}
+
+// 加载自定义语言列表
+function loadCustomLanguages() {
+  customLanguages.value = configStore.getAllAvailableLanguages().filter(l => !l.isDefault)
+    .map(l => ({
+      androidCode: l.androidCode,
+      nameCn: l.nameCn,
+      nameEn: l.nameEn,
+      valuesDirName: l.valuesDirName,
+    }))
+}
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      activeTab.value = 'general'
+      const current = form.value.enabledLanguages || []
+      enabledLangCodes.value = current.filter(l => l !== Language.DEF)
+      loadCustomLanguages()
+    }
+  }
+)
 </script>
