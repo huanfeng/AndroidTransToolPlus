@@ -116,9 +116,7 @@ function sortByDefaultOrder(
 function escapeXmlText(text: string): string {
   if (!text) return text
 
-  // 转义单引号为 \'（Android 要求）
-  text = text.replace(/'/g, "\\'")
-
+  // 在Android strings.xml中，单引号通常不需要转义
   // 其他 XML 特殊字符由 fast-xml-parser 自动处理
   // 但我们需要手动处理一些 Android 特殊情况
 

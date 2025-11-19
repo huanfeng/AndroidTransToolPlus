@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="test_single_quote">I can't do this</string>
+    <string name="test_multiple_quotes">It\'s a beautiful day, isn\'t it?</string>
+    <string name="test_double_quote">He said "Hello world"</string>
+    <string name="test_mixed_quotes">I'm saying "Hello" to you</string>
+    <string name="test_ampersand">This & that</string>
+    <string name="test_less_than">Value < 100</string>
+    <string name="test_greater_than">Value > 50</string>
+</resources>
