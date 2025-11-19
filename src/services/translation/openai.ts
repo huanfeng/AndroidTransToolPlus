@@ -33,7 +33,7 @@ export interface TranslateResponse {
 export interface BatchTranslateRequest {
   items: Array<{
     key: string // 唯一标识
-    text: string // 要翻译的文本
+    text: string | string[] // 要翻译的文本（支持字符串或字符串数组）
     context?: string // 上下文信息
   }>
   targetLanguage: Language // 目标语言
@@ -44,7 +44,7 @@ export interface BatchTranslateRequest {
  * 批量翻译响应
  */
 export interface BatchTranslateResponse {
-  results: Map<string, string> // key -> translated text
+  results: Map<string, string | string[]> // key -> translated text or array
   errors: Map<string, string> // key -> error message
 }
 
@@ -159,7 +159,7 @@ export class OpenAITranslator {
     onProgress?: ProgressCallback
   ): Promise<BatchTranslateResponse> {
     const { items, targetLanguage, sourceLanguage = Language.DEF } = request
-    const results = new Map<string, string>()
+    const results = new Map<string, string | string[]>()
     const errors = new Map<string, string>()
 
     const total = items.length
@@ -167,13 +167,20 @@ export class OpenAITranslator {
 
     for (const item of items) {
       try {
-        const response = await this.translate({
-          text: item.text,
-          targetLanguage,
-          sourceLanguage,
-          context: item.context,
-        })
-        results.set(item.key, response.translatedText)
+        if (typeof item.text === 'string') {
+          // 单个字符串翻译
+          const response = await this.translate({
+            text: item.text,
+            targetLanguage,
+            sourceLanguage,
+            context: item.context,
+          })
+          results.set(item.key, response.translatedText)
+        } else {
+          // 字符串数组翻译
+          const translatedArray = await this.translateArray(item.text, item.key, targetLanguage, sourceLanguage)
+          results.set(item.key, translatedArray)
+        }
       } catch (error: any) {
         errors.set(item.key, error.message || 'Translation failed')
       }
@@ -197,7 +204,7 @@ export class OpenAITranslator {
     onProgress?: ProgressCallback
   ): Promise<BatchTranslateResponse> {
     const { items, targetLanguage, sourceLanguage = Language.DEF } = request
-    const results = new Map<string, string>()
+    const results = new Map<string, string | string[]>()
     const errors = new Map<string, string>()
 
     const total = items.length
@@ -222,13 +229,18 @@ export class OpenAITranslator {
         // 如果批量翻译失败，逐个翻译该批次
         for (const item of chunk) {
           try {
-            const response = await this.translate({
-              text: item.text,
-              targetLanguage,
-              sourceLanguage,
-              context: item.context,
-            })
-            results.set(item.key, response.translatedText)
+            if (typeof item.text === 'string') {
+              const response = await this.translate({
+                text: item.text,
+                targetLanguage,
+                sourceLanguage,
+                context: item.context,
+              })
+              results.set(item.key, response.translatedText)
+            } else {
+              const translatedArray = await this.translateArray(item.text, item.key, targetLanguage, sourceLanguage)
+              results.set(item.key, translatedArray)
+            }
           } catch (err: any) {
             errors.set(item.key, err.message || 'Translation failed')
           }
@@ -248,10 +260,10 @@ export class OpenAITranslator {
    * 翻译一个批次
    */
   private async translateChunk(
-    items: Array<{ key: string; text: string; context?: string }>,
+    items: Array<{ key: string; text: string | string[]; context?: string }>,
     targetLanguage: Language,
     sourceLanguage: Language
-  ): Promise<Map<string, string>> {
+  ): Promise<Map<string, string | string[]>> {
     const targetLangInfo = LANGUAGE_MAP[targetLanguage]
     const sourceLangInfo = LANGUAGE_MAP[sourceLanguage]
 
@@ -301,11 +313,11 @@ export class OpenAITranslator {
    * 构建批量翻译提示词
    */
   private buildBatchPrompt(
-    items: Array<{ key: string; text: string; context?: string }>,
+    items: Array<{ key: string; text: string | string[]; context?: string }>,
     sourceLang: string,
     targetLang: string
   ): string {
-    const textsObj: Record<string, string> = {}
+    const textsObj: Record<string, any> = {}
     for (const item of items) {
       textsObj[item.key] = item.text
     }
@@ -384,9 +396,9 @@ export class OpenAITranslator {
    */
   private parseBatchResponse(
     response: string,
-    items: Array<{ key: string; text: string }>
-  ): Map<string, string> {
-    const results = new Map<string, string>()
+    items: Array<{ key: string; text: string | string[] }>
+  ): Map<string, string | string[]> {
+    const results = new Map<string, string | string[]>()
 
     try {
       // 尝试提取 JSON（可能在代码块中）
@@ -404,7 +416,7 @@ export class OpenAITranslator {
 
       // 提取翻译结果
       for (const item of items) {
-        if (parsed[item.key]) {
+        if (parsed[item.key] !== undefined) {
           results.set(item.key, parsed[item.key])
         }
       }
@@ -446,6 +458,43 @@ export class OpenAITranslator {
         message: error.message || 'Connection failed',
       }
     }
+  }
+
+  /**
+   * 翻译字符串数组
+   * 将数组拆解为单个字符串进行翻译，再合并结果
+   */
+  private async translateArray(
+    textArray: string[],
+    itemKey: string,
+    targetLanguage: Language,
+    sourceLanguage: Language
+  ): Promise<string[]> {
+    const results: string[] = []
+    const errors: string[] = []
+
+    // 逐个翻译数组元素
+    for (let i = 0; i < textArray.length; i++) {
+      try {
+        const response = await this.translate({
+          text: textArray[i],
+          targetLanguage,
+          sourceLanguage,
+          context: `${itemKey}[${i}]`,
+        })
+        results[i] = response.translatedText
+      } catch (error: any) {
+        errors.push(`Index ${i}: ${error.message || 'Translation failed'}`)
+        // 翻译失败的元素保留原文
+        results[i] = textArray[i]
+      }
+    }
+
+    if (errors.length > 0) {
+      console.warn(`Some array elements failed to translate for ${itemKey}:`, errors)
+    }
+
+    return results
   }
 
   /**

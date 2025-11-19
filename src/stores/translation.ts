@@ -254,7 +254,7 @@ export const useTranslationStore = defineStore('translation', () => {
         // 准备批量翻译请求
         const batchItems: Array<{
           key: string
-          text: string
+          text: string | string[]
           context?: string
         }> = []
 
@@ -270,14 +270,12 @@ export const useTranslationStore = defineStore('translation', () => {
             continue
           }
 
-          // 只处理字符串类型（数组类型需要特殊处理）
-          if (typeof originalText === 'string') {
-            batchItems.push({
-              key: itemName,
-              text: originalText,
-              context: itemName,
-            })
-          }
+          // 支持字符串和字符串数组类型
+          batchItems.push({
+            key: itemName,
+            text: originalText,
+            context: itemName,
+          })
         }
 
         if (batchItems.length === 0) {
@@ -313,7 +311,7 @@ export const useTranslationStore = defineStore('translation', () => {
             projectStore.selectedXmlFile!,
             itemName,
             targetLang,
-            translatedText
+            translatedText as string | string[]
           )
           logStore.trace(
             `Applied translation: ${itemName} -> ${targetLang}`
@@ -373,6 +371,7 @@ export const useTranslationStore = defineStore('translation', () => {
         // 翻译
         const originalText = task.originalText
         if (typeof originalText === 'string') {
+          // 单个字符串翻译
           logStore.debug(
             `Translating ${task.itemName} -> ${task.targetLanguage}`
           )
@@ -401,9 +400,49 @@ export const useTranslationStore = defineStore('translation', () => {
 
           logStore.debug(`Translated ${task.itemName} to ${task.targetLanguage}`)
         } else {
-          // 数组类型暂不支持
-          task.status = 'error'
-          task.error = 'Array translation not supported in this mode'
+          // 字符串数组翻译：逐个元素翻译
+          logStore.debug(
+            `Translating array ${task.itemName} -> ${task.targetLanguage}`
+          )
+
+          const translatedArray: string[] = []
+          for (let i = 0; i < originalText.length; i++) {
+            try {
+              const response = await translator.value!.translate({
+                text: originalText[i],
+                targetLanguage: task.targetLanguage,
+                sourceLanguage: Language.DEF,
+                context: `${task.itemName}[${i}]`,
+              })
+              translatedArray[i] = response.translatedText
+            } catch (err: any) {
+              // 翻译失败的元素保留原文
+              logStore.warning(
+                `Failed to translate ${task.itemName}[${i}], keeping original`
+              )
+              translatedArray[i] = originalText[i]
+            }
+          }
+
+          task.translatedText = translatedArray
+          task.status = 'completed'
+
+          // 应用翻译结果
+          if (projectStore.selectedXmlData && projectStore.selectedXmlFile) {
+            projectStore.selectedXmlData.updateItem(
+              projectStore.selectedXmlFile,
+              task.itemName,
+              task.targetLanguage,
+              translatedArray
+            )
+            logStore.trace(
+              `Applied array translation: ${task.itemName} -> ${task.targetLanguage}`
+            )
+          }
+
+          logStore.debug(
+            `Translated array ${task.itemName} to ${task.targetLanguage} (${originalText.length} items)`
+          )
         }
       } catch (err: any) {
         task.status = 'error'

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 示例 string-array 资源 -->
+    <string-array name="weekdays">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+
+    <string-array name="months">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
+
+    <string-array name="colors">
+        <item>Red</item>
+        <item>Green</item>
+        <item>Blue</item>
+        <item>Yellow</item>
+        <item>Purple</item>
+        <item>Orange</item>
+        <item>Pink</item>
+        <item>Brown</item>
+        <item>Black</item>
+        <item>White</item>
+    </string-array>
+
+    <!-- 对照的普通字符串 -->
+    <string name="app_name">Android Translation Tool Plus</string>
+    <string name="welcome_message">Welcome to our app!</string>
+    <string name="button_ok">OK</string>
+    <string name="button_cancel">Cancel</string>
+</resources>
