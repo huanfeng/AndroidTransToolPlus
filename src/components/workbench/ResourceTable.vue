@@ -52,7 +52,7 @@
         <div class="pagination">
           <el-pagination
             background
-            small
+            size="small"
             layout="total, sizes, prev, pager, next, jumper"
             :total="filteredRows.length"
             :current-page="page"

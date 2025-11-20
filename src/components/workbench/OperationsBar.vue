@@ -21,7 +21,7 @@
         <el-button size="small" @click="invertLangs">反选</el-button>
       </div>
       <el-checkbox-group v-model="selectedLangs" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
-        <el-checkbox v-for="l in allTargetLanguages" :key="l" :label="l">{{ langLabel(l) }}</el-checkbox>
+        <el-checkbox v-for="l in allTargetLanguages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
       </el-checkbox-group>
       <template #footer>
         <el-button @click="langDialogVisible = false">取消</el-button>
