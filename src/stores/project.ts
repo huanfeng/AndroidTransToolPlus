@@ -11,6 +11,7 @@ import { scanProjectResDirs, type ResDirInfo } from '@/services/project/scanner'
 import { XmlData } from '@/services/project/xmldata'
 import { Language } from '@/models/language'
 import { useLogStore } from './log'
+import { loadProjectFromStorage, clearProjectFromStorage } from '@/utils/projectPersistence'
 
 /**
  * 项目状态
@@ -341,7 +342,80 @@ export const useProjectStore = defineStore('project', () => {
     selectedXmlFile.value = null
     state.value = ProjectState.IDLE
     error.value = null
+    // 清除持久化的项目信息
+    clearProjectFromStorage()
     logStore.info('Project closed')
+  }
+
+  /**
+   * 恢复项目（从本地存储）
+   */
+  async function restoreProject(): Promise<boolean> {
+    const stored = loadProjectFromStorage()
+    if (!stored) {
+      logStore.info('No stored project to restore')
+      return false
+    }
+
+    try {
+      logStore.info(`Attempting to restore project: ${stored.name}`)
+
+      // 注意：浏览器环境下的 File System Access API 无法持久化目录句柄
+      // 用户需要重新选择目录，但我们可以记住选择的文件和目录
+      logStore.warning('Please re-select the project directory to restore')
+
+      const fs = getFileSystemAdapter()
+
+      // 提示用户手动选择项目
+      const dirHandle = await fs.selectDirectory()
+      if (!dirHandle) {
+        logStore.info('Project restoration cancelled')
+        clearProjectFromStorage()
+        return false
+      }
+
+      // 验证目录名称是否匹配（简单验证）
+      if (dirHandle.name !== stored.name) {
+        logStore.warning(`Directory name mismatch: expected ${stored.name}, got ${dirHandle.name}`)
+        const confirm = window.confirm(
+          `目录名称不匹配。\n期望: ${stored.name}\n实际: ${dirHandle.name}\n\n是否继续打开？`
+        )
+        if (!confirm) {
+          return false
+        }
+      }
+
+      // 扫描项目
+      await scanProject(dirHandle)
+
+      // 恢复选择的文件
+      if (stored.selectedResDir && project.value) {
+        const hasResDir = project.value.resDirs.some(d => d.relativePath === stored.selectedResDir)
+        if (hasResDir) {
+          selectedResDir.value = stored.selectedResDir
+
+          // 自动加载选中的文件
+          if (stored.selectedXmlFile) {
+            const xmlData = project.value.xmlDataMap.get(selectedResDir.value)
+            if (xmlData) {
+              const fileNames = xmlData.getXmlFileNames()
+              if (fileNames.includes(stored.selectedXmlFile)) {
+                selectedXmlFile.value = stored.selectedXmlFile
+                // 加载文件内容
+                await loadSelectedFile()
+              }
+            }
+          }
+        }
+      }
+
+      logStore.info('Project restored successfully')
+      return true
+    } catch (err: any) {
+      logStore.error('Failed to restore project', err)
+      clearProjectFromStorage()
+      return false
+    }
   }
 
   /**
@@ -375,6 +449,7 @@ export const useProjectStore = defineStore('project', () => {
 
     selectedXmlFile.value = fileName
     selectedItemNames.value = []
+
     logStore.debug(`Selected XML file: ${fileName}`)
   }
 
@@ -442,6 +517,7 @@ export const useProjectStore = defineStore('project', () => {
     // 方法
     openProject,
     scanProject,
+    restoreProject,
     loadProject,
     loadResDir,
     saveProject,

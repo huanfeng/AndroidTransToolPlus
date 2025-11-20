@@ -32,11 +32,31 @@
   <!-- 设置与关于对话框 -->
   <SettingsDialog v-model:visible="showSettings" />
   <AboutDialog v-model:visible="showAbout" />
+
+  <!-- 项目恢复对话框 -->
+  <el-dialog v-model="showRestoreDialog" title="恢复项目" width="480px" :close-on-click-modal="false" :close-on-press-escape="false">
+    <div style="padding: 16px 0;">
+      <p style="margin-bottom: 12px;">检测到您上次打开的项目，是否要恢复？</p>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="注意"
+        description="由于浏览器安全限制，您需要重新选择项目目录，但我们可以自动恢复您上次打开的文件。"
+        style="margin-bottom: 12px;"
+      />
+    </div>
+    <template #footer>
+      <el-button @click="skipRestore">跳过</el-button>
+      <el-button type="primary" @click="confirmRestore">恢复项目</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
+import { useProjectStore } from '@/stores/project'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue'
@@ -45,19 +65,44 @@ import ResourceTable from '@/components/workbench/ResourceTable.vue'
 import LogPanel from '@/components/logs/LogPanel.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import AboutDialog from '@/components/about/AboutDialog.vue'
+import { enableBeforeUnloadPrompt } from '@/utils/beforeUnload'
+import { hasStoredProject } from '@/utils/projectPersistence'
 
 const configStore = useConfigStore()
+const projectStore = useProjectStore()
 const showSettings = ref(false)
 const showAbout = ref(false)
+const showRestoreDialog = ref(false)
 
 onMounted(() => {
+  // 立即执行必要的同步操作
   if (!configStore.loaded) {
     configStore.load()
   }
   applyTheme(configStore.config.theme)
+
+  // 将非关键操作推迟到下一个事件循环，避免阻塞主线程
+  setTimeout(async () => {
+    // 检查是否有存储的项目，尝试自动恢复
+    if (hasStoredProject() && projectStore.isIdle) {
+      showRestoreDialog.value = true
+    }
+
+    // 启用页面刷新/关闭提示
+    enableBeforeUnloadPrompt()
+  }, 0)
 })
 
 watch(() => configStore.config.theme, (val) => applyTheme(val))
+
+async function confirmRestore() {
+  showRestoreDialog.value = false
+  await projectStore.restoreProject()
+}
+
+function skipRestore() {
+  showRestoreDialog.value = false
+}
 
 function applyTheme(theme: 'light' | 'dark') {
   const root = document.documentElement
