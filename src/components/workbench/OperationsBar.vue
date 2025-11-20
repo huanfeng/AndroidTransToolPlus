@@ -1,6 +1,10 @@
 <template>
   <div class="toolbar ops">
     <el-button size="small" @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
+    <el-button size="small" type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate || isTranslating">
+      <el-icon style="margin-right:4px;"><MessageBox /></el-icon>
+      批量翻译
+    </el-button>
     <el-button size="small" type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile">保存当前文件</el-button>
     <el-divider direction="vertical" />
     <!-- 搜索 / 筛选 放到与操作同一行 -->
@@ -9,28 +13,12 @@
         <el-icon><Search /></el-icon>
       </template>
     </el-input>
-    <el-checkbox v-model="projectStore.tableFilterIncomplete" size="small" border>未完成</el-checkbox>
-    <el-checkbox v-model="projectStore.tableFilterUntranslatable" size="small" border>不可翻译</el-checkbox>
-    <el-checkbox v-model="projectStore.tableFilterEdited" size="small" border>已编辑</el-checkbox>
-    <el-divider direction="vertical" />
-    <el-button size="small" @click="langDialogVisible = true">目标语言{{ selectedTargetCount ? `(${selectedTargetCount})` : '' }}</el-button>
-    <el-dialog v-model="langDialogVisible" title="选择目标语言" width="520px">
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <el-button size="small" @click="selectAllLangs">全选</el-button>
-        <el-button size="small" @click="clearAllLangs">全不选</el-button>
-        <el-button size="small" @click="invertLangs">反选</el-button>
-      </div>
-      <el-checkbox-group v-model="selectedLangs" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
-        <el-checkbox v-for="l in allTargetLanguages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
-      </el-checkbox-group>
-      <template #footer>
-        <el-button @click="langDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="applyLangSelection">应用</el-button>
-      </template>
-    </el-dialog>
-    <el-button size="small" type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate || isTranslating">
-      批量翻译
-    </el-button>
+    <el-radio-group v-model="projectStore.tableFilterCurrent" size="small" style="margin-left: 8px;">
+      <el-radio-button label="">全部</el-radio-button>
+      <el-radio-button label="incomplete">未完成</el-radio-button>
+      <el-radio-button label="untranslatable">不可翻译</el-radio-button>
+      <el-radio-button label="edited">已编辑</el-radio-button>
+    </el-radio-group>
     <div class="toolbar-spacer"></div>
     <!-- 统计标签移至同一行显示 -->
     <el-tag size="small" type="info">筛选: {{ projectStore.tableFilteredCount }}</el-tag>
@@ -44,13 +32,24 @@
   </div>
   <el-dialog v-model="batchDialogVisible" title="批量翻译" width="520px">
     <el-descriptions :column="1" border>
-      <el-descriptions-item label="目标语言数量">{{ selectedLangs.length }}</el-descriptions-item>
+      <el-descriptions-item label="目标语言数量">{{ configStore.config.targetLanguages.length }}</el-descriptions-item>
       <el-descriptions-item label="选中条目数">
         {{ projectStore.selectedItemNames.length || '（未选择，默认全部）' }}
       </el-descriptions-item>
     </el-descriptions>
-    <div style="margin-top:12px;">
-      <el-checkbox v-model="updateExisting">更新已翻译部分</el-checkbox>
+    <div style="margin-top:16px;">
+      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">选择目标语言</h4>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <el-button size="small" @click="selectAllLangs">全选</el-button>
+        <el-button size="small" @click="clearAllLangs">全不选</el-button>
+        <el-button size="small" @click="invertLangs">反选</el-button>
+      </div>
+      <el-checkbox-group v-model="configStore.config.targetLanguages" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+        <el-checkbox v-for="l in allTargetLanguages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
+      </el-checkbox-group>
+    </div>
+    <div style="margin-top:16px;">
+      <el-checkbox v-model="configStore.config.autoUpdateTranslated">更新已翻译部分</el-checkbox>
     </div>
     <template #footer>
       <el-button @click="batchDialogVisible = false">取消</el-button>
@@ -70,25 +69,22 @@
  </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { ElLoading } from 'element-plus'
 import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
 import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
-import { Search } from '@element-plus/icons-vue'
+import { Search, MessageBox } from '@element-plus/icons-vue'
 import type { ResItem } from '@/models/resource'
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const configStore = useConfigStore()
 
-const selectedLangs = ref<Language[]>([])
-const selectedTargetCount = computed(() => configStore.config.targetLanguages.length)
-const langDialogVisible = ref(false)
+// 对话框可见性
 const batchDialogVisible = ref(false)
-const updateExisting = ref(true)
 const stopDialogVisible = ref(false)
 
 // removed unused fileStats to satisfy TS build
@@ -99,18 +95,10 @@ function langLabel(l: Language) { const info = getLanguageInfo(l); return `${get
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
-  const targets = configStore.config.targetLanguages
-  return hasFile && targets.length > 0
+  return hasFile
 })
 const isTranslating = computed(() => translationStore.isTranslating)
 const progress = computed(() => translationStore.progress)
-
-watch(langDialogVisible, (v) => {
-  if (v) {
-    // 打开时同步目标语言配置（与启用语言分离）
-    selectedLangs.value = configStore.config.targetLanguages.slice()
-  }
-})
 
 async function reloadFile() {
   try {
@@ -137,6 +125,14 @@ async function saveCurrentFile() {
 
 async function confirmBatchTranslate() {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
+
+  // 检查是否选择了目标语言
+  const targets = configStore.config.targetLanguages
+  if (targets.length === 0) {
+    toast.warning('请先选择目标语言')
+    return
+  }
+
   try {
     // 仅对当前文件，且仅对表格选中的条目进行翻译（若有选中）
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
@@ -149,11 +145,14 @@ async function confirmBatchTranslate() {
         items.set(name, item)
       }
     }
+    // 保存 autoRetry 的原值
     const prev = configStore.config.autoRetry
-    configStore.update('autoRetry', updateExisting.value)
+    // 临时设置 autoRetry 为 autoUpdateTranslated 的值
+    configStore.update('autoRetry', configStore.config.autoUpdateTranslated)
     try {
-      await translationStore.startTranslation(items, selectedLangs.value)
+      await translationStore.startTranslation(items, configStore.config.targetLanguages)
     } finally {
+      // 恢复原值
       configStore.update('autoRetry', prev)
     }
     const p = translationStore.progress
@@ -165,19 +164,16 @@ async function confirmBatchTranslate() {
 }
 
 function selectAllLangs() {
-  selectedLangs.value = allTargetLanguages.value.slice()
+  configStore.update('targetLanguages', allTargetLanguages.value.slice())
 }
 function clearAllLangs() {
-  selectedLangs.value = []
+  configStore.update('targetLanguages', [])
 }
 function invertLangs() {
-  const set = new Set(selectedLangs.value)
-  selectedLangs.value = allTargetLanguages.value.filter(l => !set.has(l))
-}
-function applyLangSelection() {
-  // 仅更新"目标语言"，不影响"启用语言"（表格列）
-  configStore.update('targetLanguages', selectedLangs.value.slice())
-  langDialogVisible.value = false
+  const current = configStore.config.targetLanguages
+  const set = new Set(current)
+  const inverted = allTargetLanguages.value.filter(l => !set.has(l))
+  configStore.update('targetLanguages', inverted)
 }
 
 function confirmStopTranslation() {

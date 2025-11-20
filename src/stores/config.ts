@@ -16,6 +16,7 @@ export interface AppConfig {
   customLanguages: CustomLanguage[]
   maxItemsPerRequest: number
   autoRetry: boolean
+  autoUpdateTranslated: boolean
   maxRetries: number
   requestTimeout: number
   theme: 'light' | 'dark'
@@ -37,6 +38,7 @@ const DEFAULT_CONFIG: AppConfig = {
   customLanguages: [],
   maxItemsPerRequest: 20,
   autoRetry: true,
+  autoUpdateTranslated: false,
   maxRetries: 3,
   requestTimeout: 120000,
   theme: 'light',

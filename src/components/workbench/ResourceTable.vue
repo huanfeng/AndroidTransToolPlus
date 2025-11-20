@@ -111,9 +111,6 @@ const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
 // 共享筛选状态来自 store
 const filterText = computed({ get: () => projectStore.tableFilterText, set: v => projectStore.tableFilterText = v })
-const filterIncomplete = computed({ get: () => projectStore.tableFilterIncomplete, set: v => projectStore.tableFilterIncomplete = v })
-const filterUntranslatable = computed({ get: () => projectStore.tableFilterUntranslatable, set: v => projectStore.tableFilterUntranslatable = v })
-const filterEdited = computed({ get: () => projectStore.tableFilterEdited, set: v => projectStore.tableFilterEdited = v })
 const selection = ref<any[]>([])
 
 const rows = computed(() => {
@@ -139,26 +136,32 @@ const filteredRows = computed(() => {
       return keyHit || def.includes(q)
     })
   }
-  if (filterUntranslatable.value) {
-    list = list.filter(r => !r.translatable)
-  }
-  if (filterIncomplete.value) {
-    list = list.filter(r => {
-      if (!r.translatable) return false
-      return targetLangs.value.some(l => {
-        const v = getCellValue(r, l)
-        return !v || v.length === 0
+
+  // 单选筛选逻辑
+  switch (projectStore.tableFilterCurrent) {
+    case 'untranslatable':
+      list = list.filter(r => !r.translatable)
+      break
+    case 'incomplete':
+      list = list.filter(r => {
+        if (!r.translatable) return false
+        return targetLangs.value.some(l => {
+          const v = getCellValue(r, l)
+          return !v || v.length === 0
+        })
       })
-    })
+      break
+    case 'edited':
+      list = list.filter(r => {
+        // "已编辑" = 任一语言（默认或目标）有未保存修改
+        if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
+        const langs: Language[] = [Language.DEF, ...targetLangs.value]
+        return langs.some(l => projectStore.selectedXmlData!.isDirty(projectStore.selectedXmlFile!, l, r.name))
+      })
+      break
+    // case '' 或其他值：显示全部（不筛选）
   }
-  if (filterEdited.value) {
-    list = list.filter(r => {
-      // “已编辑” = 任一语言（默认或目标）有未保存修改
-      if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
-      const langs: Language[] = [Language.DEF, ...targetLangs.value]
-      return langs.some(l => projectStore.selectedXmlData!.isDirty(projectStore.selectedXmlFile!, l, r.name))
-    })
-  }
+
   return list
 })
 const pagedRows = computed(() => {
@@ -189,7 +192,7 @@ function getCellValue(row: ResItem, lang: Language): string {
 }
 
 watch(filterText, () => { page.value = 1 })
-watch([filterIncomplete, filterUntranslatable, filterEdited], () => { page.value = 1 })
+watch(() => projectStore.tableFilterCurrent, () => { page.value = 1 })
 watch(() => filteredRows.value.length, (n) => { projectStore.tableFilteredCount = n })
 
 function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }

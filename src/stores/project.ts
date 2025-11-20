@@ -52,6 +52,7 @@ export const useProjectStore = defineStore('project', () => {
   const tableFilterIncomplete = ref(false)
   const tableFilterUntranslatable = ref(false)
   const tableFilterEdited = ref(false)
+  const tableFilterCurrent = ref('') // 当前筛选条件（单选）
   const tableFilteredCount = ref(0)
   const tableSelectionCount = ref(0)
 
@@ -511,6 +512,7 @@ export const useProjectStore = defineStore('project', () => {
     tableFilterIncomplete,
     tableFilterUntranslatable,
     tableFilterEdited,
+    tableFilterCurrent,
     tableFilteredCount,
     tableSelectionCount,
 
