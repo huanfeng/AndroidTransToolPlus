@@ -361,47 +361,134 @@ function openArrayEditor(itemName: string, lang: Language) {
   showArrayEdit.value = true
 }
 
-async function translateForLanguage(lang: Language, mode: 'selected' | 'missing' | 'all') {
-  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
-  const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-  const def = fileMap?.get(Language.DEF)
-  if (!def) return
-  const selectedSet = new Set(selection.value.map((r: any) => r.name))
-  const items = new Map<string, ResItem>()
-  for (const [name, item] of def.items) {
-    if (mode === 'selected' && !selectedSet.has(name)) continue
-    if (mode === 'missing') {
-      const v = getCellValue(item as any, lang)
-      if (v && v.length > 0) continue
-    }
-    items.set(name, item)
+// ========== 翻译辅助函数 ==========
+
+/**
+ * 统一的翻译执行函数
+ * @param items 要翻译的条目
+ * @param languages 目标语言
+ */
+async function executeTranslation(items: Map<string, ResItem>, languages: Language[]) {
+  if (items.size === 0) {
+    toast.warning('没有需要翻译的条目')
+    return
   }
-  await translationStore.startTranslation(items, [lang])
+  if (languages.length === 0) {
+    toast.warning('没有选择目标语言')
+    return
+  }
+  await translationStore.startTranslation(items, languages)
   const p = translationStore.progress
   toast.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
 }
 
-async function translateForItem(itemName: string, mode: 'missing' | 'all') {
-  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
+/**
+ * 获取指定范围的条目集合
+ * @param scope 'selected' | 'missing' | 'all'
+ * @param lang 目标语言（用于判断 missing）
+ * @param itemName 单个条目名称（可选，用于单条目翻译）
+ */
+function getItemsByScope(scope: string, lang?: Language, itemName?: string): Map<string, ResItem> {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return new Map()
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
   const def = fileMap?.get(Language.DEF)
-  if (!def) return
+  if (!def) return new Map()
+
+  const items = new Map<string, ResItem>()
+  const selectedSet = new Set(selection.value.map((r: any) => r.name))
+
+  // 如果指定了单个条目，只处理该条目
+  if (itemName) {
+    const it = def.items.get(itemName)
+    if (it) items.set(itemName, it)
+    return items
+  }
+
+  // 遍历所有条目
+  for (const [name, item] of def.items) {
+    // 根据 scope 筛选
+    if (scope === 'selected') {
+      if (!selectedSet.has(name)) continue
+    } else if (scope === 'missing' && lang) {
+      const v = getCellValue(item as any, lang)
+      if (v && v.length > 0) continue
+    }
+    // scope === 'all' 不需要额外筛选
+    items.set(name, item)
+  }
+
+  return items
+}
+
+/**
+ * 获取指定条目的目标语言列表
+ * @param itemName 条目名称
+ * @param mode 'missing' | 'all'
+ */
+function getTargetLanguagesForItem(itemName: string, mode: string): Language[] {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return []
+  const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+  const def = fileMap?.get(Language.DEF)
+  if (!def) return []
   const it = def.items.get(itemName)
-  if (!it) return
-  const items = new Map<string, ResItem>([[itemName, it]])
-  const langs = configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
-  const target = langs.filter(l => {
-    if (mode === 'all') return true
+  if (!it) return []
+
+  const langs = targetLangs.value
+  if (mode === 'all') return langs
+
+  // mode === 'missing'
+  return langs.filter(l => {
     const v = getCellValue(it as any, l)
     return !v || v.length === 0
   })
-  if (target.length === 0) {
-    toast.info('无可翻译目标语言')
-    return
+}
+
+/**
+ * 统计不同范围的条目数量
+ */
+function countItemsByScope(scope: string, lang?: Language): number {
+  return getItemsByScope(scope, lang).size
+}
+
+// ========== 还原辅助函数 ==========
+
+/**
+ * 还原单个单元格
+ */
+async function restoreCell(_itemName: string, _lang: Language) {
+  if (!projectStore.selectedXmlFile) return
+  try {
+    await projectStore.reloadSelectedFile()
+    toast.success('已还原')
+  } catch (e: any) {
+    toast.fromError(e, '还原失败')
   }
-  await translationStore.startTranslation(items, target)
-  const p = translationStore.progress
-  toast.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
+}
+
+/**
+ * 还原整行（所有语言）
+ */
+async function restoreRow(_itemName: string) {
+  if (!projectStore.selectedXmlFile) return
+  try {
+    await projectStore.reloadSelectedFile()
+    toast.success('已还原')
+  } catch (e: any) {
+    toast.fromError(e, '还原失败')
+  }
+}
+
+/**
+ * 还原整个语言列
+ */
+async function restoreLanguage(_lang: Language) {
+  if (!projectStore.selectedXmlFile) return
+  try {
+    await projectStore.reloadSelectedFile()
+    toast.success('已还原')
+  } catch (e: any) {
+    toast.fromError(e, '还原失败')
+  }
 }
 
 // 单元格双击进入编辑或数组弹窗（整格双击）
@@ -458,6 +545,7 @@ function openLangHeaderMenu(lang: Language, event: MouseEvent) {
 
 function openCellMenu(row: any, lang: Language, event: MouseEvent) {
   currentCellRow.value = row
+  currentLang.value = lang
   const dropdown = cellMenu.value as any
   dropdown.handleOpen()
   const el = dropdown.$el as HTMLElement
@@ -485,52 +573,160 @@ const hasEditedCell = computed(() => {
 function onKeyMenuCommand(cmd: string) {
   if (!currentKeyRow.value) return
   const row = currentKeyRow.value
+
   if (cmd === 'translate-missing' || cmd === 'translate-all') {
-    // TODO: 实现翻译
-    toast.info('功能开发中')
+    // 打开翻译配置对话框
+    const mode = cmd === 'translate-missing' ? 'missing' : 'all'
+    const targetLanguages = getTargetLanguagesForItem(row.name, mode)
+
+    if (targetLanguages.length === 0) {
+      toast.info('无可翻译目标语言')
+      currentKeyRow.value = null
+      return
+    }
+
+    // 准备对话框数据
+    translateDialogData.type = 'key'
+    translateDialogData.title = cmd === 'translate-missing' ? '翻译此条目-未翻译' : '翻译此条目-所有'
+    translateDialogData.confirmText = '开始翻译'
+    translateDialogData.description = {
+      key: { label: 'Key', value: row.name },
+      defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) }
+    }
+    translateDialogData.scopeOptions = [
+      { value: mode, label: mode === 'missing' ? '未翻译语言' : '所有语言', count: targetLanguages.length }
+    ]
+    translateDialogData.allTargetLanguages = targetLanguages
+    translateDialogData.defaultSelectedLanguages = targetLanguages
+    translateDialogData.showTargetLanguages = true
+
+    showTranslateDialog.value = true
   } else if (cmd === 'restore-row') {
-    // TODO: 实现还原
-    toast.info('功能开发中')
+    restoreRow(row.name)
   }
+
   currentKeyRow.value = null
 }
 
 function onLangHeaderMenuCommand(cmd: string) {
   if (!currentLang.value) return
+  const lang = currentLang.value
+
   if (cmd === 'translate-selected' || cmd === 'translate-missing' || cmd === 'translate-all') {
-    // TODO: 实现翻译
-    toast.info('功能开发中')
+    // 确定范围
+    let scope: string
+    let scopeLabel: string
+    if (cmd === 'translate-selected') {
+      scope = 'selected'
+      scopeLabel = '已选中'
+    } else if (cmd === 'translate-missing') {
+      scope = 'missing'
+      scopeLabel = '未翻译'
+    } else {
+      scope = 'all'
+      scopeLabel = '所有'
+    }
+
+    const count = countItemsByScope(scope, lang)
+    if (count === 0) {
+      toast.info(scope === 'selected' ? '请先选择条目' : '没有需要翻译的条目')
+      currentLang.value = null
+      return
+    }
+
+    // 准备对话框数据
+    const langInfo = getLanguageInfo(lang)
+    translateDialogData.type = 'lang-header'
+    translateDialogData.title = `翻译此语言-${scopeLabel}`
+    translateDialogData.confirmText = '开始翻译'
+    translateDialogData.description = {
+      language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
+    }
+    translateDialogData.scopeOptions = [
+      { value: 'selected', label: '已选中', count: countItemsByScope('selected', lang) },
+      { value: 'missing', label: '未翻译', count: countItemsByScope('missing', lang) },
+      { value: 'all', label: '所有', count: countItemsByScope('all', lang) }
+    ].filter(opt => opt.count > 0)
+    translateDialogData.allTargetLanguages = [lang]
+    translateDialogData.defaultSelectedLanguages = [lang]
+    translateDialogData.showTargetLanguages = false
+
+    showTranslateDialog.value = true
   } else if (cmd === 'restore-lang') {
-    // TODO: 实现还原
-    toast.info('功能开发中')
+    restoreLanguage(lang)
   }
+
   currentLang.value = null
 }
 
 function onCellMenuCommand(cmd: string) {
   if (!currentCellRow.value || !currentLang.value) return
+  const row = currentCellRow.value
+  const lang = currentLang.value
+
   if (cmd === 'quick-translate') {
-    // TODO: 实现快速翻译
-    toast.info('功能开发中')
+    // 快速翻译：直接翻译当前单元格，不弹出对话框
+    const items = getItemsByScope('all', undefined, row.name)
+    executeTranslation(items, [lang])
   } else if (cmd === 'translate-custom') {
-    // TODO: 实现自定义翻译
-    toast.info('功能开发中')
+    // 自定义翻译：打开配置对话框
+    const langInfo = getLanguageInfo(lang)
+    translateDialogData.type = 'cell'
+    translateDialogData.title = '翻译单元格'
+    translateDialogData.confirmText = '开始翻译'
+    translateDialogData.description = {
+      key: { label: 'Key', value: row.name },
+      defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
+      language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
+    }
+    translateDialogData.scopeOptions = [
+      { value: 'single', label: '当前单元格', count: 1 }
+    ]
+    translateDialogData.allTargetLanguages = targetLangs.value
+    translateDialogData.defaultSelectedLanguages = [lang]
+    translateDialogData.showTargetLanguages = true
+
+    showTranslateDialog.value = true
   } else if (cmd === 'restore-cell') {
-    // TODO: 实现还原
-    toast.info('功能开发中')
+    restoreCell(row.name, lang)
   } else if (cmd === 'copy') {
-    const value = getCellValue(currentCellRow.value, currentLang.value)
+    const value = getCellValue(row, lang)
     navigator.clipboard.writeText(value || '')
     toast.success('已复制')
   }
+
   currentCellRow.value = null
   currentLang.value = null
 }
 
-function onTranslateConfirm(_data: { scope: string; languages: Language[] }) {
-  // TODO: 实现翻译逻辑
-  toast.info('功能开发中')
+async function onTranslateConfirm(data: { scope: string; languages: Language[] }) {
   showTranslateDialog.value = false
+
+  try {
+    let items: Map<string, ResItem>
+    let languages: Language[]
+
+    if (translateDialogData.type === 'key') {
+      // Key 列菜单：翻译指定条目
+      if (!currentKeyRow.value) return
+      items = getItemsByScope('all', undefined, currentKeyRow.value.name)
+      languages = data.languages
+    } else if (translateDialogData.type === 'lang-header') {
+      // 语言表头菜单：翻译指定语言的多个条目
+      if (!currentLang.value) return
+      items = getItemsByScope(data.scope, currentLang.value)
+      languages = [currentLang.value]
+    } else {
+      // cell：单元格菜单
+      if (!currentCellRow.value) return
+      items = getItemsByScope('all', undefined, currentCellRow.value.name)
+      languages = data.languages
+    }
+
+    await executeTranslation(items, languages)
+  } catch (e: any) {
+    toast.fromError(e, '翻译失败')
+  }
 }
 
 function isCellDirty(itemName: string, lang: Language): boolean {
