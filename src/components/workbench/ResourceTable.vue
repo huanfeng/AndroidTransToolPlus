@@ -133,7 +133,7 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate">翻译此条目</el-dropdown-item>
+            <el-dropdown-item command="translate">翻译此条目...</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided>还原此条目</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -144,7 +144,7 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate">翻译此语言</el-dropdown-item>
+            <el-dropdown-item command="translate">翻译此语言...</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided>还原此语言</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -168,15 +168,7 @@
       <!-- 翻译配置弹框 -->
       <TranslateConfigDialog
         v-model="showTranslateDialog"
-        :type="translateDialogData.type"
-        :title="translateDialogData.title"
-        :confirm-text="translateDialogData.confirmText"
-        :description="translateDialogData.description"
-        :scope-options="translateDialogData.scopeOptions"
-        :all-target-languages="translateDialogData.allTargetLanguages"
-        :default-selected-languages="translateDialogData.defaultSelectedLanguages"
-        :show-target-languages="translateDialogData.showTargetLanguages"
-        :language-selector-collapsed="translateDialogData.languageSelectorCollapsed"
+        :config="translateDialogConfig"
         @confirm="onTranslateConfirm"
       />
     </template>
@@ -295,22 +287,21 @@ const currentCellRow = ref<any | null>(null)
 
 // 翻译配置弹框
 const showTranslateDialog = ref(false)
-const translateDialogData = reactive({
-  type: 'key' as 'key' | 'lang-header' | 'cell',
-  title: '',
-  confirmText: '',
-  description: null as any,
-  scopeOptions: [] as Array<{ value: string; label: string; count: number }>,
-  allTargetLanguages: [] as Language[],
-  defaultSelectedLanguages: [] as Language[],
-  showTargetLanguages: true,
-  languageSelectorCollapsed: true,
-  // 保存操作上下文（避免在确认时丢失）
+const translateDialogConfig = ref<{
+  type: 'key' | 'lang-header' | 'cell'
+  title: string
+  confirmText: string
+  description: any
+  scopeOptions: Array<{ value: string; label: string; count: number }>
+  allTargetLanguages: Language[]
+  defaultSelectedLanguages: Language[]
+  showTargetLanguages: boolean
+  languageSelectorCollapsed: boolean
   context: {
-    itemName: null as string | null,
-    lang: null as Language | null
+    itemName: string | null
+    lang: Language | null
   }
-})
+} | null>(null)
 
 watch(filterText, () => { page.value = 1 })
 watch(() => projectStore.tableFilterCurrent, () => { page.value = 1 })
@@ -585,36 +576,47 @@ function onKeyMenuCommand(cmd: string) {
   const row = currentKeyRow.value
 
   if (cmd === 'translate') {
-    // 打开翻译配置对话框，提供所有翻译范围选项
+    // 打开翻译配置对话框，提供翻译语言选项
     const allLangs = targetLangs.value
     const missingLangs = getTargetLanguagesForItem(row.name, 'missing')
 
-    // 准备对话框数据
-    translateDialogData.type = 'key'
-    translateDialogData.title = '翻译此条目'
-    translateDialogData.confirmText = '开始翻译'
-    translateDialogData.description = {
-      key: { label: 'Key', value: row.name },
-      defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) }
-    }
-    translateDialogData.scopeOptions = [
-      { value: 'missing', label: '未翻译', count: missingLangs.length },
-      { value: 'all', label: '所有', count: allLangs.length }
-    ]
-    translateDialogData.allTargetLanguages = allLangs
-    translateDialogData.defaultSelectedLanguages = missingLangs.length > 0 ? missingLangs : allLangs
-    translateDialogData.showTargetLanguages = true
-    translateDialogData.languageSelectorCollapsed = true
-    // 保存上下文
-    translateDialogData.context.itemName = row.name
-    translateDialogData.context.lang = null
+    // 先关闭菜单
+    currentKeyRow.value = null
 
-    showTranslateDialog.value = true
+    // 准备对话框配置
+    const dialogConfig = {
+      type: 'key' as const,
+      title: '翻译条目',
+      confirmText: '开始翻译',
+      description: {
+        key: { label: 'Key', value: row.name },
+        defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) }
+      },
+      scopeOptions: [], // Key翻译不使用scopeOptions，但TypeScript要求必须有
+      languageOptions: [
+        { value: 'missing', label: `未翻译 (${missingLangs.length})`, count: missingLangs.length },
+        { value: 'all', label: `全部 (${allLangs.length})`, count: allLangs.length }
+      ],
+      allTargetLanguages: allLangs,
+      defaultSelectedLanguages: allLangs, // Key翻译不需要选择语言，通过languageFilter确定
+      showTargetLanguages: false, // Key翻译不显示目标语言选择
+      languageSelectorCollapsed: false,
+      expectedItemCount: allLangs.length, // 用于按钮禁用判断
+      context: {
+        itemName: row.name,
+        lang: null as Language | null
+      }
+    }
+
+    // 使用setTimeout确保配置设置在菜单关闭后执行
+    setTimeout(() => {
+      translateDialogConfig.value = dialogConfig
+      showTranslateDialog.value = true
+    }, 0)
   } else if (cmd === 'restore-row') {
     restoreRow(row.name)
+    currentKeyRow.value = null
   }
-
-  currentKeyRow.value = null
 }
 
 function onLangHeaderMenuCommand(cmd: string) {
@@ -624,27 +626,13 @@ function onLangHeaderMenuCommand(cmd: string) {
   if (cmd === 'translate') {
     // 打开翻译配置对话框，提供所有翻译范围选项
     const selectedCount = countItemsByScope('selected', lang)
-    const missingCount = countItemsByScope('missing', lang)
     const allCount = countItemsByScope('all', lang)
 
-    // 准备对话框数据
-    const langInfo = getLanguageInfo(lang)
-    translateDialogData.type = 'lang-header'
-    translateDialogData.title = '翻译此语言'
-    translateDialogData.confirmText = '开始翻译'
-    translateDialogData.description = {
-      language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
-    }
-
-    // 只显示有数据的范围选项
-    const scopeOptions = []
-    if (selectedCount > 0) {
-      scopeOptions.push({ value: 'selected', label: '已选中', count: selectedCount })
-    }
-    if (missingCount > 0) {
-      scopeOptions.push({ value: 'missing', label: '未翻译', count: missingCount })
-    }
-    scopeOptions.push({ value: 'all', label: '所有', count: allCount })
+    // 第一层：翻译范围选项（始终显示两个选项，即使selectedCount为0）
+    const scopeOptions = [
+      { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
+      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount }
+    ]
 
     if (scopeOptions.length === 0) {
       toast.info('没有需要翻译的条目')
@@ -652,21 +640,48 @@ function onLangHeaderMenuCommand(cmd: string) {
       return
     }
 
-    translateDialogData.scopeOptions = scopeOptions
-    translateDialogData.allTargetLanguages = [lang]
-    translateDialogData.defaultSelectedLanguages = [lang]
-    translateDialogData.showTargetLanguages = false
-    translateDialogData.languageSelectorCollapsed = true
-    // 保存上下文
-    translateDialogData.context.itemName = null
-    translateDialogData.context.lang = lang
+    // 第二层：翻译内容选项（仅显示有数据的选项）
+    const missingCount = countItemsByScope('missing', lang)
+    const contentOptions = []
+    if (missingCount > 0) {
+      contentOptions.push({ value: 'missing', label: `未翻译 (${missingCount})`, count: missingCount })
+    }
+    contentOptions.push({ value: 'all', label: `全部 (${allCount})`, count: allCount })
 
-    showTranslateDialog.value = true
+    // 先关闭菜单
+    currentLang.value = null
+
+    // 准备对话框配置
+    const langInfo = getLanguageInfo(lang)
+    const dialogConfig = {
+      type: 'lang-header' as const,
+      title: '批量翻译',
+      confirmText: '开始翻译',
+      description: {
+        language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
+      },
+      scopeOptions,
+      contentOptions,
+      allTargetLanguages: [lang],
+      defaultSelectedLanguages: [lang],
+      showTargetLanguages: false,
+      languageSelectorCollapsed: true,
+      expectedItemCount: allCount, // 用于按钮禁用判断
+      context: {
+        itemName: null as string | null,
+        lang
+      }
+    }
+
+    // 使用setTimeout确保配置设置在菜单关闭后执行
+    setTimeout(() => {
+      translateDialogConfig.value = dialogConfig
+      showTranslateDialog.value = true
+    }, 0)
   } else if (cmd === 'restore-lang') {
     restoreLanguage(lang)
+    currentLang.value = null
   }
-
-  currentLang.value = null
 }
 
 function onCellMenuCommand(cmd: string) {
@@ -678,61 +693,83 @@ function onCellMenuCommand(cmd: string) {
     // 快速翻译：直接翻译当前单元格，不弹出对话框
     const items = getItemsByScope('all', undefined, row.name)
     executeTranslation(items, [lang])
+    currentCellRow.value = null
+    currentLang.value = null
   } else if (cmd === 'translate-custom') {
     // 自定义翻译：打开配置对话框
     const langInfo = getLanguageInfo(lang)
-    translateDialogData.type = 'cell'
-    translateDialogData.title = '翻译单元格'
-    translateDialogData.confirmText = '开始翻译'
-    translateDialogData.description = {
-      key: { label: 'Key', value: row.name },
-      defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
-      language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
-    }
-    translateDialogData.scopeOptions = [
-      { value: 'single', label: '当前单元格', count: 1 }
-    ]
-    translateDialogData.allTargetLanguages = targetLangs.value
-    translateDialogData.defaultSelectedLanguages = [lang]
-    translateDialogData.showTargetLanguages = true
-    translateDialogData.languageSelectorCollapsed = true
-    // 保存上下文
-    translateDialogData.context.itemName = row.name
-    translateDialogData.context.lang = lang
 
-    showTranslateDialog.value = true
+    // 先关闭菜单
+    currentCellRow.value = null
+    currentLang.value = null
+
+    // 准备对话框配置
+    const dialogConfig = {
+      type: 'cell' as const,
+      title: '翻译单元格',
+      confirmText: '开始翻译',
+      description: {
+        key: { label: 'Key', value: row.name },
+        defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
+        language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
+      },
+      scopeOptions: [], // cell翻译不使用scopeOptions
+      allTargetLanguages: targetLangs.value,
+      defaultSelectedLanguages: [lang],
+      showTargetLanguages: false, // cell翻译不需要选择目标语言
+      languageSelectorCollapsed: false,
+      expectedItemCount: 1, // 只有一个单元格
+      context: {
+        itemName: row.name,
+        lang
+      }
+    }
+
+    // 使用setTimeout确保配置设置在菜单关闭后执行
+    setTimeout(() => {
+      translateDialogConfig.value = dialogConfig
+      showTranslateDialog.value = true
+    }, 0)
   } else if (cmd === 'restore-cell') {
     restoreCell(row.name, lang)
+    currentCellRow.value = null
+    currentLang.value = null
   } else if (cmd === 'copy') {
     const value = getCellValue(row, lang)
     navigator.clipboard.writeText(value || '')
     toast.success('已复制')
+    currentCellRow.value = null
+    currentLang.value = null
   }
-
-  currentCellRow.value = null
-  currentLang.value = null
 }
 
-async function onTranslateConfirm(data: { scope: string; languages: Language[] }) {
+async function onTranslateConfirm(data: { scope: string; content?: string; languageFilter?: string; languages: Language[] }) {
+  if (!translateDialogConfig.value) return
+
   try {
     let items: Map<string, ResItem>
     let languages: Language[]
 
-    if (translateDialogData.type === 'key') {
+    if (translateDialogConfig.value.type === 'key') {
       // Key 列菜单：翻译指定条目
-      const itemName = translateDialogData.context.itemName
+      const itemName = translateDialogConfig.value.context.itemName
       if (!itemName) return
       items = getItemsByScope('all', undefined, itemName)
-      languages = data.languages
-    } else if (translateDialogData.type === 'lang-header') {
+      // Key翻译通过languageFilter确定目标语言
+      const allLangs = targetLangs.value
+      const missingLangs = getTargetLanguagesForItem(itemName, 'missing')
+      languages = data.languageFilter === 'missing' ? missingLangs : allLangs
+    } else if (translateDialogConfig.value.type === 'lang-header') {
       // 语言表头菜单：翻译指定语言的多个条目
-      const lang = translateDialogData.context.lang
+      const lang = translateDialogConfig.value.context.lang
       if (!lang) return
-      items = getItemsByScope(data.scope, lang)
+      // 批量翻译时，使用content参数进一步筛选
+      const scope = data.content || data.scope
+      items = getItemsByScope(scope, lang)
       languages = [lang]
     } else {
       // cell：单元格菜单
-      const itemName = translateDialogData.context.itemName
+      const itemName = translateDialogConfig.value.context.itemName
       if (!itemName) return
       items = getItemsByScope('all', undefined, itemName)
       languages = data.languages
@@ -740,6 +777,7 @@ async function onTranslateConfirm(data: { scope: string; languages: Language[] }
 
     // 关闭对话框
     showTranslateDialog.value = false
+    translateDialogConfig.value = null
 
     // 执行翻译
     await executeTranslation(items, languages)

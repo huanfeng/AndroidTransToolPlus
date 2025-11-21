@@ -1,7 +1,7 @@
 <template>
   <div class="toolbar ops">
     <el-button @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
-    <el-button type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate">
+    <el-button type="primary" @click="openBatchTranslateDialog" :disabled="!canTranslate">
       <el-icon style="margin-right:4px;"><MessageBox /></el-icon>
       批量翻译
     </el-button>
@@ -24,28 +24,13 @@
     <el-tag type="info">筛选: {{ projectStore.tableFilteredCount }}</el-tag>
     <el-tag type="success" style="margin-left:6px;">选中: {{ projectStore.tableSelectionCount }}</el-tag>
   </div>
-  <el-dialog v-model="batchDialogVisible" title="批量翻译" width="520px">
-    <el-descriptions :column="1" border>
-      <el-descriptions-item label="目标语言数量">{{ configStore.config.targetLanguages.length }}</el-descriptions-item>
-      <el-descriptions-item label="选中条目数">
-        {{ projectStore.selectedItemNames.length || '（未选择，默认全部）' }}
-      </el-descriptions-item>
-    </el-descriptions>
 
-    <LanguageSelector
-      v-model="configStore.config.targetLanguages"
-      :languages="allTargetLanguages"
-      :default-collapsed="false"
-    />
-
-    <div style="margin-top:16px;">
-      <el-checkbox v-model="configStore.config.autoUpdateTranslated">更新已翻译部分</el-checkbox>
-    </div>
-    <template #footer>
-      <el-button @click="batchDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="confirmBatchTranslate">开始翻译</el-button>
-    </template>
-  </el-dialog>
+  <!-- 统一的翻译配置对话框 -->
+  <TranslateConfigDialog
+    v-model="showBatchDialog"
+    :config="batchDialogConfig"
+    @confirm="onBatchTranslateConfirm"
+  />
  </template>
 
 <script setup lang="ts">
@@ -58,16 +43,15 @@ import { useConfigStore } from '@/stores/config'
 import { Language } from '@/models/language'
 import { Search, MessageBox } from '@element-plus/icons-vue'
 import type { ResItem } from '@/models/resource'
-import LanguageSelector from '@/components/common/LanguageSelector.vue'
+import TranslateConfigDialog from './TranslateConfigDialog.vue'
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const configStore = useConfigStore()
 
-// 对话框可见性
-const batchDialogVisible = ref(false)
-
-// removed unused fileStats to satisfy TS build
+// 批量翻译对话框状态
+const showBatchDialog = ref(false)
+const batchDialogConfig = ref<any>(null)
 
 const allTargetLanguages = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
 
@@ -99,41 +83,93 @@ async function saveCurrentFile() {
   }
 }
 
-async function confirmBatchTranslate() {
+function openBatchTranslateDialog() {
+  // 获取选中的条目数
+  const selectedCount = projectStore.selectedItemNames?.length || 0
+
+  // 获取所有条目数
+  let allCount = 0
+  if (projectStore.selectedXmlData && projectStore.selectedXmlFile) {
+    const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+    const def = fileMap?.get(Language.DEF)
+    allCount = def?.items.size || 0
+  }
+
+  // 准备对话框配置
+  batchDialogConfig.value = {
+    type: 'batch-toolbar' as const,
+    title: '批量翻译',
+    confirmText: '开始翻译',
+    description: {}, // 空描述，不需要显示基本信息
+    scopeOptions: [
+      { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
+      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount }
+    ],
+    contentOptions: [
+      { value: 'missing', label: `未翻译`, count: 0 },  // 实际数量需要在执行时计算
+      { value: 'all', label: `全部`, count: 0 }
+    ],
+    allTargetLanguages: allTargetLanguages.value,
+    defaultSelectedLanguages: configStore.config.targetLanguages,
+    showTargetLanguages: true,
+    languageSelectorCollapsed: false,
+    context: {
+      itemName: null,
+      lang: null,
+      selectedCount
+    }
+  }
+
+  showBatchDialog.value = true
+}
+
+async function onBatchTranslateConfirm(data: { scope: string; content?: string; languages: Language[] }) {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
 
   // 检查是否选择了目标语言
-  const targets = configStore.config.targetLanguages
-  if (targets.length === 0) {
+  if (data.languages.length === 0) {
     toast.warning('请先选择目标语言')
     return
   }
 
   try {
-    // 仅对当前文件，且仅对表格选中的条目进行翻译（若有选中）
+    // 获取要翻译的条目
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
     const def = fileMap?.get(Language.DEF)
     if (!def) throw new Error('Default language not available')
     const selectedSet = new Set(projectStore.selectedItemNames || [])
     const items = new Map<string, ResItem>()
     for (const [name, item] of def.items) {
-      if (selectedSet.size === 0 || selectedSet.has(name)) {
+      if (data.scope === 'selected') {
+        if (selectedSet.has(name)) {
+          items.set(name, item)
+        }
+      } else {
         items.set(name, item)
       }
     }
+
+    // 检查实际可翻译数量
+    if (items.size === 0) {
+      toast.warning('没有可翻译的条目')
+      return
+    }
+
     // 保存 autoRetry 的原值
     const prev = configStore.config.autoRetry
-    // 临时设置 autoRetry 为 autoUpdateTranslated 的值
-    configStore.update('autoRetry', configStore.config.autoUpdateTranslated)
+    // 临时设置 autoRetry 为 content === 'all' 的值（更新已翻译部分）
+    configStore.update('autoRetry', data.content === 'all')
     try {
-      await translationStore.startTranslation(items, configStore.config.targetLanguages)
+      await translationStore.startTranslation(items, data.languages)
     } finally {
       // 恢复原值
       configStore.update('autoRetry', prev)
     }
     const p = translationStore.progress
     toast.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
-    batchDialogVisible.value = false
+
+    // 关闭对话框
+    showBatchDialog.value = false
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
   }
