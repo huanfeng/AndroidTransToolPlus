@@ -20,7 +20,7 @@
     <div style="margin-top:16px;">
       <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">翻译范围</h4>
       <el-radio-group v-model="selectedScope">
-        <el-radio v-for="scope in scopeOptions" :key="scope.value" :label="scope.value">
+        <el-radio v-for="scope in scopeOptions" :key="scope.value" :value="scope.value">
           {{ scope.label }} ({{ scope.count }})
         </el-radio>
       </el-radio-group>

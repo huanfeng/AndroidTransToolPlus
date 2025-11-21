@@ -304,7 +304,12 @@ const translateDialogData = reactive({
   allTargetLanguages: [] as Language[],
   defaultSelectedLanguages: [] as Language[],
   showTargetLanguages: true,
-  languageSelectorCollapsed: true
+  languageSelectorCollapsed: true,
+  // 保存操作上下文（避免在确认时丢失）
+  context: {
+    itemName: null as string | null,
+    lang: null as Language | null
+  }
 })
 
 watch(filterText, () => { page.value = 1 })
@@ -600,6 +605,9 @@ function onKeyMenuCommand(cmd: string) {
     translateDialogData.defaultSelectedLanguages = missingLangs.length > 0 ? missingLangs : allLangs
     translateDialogData.showTargetLanguages = true
     translateDialogData.languageSelectorCollapsed = true
+    // 保存上下文
+    translateDialogData.context.itemName = row.name
+    translateDialogData.context.lang = null
 
     showTranslateDialog.value = true
   } else if (cmd === 'restore-row') {
@@ -649,6 +657,9 @@ function onLangHeaderMenuCommand(cmd: string) {
     translateDialogData.defaultSelectedLanguages = [lang]
     translateDialogData.showTargetLanguages = false
     translateDialogData.languageSelectorCollapsed = true
+    // 保存上下文
+    translateDialogData.context.itemName = null
+    translateDialogData.context.lang = lang
 
     showTranslateDialog.value = true
   } else if (cmd === 'restore-lang') {
@@ -684,6 +695,10 @@ function onCellMenuCommand(cmd: string) {
     translateDialogData.allTargetLanguages = targetLangs.value
     translateDialogData.defaultSelectedLanguages = [lang]
     translateDialogData.showTargetLanguages = true
+    translateDialogData.languageSelectorCollapsed = true
+    // 保存上下文
+    translateDialogData.context.itemName = row.name
+    translateDialogData.context.lang = lang
 
     showTranslateDialog.value = true
   } else if (cmd === 'restore-cell') {
@@ -699,29 +714,34 @@ function onCellMenuCommand(cmd: string) {
 }
 
 async function onTranslateConfirm(data: { scope: string; languages: Language[] }) {
-  showTranslateDialog.value = false
-
   try {
     let items: Map<string, ResItem>
     let languages: Language[]
 
     if (translateDialogData.type === 'key') {
       // Key 列菜单：翻译指定条目
-      if (!currentKeyRow.value) return
-      items = getItemsByScope('all', undefined, currentKeyRow.value.name)
+      const itemName = translateDialogData.context.itemName
+      if (!itemName) return
+      items = getItemsByScope('all', undefined, itemName)
       languages = data.languages
     } else if (translateDialogData.type === 'lang-header') {
       // 语言表头菜单：翻译指定语言的多个条目
-      if (!currentLang.value) return
-      items = getItemsByScope(data.scope, currentLang.value)
-      languages = [currentLang.value]
+      const lang = translateDialogData.context.lang
+      if (!lang) return
+      items = getItemsByScope(data.scope, lang)
+      languages = [lang]
     } else {
       // cell：单元格菜单
-      if (!currentCellRow.value) return
-      items = getItemsByScope('all', undefined, currentCellRow.value.name)
+      const itemName = translateDialogData.context.itemName
+      if (!itemName) return
+      items = getItemsByScope('all', undefined, itemName)
       languages = data.languages
     }
 
+    // 关闭对话框
+    showTranslateDialog.value = false
+
+    // 执行翻译
     await executeTranslation(items, languages)
   } catch (e: any) {
     toast.fromError(e, '翻译失败')

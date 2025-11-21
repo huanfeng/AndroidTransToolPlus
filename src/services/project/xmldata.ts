@@ -427,6 +427,8 @@ export class XmlData {
         const content = await fs.readFile(data.fileHandle)
         const items = parseXml(content, language)
         data.items = items
+        // 清除该语言的所有dirty标记
+        this.clearDirtyFor(fileName, language)
       } catch (error) {
         console.warn(
           `Failed to reload ${valuesDirName}/${fileName}:`,
