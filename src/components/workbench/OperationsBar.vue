@@ -14,10 +14,10 @@
       </template>
     </el-input>
     <el-radio-group v-model="projectStore.tableFilterCurrent" style="margin-left: 8px;">
-      <el-radio-button label="">全部</el-radio-button>
-      <el-radio-button label="incomplete">未完成</el-radio-button>
-      <el-radio-button label="untranslatable">不可翻译</el-radio-button>
-      <el-radio-button label="edited">已编辑</el-radio-button>
+      <el-radio-button value="">全部</el-radio-button>
+      <el-radio-button value="incomplete">未完成</el-radio-button>
+      <el-radio-button value="untranslatable">不可翻译</el-radio-button>
+      <el-radio-button value="edited">已编辑</el-radio-button>
     </el-radio-group>
     <div class="toolbar-spacer"></div>
     <!-- 统计标签移至同一行显示 -->

@@ -97,6 +97,7 @@ function toggleLog() {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  touch-action: pan-y;
   padding: 0 8px;
 }
 .status {

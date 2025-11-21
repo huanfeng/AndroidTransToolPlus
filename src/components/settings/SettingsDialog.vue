@@ -23,7 +23,7 @@
 
     <el-tabs v-model="activeTab">
       <el-tab-pane label="基础" name="general">
-        <el-form label-width="140px" :model="form" style="padding: 16px 20px; max-height: 400px; overflow-y: auto;">
+        <el-form label-width="140px" :model="form" style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y;">
           <el-form-item label="每批最大条目">
             <el-input-number v-model="form.maxItemsPerRequest" :min="1" :max="100" />
           </el-form-item>
@@ -46,7 +46,7 @@
       </el-tab-pane>
 
       <el-tab-pane label="语言" name="language">
-        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto;">
+        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y;">
           <el-alert
             type="info"
             show-icon
@@ -205,7 +205,7 @@
       </el-tab-pane>
 
       <el-tab-pane label="AI" name="ai">
-        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto;">
+        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y;">
           <div style="margin-bottom: 20px;">
             <div style="font-weight: 600; margin-bottom: 12px;">API 配置</div>
             <el-form label-width="140px" :model="form">
@@ -271,7 +271,7 @@
                 <span>单条翻译提示预览</span>
                 <el-tag size="small" type="info">系统自动生成</el-tag>
               </div>
-              <pre style="background: var(--el-fill-color-lighter); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 12px; margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--el-text-color-regular); max-height: 150px; overflow-y: auto;">{{ singlePromptPreview }}</pre>
+              <pre style="background: var(--el-fill-color-lighter); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 12px; margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--el-text-color-regular); max-height: 150px; overflow-y: auto; touch-action: pan-y;">{{ singlePromptPreview }}</pre>
             </div>
 
             <div style="margin-top: 16px;">
@@ -279,7 +279,7 @@
                 <span>批量翻译提示预览</span>
                 <el-tag size="small" type="info">系统自动生成</el-tag>
               </div>
-              <pre style="background: var(--el-fill-color-lighter); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 12px; margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--el-text-color-regular); max-height: 150px; overflow-y: auto;">{{ batchPromptPreview }}</pre>
+              <pre style="background: var(--el-fill-color-lighter); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 12px; margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--el-text-color-regular); max-height: 150px; overflow-y: auto; touch-action: pan-y;">{{ batchPromptPreview }}</pre>
             </div>
           </div>
         </div>
