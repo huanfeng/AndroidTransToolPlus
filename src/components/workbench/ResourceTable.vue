@@ -133,8 +133,7 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate-missing">翻译此条目-未翻译</el-dropdown-item>
-            <el-dropdown-item command="translate-all">翻译此条目-所有</el-dropdown-item>
+            <el-dropdown-item command="translate">翻译此条目</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided>还原此条目</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -145,9 +144,7 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate-selected">翻译此语言-已选中</el-dropdown-item>
-            <el-dropdown-item command="translate-missing">翻译此语言-未翻译</el-dropdown-item>
-            <el-dropdown-item command="translate-all">翻译此语言-所有</el-dropdown-item>
+            <el-dropdown-item command="translate">翻译此语言</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided>还原此语言</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -179,6 +176,7 @@
         :all-target-languages="translateDialogData.allTargetLanguages"
         :default-selected-languages="translateDialogData.defaultSelectedLanguages"
         :show-target-languages="translateDialogData.showTargetLanguages"
+        :language-selector-collapsed="translateDialogData.languageSelectorCollapsed"
         @confirm="onTranslateConfirm"
       />
     </template>
@@ -305,7 +303,8 @@ const translateDialogData = reactive({
   scopeOptions: [] as Array<{ value: string; label: string; count: number }>,
   allTargetLanguages: [] as Language[],
   defaultSelectedLanguages: [] as Language[],
-  showTargetLanguages: true
+  showTargetLanguages: true,
+  languageSelectorCollapsed: true
 })
 
 watch(filterText, () => { page.value = 1 })
@@ -526,32 +525,38 @@ function onSelectionChange(rows: any[]) {
 function openKeyMenu(row: any, event: MouseEvent) {
   currentKeyRow.value = row
   const dropdown = keyMenu.value as any
-  dropdown.handleOpen()
+  // 先关闭可能已打开的菜单，确保位置更新
+  dropdown.handleClose?.()
+  // 更新位置
   const el = dropdown.$el as HTMLElement
   el.style.position = 'fixed'
   el.style.left = event.clientX + 'px'
   el.style.top = event.clientY + 'px'
+  // 打开菜单
+  dropdown.handleOpen()
 }
 
 function openLangHeaderMenu(lang: Language, event: MouseEvent) {
   currentLang.value = lang
   const dropdown = langHeaderMenu.value as any
-  dropdown.handleOpen()
+  dropdown.handleClose?.()
   const el = dropdown.$el as HTMLElement
   el.style.position = 'fixed'
   el.style.left = event.clientX + 'px'
   el.style.top = event.clientY + 'px'
+  dropdown.handleOpen()
 }
 
 function openCellMenu(row: any, lang: Language, event: MouseEvent) {
   currentCellRow.value = row
   currentLang.value = lang
   const dropdown = cellMenu.value as any
-  dropdown.handleOpen()
+  dropdown.handleClose?.()
   const el = dropdown.$el as HTMLElement
   el.style.position = 'fixed'
   el.style.left = event.clientX + 'px'
   el.style.top = event.clientY + 'px'
+  dropdown.handleOpen()
 }
 
 const hasEditedRow = computed(() => {
@@ -574,31 +579,27 @@ function onKeyMenuCommand(cmd: string) {
   if (!currentKeyRow.value) return
   const row = currentKeyRow.value
 
-  if (cmd === 'translate-missing' || cmd === 'translate-all') {
-    // 打开翻译配置对话框
-    const mode = cmd === 'translate-missing' ? 'missing' : 'all'
-    const targetLanguages = getTargetLanguagesForItem(row.name, mode)
-
-    if (targetLanguages.length === 0) {
-      toast.info('无可翻译目标语言')
-      currentKeyRow.value = null
-      return
-    }
+  if (cmd === 'translate') {
+    // 打开翻译配置对话框，提供所有翻译范围选项
+    const allLangs = targetLangs.value
+    const missingLangs = getTargetLanguagesForItem(row.name, 'missing')
 
     // 准备对话框数据
     translateDialogData.type = 'key'
-    translateDialogData.title = cmd === 'translate-missing' ? '翻译此条目-未翻译' : '翻译此条目-所有'
+    translateDialogData.title = '翻译此条目'
     translateDialogData.confirmText = '开始翻译'
     translateDialogData.description = {
       key: { label: 'Key', value: row.name },
       defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) }
     }
     translateDialogData.scopeOptions = [
-      { value: mode, label: mode === 'missing' ? '未翻译语言' : '所有语言', count: targetLanguages.length }
+      { value: 'missing', label: '未翻译', count: missingLangs.length },
+      { value: 'all', label: '所有', count: allLangs.length }
     ]
-    translateDialogData.allTargetLanguages = targetLanguages
-    translateDialogData.defaultSelectedLanguages = targetLanguages
+    translateDialogData.allTargetLanguages = allLangs
+    translateDialogData.defaultSelectedLanguages = missingLangs.length > 0 ? missingLangs : allLangs
     translateDialogData.showTargetLanguages = true
+    translateDialogData.languageSelectorCollapsed = true
 
     showTranslateDialog.value = true
   } else if (cmd === 'restore-row') {
@@ -612,44 +613,42 @@ function onLangHeaderMenuCommand(cmd: string) {
   if (!currentLang.value) return
   const lang = currentLang.value
 
-  if (cmd === 'translate-selected' || cmd === 'translate-missing' || cmd === 'translate-all') {
-    // 确定范围
-    let scope: string
-    let scopeLabel: string
-    if (cmd === 'translate-selected') {
-      scope = 'selected'
-      scopeLabel = '已选中'
-    } else if (cmd === 'translate-missing') {
-      scope = 'missing'
-      scopeLabel = '未翻译'
-    } else {
-      scope = 'all'
-      scopeLabel = '所有'
-    }
-
-    const count = countItemsByScope(scope, lang)
-    if (count === 0) {
-      toast.info(scope === 'selected' ? '请先选择条目' : '没有需要翻译的条目')
-      currentLang.value = null
-      return
-    }
+  if (cmd === 'translate') {
+    // 打开翻译配置对话框，提供所有翻译范围选项
+    const selectedCount = countItemsByScope('selected', lang)
+    const missingCount = countItemsByScope('missing', lang)
+    const allCount = countItemsByScope('all', lang)
 
     // 准备对话框数据
     const langInfo = getLanguageInfo(lang)
     translateDialogData.type = 'lang-header'
-    translateDialogData.title = `翻译此语言-${scopeLabel}`
+    translateDialogData.title = '翻译此语言'
     translateDialogData.confirmText = '开始翻译'
     translateDialogData.description = {
       language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
     }
-    translateDialogData.scopeOptions = [
-      { value: 'selected', label: '已选中', count: countItemsByScope('selected', lang) },
-      { value: 'missing', label: '未翻译', count: countItemsByScope('missing', lang) },
-      { value: 'all', label: '所有', count: countItemsByScope('all', lang) }
-    ].filter(opt => opt.count > 0)
+
+    // 只显示有数据的范围选项
+    const scopeOptions = []
+    if (selectedCount > 0) {
+      scopeOptions.push({ value: 'selected', label: '已选中', count: selectedCount })
+    }
+    if (missingCount > 0) {
+      scopeOptions.push({ value: 'missing', label: '未翻译', count: missingCount })
+    }
+    scopeOptions.push({ value: 'all', label: '所有', count: allCount })
+
+    if (scopeOptions.length === 0) {
+      toast.info('没有需要翻译的条目')
+      currentLang.value = null
+      return
+    }
+
+    translateDialogData.scopeOptions = scopeOptions
     translateDialogData.allTargetLanguages = [lang]
     translateDialogData.defaultSelectedLanguages = [lang]
     translateDialogData.showTargetLanguages = false
+    translateDialogData.languageSelectorCollapsed = true
 
     showTranslateDialog.value = true
   } else if (cmd === 'restore-lang') {

@@ -31,17 +31,13 @@
         {{ projectStore.selectedItemNames.length || '（未选择，默认全部）' }}
       </el-descriptions-item>
     </el-descriptions>
-    <div style="margin-top:16px;">
-      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">选择目标语言</h4>
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <el-button @click="selectAllLangs">全选</el-button>
-        <el-button @click="clearAllLangs">全不选</el-button>
-        <el-button @click="invertLangs">反选</el-button>
-      </div>
-      <el-checkbox-group v-model="configStore.config.targetLanguages" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
-        <el-checkbox v-for="l in allTargetLanguages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
-      </el-checkbox-group>
-    </div>
+
+    <LanguageSelector
+      v-model="configStore.config.targetLanguages"
+      :languages="allTargetLanguages"
+      :default-collapsed="false"
+    />
+
     <div style="margin-top:16px;">
       <el-checkbox v-model="configStore.config.autoUpdateTranslated">更新已翻译部分</el-checkbox>
     </div>
@@ -59,9 +55,10 @@ import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
-import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
+import { Language } from '@/models/language'
 import { Search, MessageBox } from '@element-plus/icons-vue'
 import type { ResItem } from '@/models/resource'
+import LanguageSelector from '@/components/common/LanguageSelector.vue'
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
@@ -73,8 +70,6 @@ const batchDialogVisible = ref(false)
 // removed unused fileStats to satisfy TS build
 
 const allTargetLanguages = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
-
-function langLabel(l: Language) { const info = getLanguageInfo(l); return `${getLanguageName(l, 'cn')} (${info.androidCode})` }
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
@@ -142,19 +137,6 @@ async function confirmBatchTranslate() {
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
   }
-}
-
-function selectAllLangs() {
-  configStore.update('targetLanguages', allTargetLanguages.value.slice())
-}
-function clearAllLangs() {
-  configStore.update('targetLanguages', [])
-}
-function invertLangs() {
-  const current = configStore.config.targetLanguages
-  const set = new Set(current)
-  const inverted = allTargetLanguages.value.filter(l => !set.has(l))
-  configStore.update('targetLanguages', inverted)
 }
 </script>
 

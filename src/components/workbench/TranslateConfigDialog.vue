@@ -26,17 +26,12 @@
       </el-radio-group>
     </div>
 
-    <div v-if="showTargetLanguages" style="margin-top:16px;">
-      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">选择目标语言</h4>
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <el-button @click="selectAllLangs" size="small">全选</el-button>
-        <el-button @click="clearAllLangs" size="small">全不选</el-button>
-        <el-button @click="invertLangs" size="small">反选</el-button>
-      </div>
-      <el-checkbox-group v-model="selectedLanguages" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
-        <el-checkbox v-for="l in allTargetLanguages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
-      </el-checkbox-group>
-    </div>
+    <LanguageSelector
+      v-if="showTargetLanguages"
+      v-model="selectedLanguages"
+      :languages="allTargetLanguages"
+      :default-collapsed="languageSelectorCollapsed"
+    />
 
     <template #footer>
       <el-button @click="$emit('update:modelValue', false)">取消</el-button>
@@ -50,7 +45,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
-import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
+import { Language } from '@/models/language'
+import LanguageSelector from '@/components/common/LanguageSelector.vue'
 
 interface ScopeOption {
   value: string
@@ -74,11 +70,13 @@ interface Props {
   allTargetLanguages?: Language[]
   defaultSelectedLanguages?: Language[]
   showTargetLanguages?: boolean
+  languageSelectorCollapsed?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   confirmText: '开始翻译',
   showTargetLanguages: true,
+  languageSelectorCollapsed: true
 })
 
 const emit = defineEmits<{
@@ -108,11 +106,6 @@ const canConfirm = computed(() => {
   return true
 })
 
-const langLabel = (l: Language) => {
-  const info = getLanguageInfo(l)
-  return `${getLanguageName(l, 'cn')} (${info.androidCode})`
-}
-
 watch(() => props.modelValue, (val) => {
   if (val) {
     // 重置状态
@@ -120,20 +113,6 @@ watch(() => props.modelValue, (val) => {
     selectedLanguages.value = props.defaultSelectedLanguages || props.allTargetLanguages || []
   }
 })
-
-function selectAllLangs() {
-  selectedLanguages.value = allTargetLanguages.value.slice()
-}
-
-function clearAllLangs() {
-  selectedLanguages.value = []
-}
-
-function invertLangs() {
-  const current = selectedLanguages.value
-  const set = new Set(current)
-  selectedLanguages.value = allTargetLanguages.value.filter(l => !set.has(l))
-}
 
 function confirmTranslate() {
   emit('confirm', {
