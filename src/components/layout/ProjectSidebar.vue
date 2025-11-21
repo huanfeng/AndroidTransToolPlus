@@ -7,8 +7,8 @@
         <span class="title">Android Trans Tool Plus</span>
       </div>
       <div class="btn-row" v-if="false">
-        <el-button size="small" :icon="Setting" @click="$emit('open-settings')">设置</el-button>
-        <el-button size="small" :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
+        <el-button :icon="Setting" @click="$emit('open-settings')">设置</el-button>
+        <el-button :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
       </div>
       <el-divider style="margin:8px 0" v-if="false" />
       <div><ProjectActions class="actions" /></div>
@@ -24,7 +24,7 @@
       <el-divider direction="vertical" />
       <span>资源文件: {{ fileCount }}</span>
       <div class="toolbar-spacer" />
-      <el-button type="" size="small" :underline="true" @click="toggleLog">日志</el-button>
+      <el-button type="" :underline="true" @click="toggleLog">日志</el-button>
     </div>
   </div>
 

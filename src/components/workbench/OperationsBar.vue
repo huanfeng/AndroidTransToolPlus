@@ -1,19 +1,19 @@
 <template>
   <div class="toolbar ops">
-    <el-button size="small" @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
-    <el-button size="small" type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate || isTranslating">
+    <el-button @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
+    <el-button type="primary" @click="batchDialogVisible = true" :disabled="!canTranslate">
       <el-icon style="margin-right:4px;"><MessageBox /></el-icon>
       批量翻译
     </el-button>
-    <el-button size="small" type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile">保存当前文件</el-button>
+    <el-button type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile">保存当前文件</el-button>
     <el-divider direction="vertical" />
     <!-- 搜索 / 筛选 放到与操作同一行 -->
-    <el-input v-model="projectStore.tableFilterText" size="small" clearable placeholder="搜索 Key / 默认文本" style="max-width: 320px">
+    <el-input v-model="projectStore.tableFilterText" clearable placeholder="搜索 Key / 默认文本" style="max-width: 320px">
       <template #prefix>
         <el-icon><Search /></el-icon>
       </template>
     </el-input>
-    <el-radio-group v-model="projectStore.tableFilterCurrent" size="small" style="margin-left: 8px;">
+    <el-radio-group v-model="projectStore.tableFilterCurrent" style="margin-left: 8px;">
       <el-radio-button label="">全部</el-radio-button>
       <el-radio-button label="incomplete">未完成</el-radio-button>
       <el-radio-button label="untranslatable">不可翻译</el-radio-button>
@@ -21,14 +21,8 @@
     </el-radio-group>
     <div class="toolbar-spacer"></div>
     <!-- 统计标签移至同一行显示 -->
-    <el-tag size="small" type="info">筛选: {{ projectStore.tableFilteredCount }}</el-tag>
-    <el-tag size="small" type="success" style="margin-left:6px;">选中: {{ projectStore.tableSelectionCount }}</el-tag>
-    <template v-if="isTranslating">
-      <el-divider direction="vertical" />
-      <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 160px" />
-      <span class="muted" style="margin-left:8px;">{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span>
-      <el-button size="small" type="danger" @click="confirmStopTranslation" style="margin-left:8px;">停止翻译</el-button>
-    </template>
+    <el-tag type="info">筛选: {{ projectStore.tableFilteredCount }}</el-tag>
+    <el-tag type="success" style="margin-left:6px;">选中: {{ projectStore.tableSelectionCount }}</el-tag>
   </div>
   <el-dialog v-model="batchDialogVisible" title="批量翻译" width="520px">
     <el-descriptions :column="1" border>
@@ -40,9 +34,9 @@
     <div style="margin-top:16px;">
       <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">选择目标语言</h4>
       <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <el-button size="small" @click="selectAllLangs">全选</el-button>
-        <el-button size="small" @click="clearAllLangs">全不选</el-button>
-        <el-button size="small" @click="invertLangs">反选</el-button>
+        <el-button @click="selectAllLangs">全选</el-button>
+        <el-button @click="clearAllLangs">全不选</el-button>
+        <el-button @click="invertLangs">反选</el-button>
       </div>
       <el-checkbox-group v-model="configStore.config.targetLanguages" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
         <el-checkbox v-for="l in allTargetLanguages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
@@ -54,16 +48,6 @@
     <template #footer>
       <el-button @click="batchDialogVisible = false">取消</el-button>
       <el-button type="primary" @click="confirmBatchTranslate">开始翻译</el-button>
-    </template>
-  </el-dialog>
-
-  <!-- 停止翻译确认对话框 -->
-  <el-dialog v-model="stopDialogVisible" title="确认停止翻译" width="400px">
-    <p>翻译正在进行中，确定要停止吗？</p>
-    <p class="muted" style="margin-top:8px;">已完成的翻译将会保留。</p>
-    <template #footer>
-      <el-button @click="stopDialogVisible = false">取消</el-button>
-      <el-button type="danger" @click="stopTranslation">确定停止</el-button>
     </template>
   </el-dialog>
  </template>
@@ -85,7 +69,6 @@ const configStore = useConfigStore()
 
 // 对话框可见性
 const batchDialogVisible = ref(false)
-const stopDialogVisible = ref(false)
 
 // removed unused fileStats to satisfy TS build
 
@@ -97,8 +80,6 @@ const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
   return hasFile
 })
-const isTranslating = computed(() => translationStore.isTranslating)
-const progress = computed(() => translationStore.progress)
 
 async function reloadFile() {
   try {
@@ -174,16 +155,6 @@ function invertLangs() {
   const set = new Set(current)
   const inverted = allTargetLanguages.value.filter(l => !set.has(l))
   configStore.update('targetLanguages', inverted)
-}
-
-function confirmStopTranslation() {
-  stopDialogVisible.value = true
-}
-
-function stopTranslation() {
-  translationStore.stopTranslation()
-  stopDialogVisible.value = false
-  toast.info('翻译已停止')
 }
 </script>
 
