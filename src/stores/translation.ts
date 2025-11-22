@@ -279,6 +279,7 @@ export const useTranslationStore = defineStore('translation', () => {
           }
 
           // 支持字符串和字符串数组类型
+          // 使用条目名作为上下文，帮助AI理解资源含义
           batchItems.push({
             key: itemName,
             text: originalText,
@@ -300,6 +301,7 @@ export const useTranslationStore = defineStore('translation', () => {
           throw new Error('Translator not initialized')
         }
         const maxItemsPerRequest = configStore.config.maxItemsPerRequest || 20
+        logStore.debug(`Batch size: ${maxItemsPerRequest}`)
         const result = await translator.value.batchTranslateChunked(
           {
             items: batchItems,
@@ -318,28 +320,38 @@ export const useTranslationStore = defineStore('translation', () => {
 
         // 应用翻译结果
         let successCount = 0
+        let errorCount = 0
         for (const [itemName, translatedText] of result.results) {
-          projectStore.selectedXmlData.updateItem(
-            projectStore.selectedXmlFile!,
-            itemName,
-            targetLang,
-            translatedText as string | string[]
-          )
-          logStore.trace(
-            `Applied translation: ${itemName} -> ${targetLang}`
-          )
-          successCount++
+          try {
+            projectStore.selectedXmlData.updateItem(
+              projectStore.selectedXmlFile!,
+              itemName,
+              targetLang,
+              translatedText as string | string[]
+            )
+            logStore.trace(
+              `Applied translation: ${itemName} -> ${targetLang}`
+            )
+            successCount++
+          } catch (err: any) {
+            errorCount++
+            logStore.error(`Failed to apply translation for ${itemName}: ${err.message}`)
+          }
         }
 
-        logStore.info(`Translated ${successCount} items to ${targetLang}`)
+        logStore.info(`Batch translated to ${targetLang}: ${successCount} succeeded, ${errorCount} applied errors`)
 
         // 记录错误
         if (result.errors.size > 0) {
+          errorCount += result.errors.size
           logStore.warning(`${result.errors.size} items failed to translate`)
           for (const [itemName, errorMsg] of result.errors) {
             logStore.error(`Failed to translate ${itemName}: ${errorMsg}`)
           }
         }
+
+        // 为该语言添加统计信息
+        logStore.info(`[${targetLang}] Total: ${batchItems.length}, Success: ${successCount}, Failed: ${errorCount}`)
       }
 
       // 如果所有目标语言都没有可翻译项，提示并结束

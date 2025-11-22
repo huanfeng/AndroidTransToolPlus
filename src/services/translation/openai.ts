@@ -340,8 +340,13 @@ export class OpenAITranslator {
     targetLang: string
   ): string {
     const textsObj: Record<string, any> = {}
+
     for (const item of items) {
-      textsObj[item.key] = item.text
+      // 构建包含上下文的结构
+      textsObj[item.key] = {
+        text: item.text,
+        context: item.context || item.key,
+      }
     }
 
     const extraPromptBlock = this.config.promptExtra
@@ -438,12 +443,29 @@ export class OpenAITranslator {
 
       // 提取翻译结果
       for (const item of items) {
-        if (parsed[item.key] !== undefined) {
-          results.set(item.key, parsed[item.key])
+        const translatedValue = parsed[item.key]
+        if (translatedValue !== undefined) {
+          // 确保返回值的类型与输入一致
+          const originalType = Array.isArray(item.text) ? 'array' : 'string'
+          const translatedType = Array.isArray(translatedValue) ? 'array' : 'string'
+
+          if (originalType === translatedType) {
+            results.set(item.key, translatedValue)
+          } else {
+            console.warn(
+              `Type mismatch for ${item.key}: expected ${originalType}, got ${translatedType}`
+            )
+            // 类型不匹配时保留原文
+            results.set(item.key, item.text)
+          }
+        } else {
+          console.warn(`No translation found for key: ${item.key}`)
+          // 未找到翻译时保留原文
+          results.set(item.key, item.text)
         }
       }
     } catch (error) {
-      // JSON 解析失败，尝试逐行解析
+      // JSON 解析失败，记录错误
       console.warn('Failed to parse batch response as JSON:', error)
 
       // 这种情况下返回空结果，让调用方处理

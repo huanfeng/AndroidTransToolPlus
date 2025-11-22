@@ -202,10 +202,9 @@ async function onBatchTranslateConfirm(data: { scope: string; languages: Languag
     }
 
     // 使用 autoUpdateTranslated 参数控制是否更新已有译文
-    await translationStore.startTranslation(items, data.languages, data.autoUpdateTranslated)
+    await translationStore.batchTranslate(items, data.languages, data.autoUpdateTranslated)
     started = true
-    const p = translationStore.progress
-    toast.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
+    toast.success(`批量翻译完成`)
 
     // 关闭对话框
     if (started) showBatchDialog.value = false

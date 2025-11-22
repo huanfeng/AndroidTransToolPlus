@@ -372,9 +372,9 @@ async function executeTranslation(items: Map<string, ResItem>, languages: Langua
     toast.warning('没有选择目标语言')
     return
   }
-  await translationStore.startTranslation(items, languages)
-  const p = translationStore.progress
-  toast.success(`翻译完成：${p.completed} 成功，${p.failed} 失败`)
+  await translationStore.batchTranslate(items, languages)
+  // batchTranslate 内部已经完成，直接提示成功
+  toast.success(`批量翻译完成`)
 }
 
 /**
