@@ -201,8 +201,8 @@ async function onBatchTranslateConfirm(data: { scope: string; languages: Languag
       return
     }
 
-    // 使用 autoUpdateTranslated 参数控制是否更新已有译文
-    await translationStore.batchTranslate(items, data.languages, data.autoUpdateTranslated)
+    // 传递文件映射数据，用于统一的未翻译过滤逻辑
+    await translationStore.batchTranslate(items, data.languages, data.autoUpdateTranslated, fileMap)
     started = true
     toast.success(`批量翻译完成`)
 

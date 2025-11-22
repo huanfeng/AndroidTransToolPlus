@@ -372,7 +372,9 @@ async function executeTranslation(items: Map<string, ResItem>, languages: Langua
     toast.warning('没有选择目标语言')
     return
   }
-  await translationStore.batchTranslate(items, languages)
+  // 获取文件映射数据，用于统一的未翻译过滤逻辑
+  const fileMap = projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
+  await translationStore.batchTranslate(items, languages, false, fileMap)
   // batchTranslate 内部已经完成，直接提示成功
   toast.success(`批量翻译完成`)
 }
