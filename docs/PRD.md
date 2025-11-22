@@ -229,7 +229,6 @@ interface TranslationConfig {
 ```typescript
 interface BatchConfig {
   maxItemsPerRequest: 20;      // 每批最大条目数
-  autoRetry: boolean;          // 自动重试
   maxRetries: 3;               // 最大重试次数
 }
 ```
@@ -373,7 +372,6 @@ interface UiSettings {
 ```typescript
 interface AdvancedSettings {
   maxItemsPerRequest: number;  // 每批最大条目数
-  autoRetry: boolean;          // 自动重试
   maxRetries: number;          // 最大重试次数
   requestTimeout: number;      // 请求超时
 }

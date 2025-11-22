@@ -1000,7 +1000,6 @@ export interface AppConfig {
   httpProxy: string;
   enabledLanguages: Language[];
   maxItemsPerRequest: number;
-  autoRetry: boolean;
   maxRetries: number;
   requestTimeout: number;
 }
@@ -1011,7 +1010,6 @@ const DEFAULT_CONFIG: AppConfig = {
   httpProxy: '',
   enabledLanguages: Object.values(Language),
   maxItemsPerRequest: 20,
-  autoRetry: true,
   maxRetries: 3,
   requestTimeout: 120000,
 };

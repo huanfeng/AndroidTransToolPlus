@@ -33,9 +33,6 @@
           <el-form-item label="请求超时(ms)">
             <el-input-number v-model="form.requestTimeout" :min="1000" :max="300000" :step="1000" />
           </el-form-item>
-          <el-form-item label="自动重试已有译文">
-            <el-switch v-model="form.autoRetry" />
-          </el-form-item>
           <el-form-item label="主题">
             <el-radio-group v-model="form.theme">
               <el-radio-button value="light">浅色</el-radio-button>

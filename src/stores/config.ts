@@ -15,7 +15,6 @@ export interface AppConfig {
   targetLanguages: Language[]
   customLanguages: CustomLanguage[]
   maxItemsPerRequest: number
-  autoRetry: boolean
   autoUpdateTranslated: boolean
   maxRetries: number
   requestTimeout: number
@@ -37,7 +36,6 @@ const DEFAULT_CONFIG: AppConfig = {
   targetLanguages: [],
   customLanguages: [],
   maxItemsPerRequest: 20,
-  autoRetry: true,
   autoUpdateTranslated: false,
   maxRetries: 3,
   requestTimeout: 120000,

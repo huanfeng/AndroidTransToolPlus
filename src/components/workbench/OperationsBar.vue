@@ -164,7 +164,7 @@ function openBatchTranslateDialog() {
   showBatchDialog.value = true
 }
 
-async function onBatchTranslateConfirm(data: { scope: string; content?: string; languages: Language[] }) {
+async function onBatchTranslateConfirm(data: { scope: string; languages: Language[]; autoUpdateTranslated?: boolean }) {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
 
   // 检查是否选择了目标语言
@@ -181,38 +181,17 @@ async function onBatchTranslateConfirm(data: { scope: string; content?: string; 
     if (!def) throw new Error('Default language not available')
     const selectedSet = new Set(projectStore.selectedItemNames || [])
     const items = new Map<string, ResItem>()
+
+    // 根据范围过滤条目
     for (const [name, item] of def.items) {
       if (data.scope === 'selected') {
+        // 选中范围：只包含选中的项
         if (selectedSet.has(name)) {
-          // 过滤：未翻译则只挑选缺失的
-          if (data.content === 'missing') {
-            const hasMissing = data.languages.some(lang => {
-              const langData = fileMap?.get(lang)
-              const langItem = langData?.items.get(name)
-              const v = langItem?.valueMap.get(lang)
-              if (typeof v === 'string') return v.length === 0
-              if (Array.isArray(v)) return v.length === 0
-              return true
-            })
-            if (hasMissing) items.set(name, item)
-          } else {
-            items.set(name, item)
-          }
-        }
-      } else {
-        if (data.content === 'missing') {
-          const hasMissing = data.languages.some(lang => {
-            const langData = fileMap?.get(lang)
-            const langItem = langData?.items.get(name)
-            const v = langItem?.valueMap.get(lang)
-            if (typeof v === 'string') return v.length === 0
-            if (Array.isArray(v)) return v.length === 0
-            return true
-          })
-          if (hasMissing) items.set(name, item)
-        } else {
           items.set(name, item)
         }
+      } else {
+        // 全部范围：包含所有可翻译项
+        items.set(name, item)
       }
     }
 
@@ -222,17 +201,9 @@ async function onBatchTranslateConfirm(data: { scope: string; content?: string; 
       return
     }
 
-    // 保存 autoRetry 的原值
-    const prev = configStore.config.autoRetry
-    // 临时设置 autoRetry 为 content === 'all' 的值（更新已翻译部分）
-    configStore.update('autoRetry', data.content === 'all')
-    try {
-      await translationStore.startTranslation(items, data.languages)
-      started = true
-    } finally {
-      // 恢复原值
-      configStore.update('autoRetry', prev)
-    }
+    // 使用 autoUpdateTranslated 参数控制是否更新已有译文
+    await translationStore.startTranslation(items, data.languages, data.autoUpdateTranslated)
+    started = true
     const p = translationStore.progress
     toast.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
 

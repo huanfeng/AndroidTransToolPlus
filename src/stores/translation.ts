@@ -142,7 +142,8 @@ export const useTranslationStore = defineStore('translation', () => {
    */
   async function startTranslation(
     items: Map<string, ResItem>,
-    languages: Language[]
+    languages: Language[],
+    autoUpdateTranslated: boolean = false
   ): Promise<void> {
     if (!projectStore.selectedXmlData) {
       throw new Error('No XML data selected')
@@ -182,9 +183,9 @@ export const useTranslationStore = defineStore('translation', () => {
           const langData = fileMap?.get(targetLang)
           const langItem = langData?.items.get(itemName)
           const existingValue = langItem?.valueMap.get(targetLang)
-          if (configStore.config.autoRetry === false && existingValue) {
+          if (!autoUpdateTranslated && existingValue) {
             logStore.trace(
-              `Skip existing: ${itemName} for ${targetLang} (autoRetry=false)`
+              `Skip existing: ${itemName} for ${targetLang} (autoUpdateTranslated=false)`
             )
             continue
           }
@@ -230,7 +231,8 @@ export const useTranslationStore = defineStore('translation', () => {
    */
   async function batchTranslate(
     items: Map<string, ResItem>,
-    languages: Language[]
+    languages: Language[],
+    autoUpdateTranslated: boolean = false
   ): Promise<void> {
     if (!projectStore.selectedXmlData) {
       throw new Error('No XML data selected')
@@ -272,7 +274,7 @@ export const useTranslationStore = defineStore('translation', () => {
 
           // 跳过已有翻译的项
           const existingValue = item.valueMap.get(targetLang)
-          if (configStore.config.autoRetry === false && existingValue) {
+          if (!autoUpdateTranslated && existingValue) {
             continue
           }
 
