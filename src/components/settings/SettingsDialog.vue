@@ -225,12 +225,12 @@
                 <el-select v-model="form.aiModelPreset" style="width: 100%;">
                   <el-option
                     v-for="preset in modelPresets"
-                    :key="preset.id"
-                    :label="preset.label"
-                    :value="preset.id"
+                    :key="preset.model"
+                    :label="getModelLabel(preset.model)"
+                    :value="preset.model"
                   >
                     <div style="display: flex; flex-direction: column;">
-                      <span style="font-weight: 500;">{{ preset.label }}</span>
+                      <span style="font-weight: 500;">{{ getModelLabel(preset.model) }}</span>
                       <small style="color: var(--el-text-color-secondary);">{{ preset.description }}</small>
                     </div>
                   </el-option>
@@ -303,6 +303,7 @@ import { useTranslationStore } from '@/stores/translation'
 import { Language, getAllLanguages, getLanguageInfo, getLanguageName, type CustomLanguage } from '@/models/language'
 import {
   AI_MODEL_PRESETS,
+  getModelLabel,
   BATCH_PROMPT_TEMPLATE,
   SINGLE_PROMPT_TEMPLATE,
   renderPromptTemplate,
@@ -380,7 +381,12 @@ watch(
   }
 )
 
-const modelPresets = AI_MODEL_PRESETS
+const modelPresets = computed(() => {
+  return Object.entries(AI_MODEL_PRESETS).map(([model, description]) => ({
+    model,
+    description,
+  }))
+})
 const isCustomModel = computed(() => form.value.aiModelPreset === 'custom')
 
 const singlePromptPreview = computed(() => {

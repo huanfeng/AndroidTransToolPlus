@@ -1,49 +1,36 @@
 export interface AiModelPreset {
-  id: string
-  label: string
-  description: string
   model: string
+  description: string
 }
 
-export const AI_MODEL_PRESETS: AiModelPreset[] = [
-  {
-    id: 'gpt-4o-mini',
-    label: 'gpt-4o-mini',
-    description: '默认推荐，兼顾速度与质量',
-    model: 'gpt-4o-mini',
-  },
-  {
-    id: 'gpt-4o',
-    label: 'gpt-4o',
-    description: '高质量输出，速度略慢',
-    model: 'gpt-4o',
-  },
-  {
-    id: 'o1-mini',
-    label: 'o1-mini',
-    description: '思考模式，适合需要更多推理的场景',
-    model: 'o1-mini',
-  },
-  {
-    id: 'custom',
-    label: '自定义模型',
-    description: '手动指定任意模型名称（需支持 JSON 模式）',
-    model: '',
-  },
-]
+export const AI_MODEL_PRESETS: Record<string, string> = {
+  'gpt-5-mini': '默认推荐, 兼顾速度与质量',
+  'gpt-5': '标准模型, 效果更好',
+  'gpt-5-nano': 'nano模型, 价格便宜',
+  'gpt-4.1-mini': '',
+  'gpt-4o-mini': '',
+  'custom': '手动指定任意模型名称（需支持 JSON 模式）',
+}
 
-export const DEFAULT_AI_MODEL_PRESET = 'gpt-4o-mini'
+export const DEFAULT_AI_MODEL_PRESET = 'gpt-5-mini'
 
 export function resolveAiModel(presetId: string, customModel: string): string {
-  const preset = AI_MODEL_PRESETS.find(item => item.id === presetId && item.id !== 'custom')
-  if (preset) {
-    return preset.model
+  if (presetId && presetId !== 'custom' && AI_MODEL_PRESETS[presetId]) {
+    return presetId
   }
   const trimmed = customModel?.trim()
   if (trimmed) {
     return trimmed
   }
-  return AI_MODEL_PRESETS[0].model
+  return DEFAULT_AI_MODEL_PRESET
+}
+
+export function getModelLabel(model: string): string {
+  const description = AI_MODEL_PRESETS[model]
+  if (description) {
+    return `${model} (${description})`
+  }
+  return model
 }
 
 export const SINGLE_PROMPT_TEMPLATE = `Translate the following text from {{sourceLanguage}} to {{targetLanguage}}.
