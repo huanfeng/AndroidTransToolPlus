@@ -89,10 +89,45 @@ function openBatchTranslateDialog() {
 
   // 获取所有条目数
   let allCount = 0
+  let missingAllCount = 0
+  let missingSelectedCount = 0
+  const allItemNames: string[] = []
+  const selectedItemNames = projectStore.selectedItemNames ? [...projectStore.selectedItemNames] : []
+  const missingByItem: Record<string, Language[]> = {}
   if (projectStore.selectedXmlData && projectStore.selectedXmlFile) {
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
     const def = fileMap?.get(Language.DEF)
     allCount = def?.items.size || 0
+
+    // 计算未翻译数量（全部/选中）
+    if (def && fileMap) {
+      const selectedSet = new Set(projectStore.selectedItemNames || [])
+
+      const targetLangs = allTargetLanguages.value
+      for (const [name, item] of def.items) {
+        if (!item.translatable) continue
+        allItemNames.push(name)
+
+        const missingLangs: Language[] = []
+        for (const lang of targetLangs) {
+          const langData = fileMap.get(lang)
+          const langItem = langData?.items.get(name)
+          const v = langItem?.valueMap.get(lang)
+          const missing = typeof v === 'string'
+            ? v.length === 0
+            : Array.isArray(v)
+              ? v.length === 0
+              : true
+          if (missing) missingLangs.push(lang)
+        }
+
+        if (missingLangs.length) {
+          missingByItem[name] = missingLangs
+          missingAllCount += missingLangs.length
+          if (selectedSet.has(name)) missingSelectedCount += missingLangs.length
+        }
+      }
+    }
   }
 
   // 准备对话框配置
@@ -100,23 +135,29 @@ function openBatchTranslateDialog() {
     type: 'batch-toolbar' as const,
     title: '批量翻译',
     confirmText: '开始翻译',
-    description: {}, // 空描述，不需要显示基本信息
+    description: null, // 工具栏对话框不需要显示基本信息
     scopeOptions: [
       { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
       { value: 'all', label: `全部 (${allCount} 行)`, count: allCount }
     ],
     contentOptions: [
-      { value: 'missing', label: `未翻译`, count: 0 },  // 实际数量需要在执行时计算
-      { value: 'all', label: `全部`, count: 0 }
+      { value: 'missing', label: '未翻译', count: missingAllCount },
+      { value: 'all', label: '全部', count: allCount }
     ],
     allTargetLanguages: allTargetLanguages.value,
     defaultSelectedLanguages: configStore.config.targetLanguages,
     showTargetLanguages: true,
     languageSelectorCollapsed: false,
+    expectedItemCount: allCount, // 初始值为全部数量
     context: {
       itemName: null,
       lang: null,
-      selectedCount
+      selectedCount,
+      selectedNames: selectedItemNames,
+      allNames: allItemNames,
+      missingByItem,
+      missingAllCount,
+      missingSelectedCount
     }
   }
 
@@ -133,6 +174,7 @@ async function onBatchTranslateConfirm(data: { scope: string; content?: string; 
   }
 
   try {
+    let started = false
     // 获取要翻译的条目
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
     const def = fileMap?.get(Language.DEF)
@@ -142,10 +184,35 @@ async function onBatchTranslateConfirm(data: { scope: string; content?: string; 
     for (const [name, item] of def.items) {
       if (data.scope === 'selected') {
         if (selectedSet.has(name)) {
-          items.set(name, item)
+          // 过滤：未翻译则只挑选缺失的
+          if (data.content === 'missing') {
+            const hasMissing = data.languages.some(lang => {
+              const langData = fileMap?.get(lang)
+              const langItem = langData?.items.get(name)
+              const v = langItem?.valueMap.get(lang)
+              if (typeof v === 'string') return v.length === 0
+              if (Array.isArray(v)) return v.length === 0
+              return true
+            })
+            if (hasMissing) items.set(name, item)
+          } else {
+            items.set(name, item)
+          }
         }
       } else {
-        items.set(name, item)
+        if (data.content === 'missing') {
+          const hasMissing = data.languages.some(lang => {
+            const langData = fileMap?.get(lang)
+            const langItem = langData?.items.get(name)
+            const v = langItem?.valueMap.get(lang)
+            if (typeof v === 'string') return v.length === 0
+            if (Array.isArray(v)) return v.length === 0
+            return true
+          })
+          if (hasMissing) items.set(name, item)
+        } else {
+          items.set(name, item)
+        }
       }
     }
 
@@ -161,6 +228,7 @@ async function onBatchTranslateConfirm(data: { scope: string; content?: string; 
     configStore.update('autoRetry', data.content === 'all')
     try {
       await translationStore.startTranslation(items, data.languages)
+      started = true
     } finally {
       // 恢复原值
       configStore.update('autoRetry', prev)
@@ -169,7 +237,7 @@ async function onBatchTranslateConfirm(data: { scope: string; content?: string; 
     toast.success(`批量翻译完成：${p.completed} 成功，${p.failed} 失败`)
 
     // 关闭对话框
-    showBatchDialog.value = false
+    if (started) showBatchDialog.value = false
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
   }

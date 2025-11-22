@@ -167,6 +167,7 @@ export const useTranslationStore = defineStore('translation', () => {
       isCancelled.value = false // 重置取消标记
 
       // 创建翻译任务
+      const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile!)
       for (const [itemName, item] of items) {
         // 跳过不可翻译的项
         if (!item.translatable) continue
@@ -178,7 +179,9 @@ export const useTranslationStore = defineStore('translation', () => {
         // 为每个目标语言创建任务
         for (const targetLang of languages) {
           // 跳过已有翻译的项（可选）
-          const existingValue = item.valueMap.get(targetLang)
+          const langData = fileMap?.get(targetLang)
+          const langItem = langData?.items.get(itemName)
+          const existingValue = langItem?.valueMap.get(targetLang)
           if (configStore.config.autoRetry === false && existingValue) {
             logStore.trace(
               `Skip existing: ${itemName} for ${targetLang} (autoRetry=false)`

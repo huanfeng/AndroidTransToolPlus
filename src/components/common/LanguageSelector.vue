@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
 
@@ -43,14 +43,12 @@ const emit = defineEmits<{
 }>()
 
 const collapsed = ref(props.defaultCollapsed)
-const selected = ref<Language[]>([...props.modelValue])
-
-watch(() => props.modelValue, (val) => {
-  selected.value = [...val]
-})
-
-watch(selected, (val) => {
-  emit('update:modelValue', val)
+// 使用计算属性而非watch，避免循环更新
+const selected = computed({
+  get: () => props.modelValue,
+  set: (val: Language[]) => {
+    emit('update:modelValue', val)
+  }
 })
 
 const langLabel = (l: Language) => {

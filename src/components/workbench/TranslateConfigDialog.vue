@@ -5,19 +5,21 @@
     width="520px"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <el-descriptions :column="1" border v-if="config?.description">
-      <el-descriptions-item v-if="config.description.key" :label="config.description.key.label">
-        {{ config.description.key.value }}
+    <el-descriptions :column="1" border v-if="config">
+      <el-descriptions-item label="待翻译项">
+        <span style="color: var(--el-color-danger); font-weight: 500;">{{ pendingTranslateCount }}</span>
       </el-descriptions-item>
-      <el-descriptions-item v-if="config.description.defaultText" :label="config.description.defaultText.label">
-        {{ config.description.defaultText.value }}
-      </el-descriptions-item>
-      <el-descriptions-item v-if="config.description.language" :label="config.description.language.label">
-        {{ config.description.language.value }}
-      </el-descriptions-item>
-      <el-descriptions-item v-if="isBatchToolbar && config.context.selectedCount !== undefined" label="选中条目数">
-        {{ config.context.selectedCount || '（未选择，默认全部）' }}
-      </el-descriptions-item>
+      <template v-if="config.description">
+        <el-descriptions-item v-if="config.description.key" :label="config.description.key.label">
+          {{ config.description.key.value }}
+        </el-descriptions-item>
+        <el-descriptions-item v-if="config.description.defaultText" :label="config.description.defaultText.label">
+          {{ config.description.defaultText.value }}
+        </el-descriptions-item>
+        <el-descriptions-item v-if="config.description.language" :label="config.description.language.label">
+          {{ config.description.language.value }}
+        </el-descriptions-item>
+      </template>
     </el-descriptions>
 
     <!-- 翻译范围选择 -->
@@ -51,13 +53,14 @@
     </div>
 
     <!-- 目标语言选择 -->
-    <div v-if="config?.showTargetLanguages" style="margin-top:16px;">
-      <LanguageSelector
-        v-model="selectedLanguages"
-        :languages="allTargetLanguagesComputed"
-        :default-collapsed="config.languageSelectorCollapsed"
-      />
-    </div>
+  <div v-if="config?.showTargetLanguages" style="margin-top:16px;">
+    <LanguageSelector
+      v-model="selectedLanguages"
+      :languages="allTargetLanguagesComputed"
+      :default-collapsed="config.languageSelectorCollapsed"
+      :title="languageSelectorTitle"
+    />
+  </div>
 
     <template #footer>
       <el-button @click="$emit('update:modelValue', false)">取消</el-button>
@@ -115,6 +118,13 @@ interface DialogConfig {
     itemName: string | null
     lang: Language | null
     selectedCount?: number  // 选中的条目数
+    missingAllCount?: number  // 未翻译总数
+    missingSelectedCount?: number  // 选中范围内的未翻译数
+    selectedNames?: string[]
+    allNames?: string[]
+    missingByItem?: Record<string, Language[]>
+    missingCount?: number
+    allCount?: number
   }
 }
 
@@ -134,6 +144,13 @@ const configStore = useConfigStore()
 const selectedScope = ref('')
 const selectedContent = ref('')  // 第二层选择
 const selectedLanguages = ref<Language[]>([])
+const expectedItemCount = ref<number>(0)  // 内部维护的可翻译项目数
+const pendingTranslateCount = computed(() => expectedItemCount.value ?? 0)
+const languageSelectorTitle = computed(() => {
+  const total = allTargetLanguagesComputed.value.length
+  const selected = selectedLanguages.value.length
+  return `选择目标语言 (${selected}/${total})`
+})
 
 // 是否为批量翻译（语言标题头）
 const isBatchTranslate = computed(() => {
@@ -206,19 +223,99 @@ const canConfirm = computed(() => {
   // 目标语言选择（仅工具栏批量翻译需要）
   if (isBatchToolbar.value && selectedLanguages.value.length === 0) return false
 
-  // 检查预期可翻译项目数
-  if (props.config?.expectedItemCount !== undefined && props.config.expectedItemCount === 0) {
-    return false
+  // 检查可翻译数量（工具栏批量翻译使用内部计算值）
+  if (isBatchToolbar.value || isBatchTranslate.value || isKeyTranslate.value) {
+    if (expectedItemCount.value === 0) return false
   }
 
   return true
 })
 
-// 监听配置更新，重置状态
-watch(() => props.config, (newConfig) => {
-  if (newConfig) {
-    // 重置状态
-    selectedScope.value = newConfig.scopeOptions[0]?.value || ''
+// 根据当前配置和选择计算可翻译数量
+function updateExpectedCount() {
+  const cfg = props.config
+  if (!cfg) return
+
+  if (cfg.type === 'batch-toolbar') {
+    const scopeSelected = cfg.scopeOptions.find(o => o.value === 'selected')?.count || 0
+    const scopeAll = cfg.scopeOptions.find(o => o.value === 'all')?.count || 0
+    const missingAll = cfg.context.missingAllCount ?? 0
+    const missingSelected = cfg.context.missingSelectedCount ?? 0
+
+    const usingSelected = selectedScope.value === 'selected'
+    const baseNames = usingSelected ? cfg.context.selectedNames || [] : cfg.context.allNames || []
+    const baseCount = usingSelected ? scopeSelected : scopeAll
+    const missingCount = usingSelected ? missingSelected : missingAll
+
+    // 按目标语言数量放大
+    const langs = selectedLanguages.value.length ? selectedLanguages.value : cfg.defaultSelectedLanguages || []
+    if (langs.length === 0) {
+      expectedItemCount.value = 0
+      return
+    }
+
+    let count = 0
+    if (selectedContent.value === 'missing') {
+      // 实际未翻译项数按行-语言交集计算
+      const missingByItem = cfg.context.missingByItem || {}
+      for (const name of baseNames) {
+        const missingLangs = missingByItem[name] || []
+        const hit = missingLangs.filter(l => langs.includes(l)).length
+        count += hit
+      }
+      // 若缺少详细数据（没有missingByItem），退化为聚合计数 * 语言数
+      if (count === 0 && (!cfg.context.missingByItem) && missingCount > 0) {
+        count = missingCount * langs.length
+      }
+    } else {
+      count = baseNames.length * langs.length
+      if (count === 0 && baseCount > 0) {
+        count = baseCount * langs.length
+      }
+    }
+    expectedItemCount.value = count
+    return
+  }
+
+  if (cfg.type === 'lang-header') {
+    const scopeSelected = cfg.scopeOptions.find(o => o.value === 'selected')?.count || 0
+    const scopeAll = cfg.scopeOptions.find(o => o.value === 'all')?.count || 0
+    const missingAll = cfg.context.missingAllCount ?? 0
+    const missingSelected = cfg.context.missingSelectedCount ?? 0
+
+    const usingSelected = selectedScope.value === 'selected'
+    const baseCount = usingSelected ? scopeSelected : scopeAll
+    const missingCount = usingSelected ? missingSelected : missingAll
+
+    expectedItemCount.value = selectedContent.value === 'missing' ? missingCount : baseCount
+    return
+  }
+
+  if (cfg.type === 'key') {
+    const baseCount = cfg.context.allCount ?? 0
+    const missingCount = cfg.context.missingCount ?? 0
+    expectedItemCount.value = selectedContent.value === 'missing' ? missingCount : baseCount
+    return
+  }
+
+  if (cfg.expectedItemCount !== undefined) {
+    expectedItemCount.value = cfg.expectedItemCount
+  }
+}
+
+// 监听配置更新，重置状态（仅在配置变化时重置，避免循环）
+watch(() => props.config, (newConfig, oldConfig) => {
+  if (newConfig && newConfig !== oldConfig) {
+    // 优先默认到“全部”以避免0条目时误选已选中
+    const firstScope = newConfig.scopeOptions[0]?.value || ''
+    const selectedOpt = newConfig.scopeOptions.find(o => o.value === 'selected')
+    const allOpt = newConfig.scopeOptions.find(o => o.value === 'all')
+    if ((newConfig.type === 'batch-toolbar' || newConfig.type === 'lang-header') && selectedOpt && selectedOpt.count === 0 && allOpt) {
+      selectedScope.value = allOpt.value
+    } else {
+      selectedScope.value = firstScope
+    }
+
     // Key翻译使用languageOptions，批量翻译使用contentOptions
     if (isKeyTranslate.value) {
       selectedContent.value = newConfig.languageOptions?.[0]?.value || ''
@@ -227,21 +324,28 @@ watch(() => props.config, (newConfig) => {
     } else {
       selectedContent.value = newConfig.contentOptions?.[0]?.value || ''
     }
-    selectedLanguages.value = newConfig.defaultSelectedLanguages || newConfig.allTargetLanguages || []
+    // 默认目标语言：如果对话框不展示语言选择器，则直接使用配置提供的默认值
+    if (!newConfig.showTargetLanguages) {
+      selectedLanguages.value = newConfig.defaultSelectedLanguages || []
+    } else if ((selectedLanguages.value.length === 0) && newConfig.defaultSelectedLanguages?.length) {
+      // 对展示语言选择的场景，如第一次打开也同步默认值，后续用户切换时不覆盖
+      selectedLanguages.value = newConfig.defaultSelectedLanguages
+    }
+
+    // 初始化expectedItemCount
+    if (newConfig.expectedItemCount !== undefined) {
+      expectedItemCount.value = newConfig.expectedItemCount
+    }
+
+    // 配置切换后重新计算数量，防止初始状态未更新
+    updateExpectedCount()
   }
 }, { immediate: true })
 
-// 监听选择变化，动态更新预期可翻译数量（工具栏批量翻译用）
-watch([() => props.config, selectedScope, selectedContent], ([config]) => {
-  if (!config) return
-
-  // 工具栏批量翻译需要动态计算
-  if (isBatchToolbar.value) {
-    // 根据选择动态计算预期数量
-    // 这里暂时使用固定的计算，实际数量需要通过回调获取
-    // 可以通过修改expectedItemCount的更新机制来实现
-  }
-}, { deep: true })
+// 监听选择变化，动态计算可翻译数量
+watch([selectedScope, selectedContent, () => props.config?.context.selectedCount, selectedLanguages], () => {
+  updateExpectedCount()
+}, { immediate: true })
 
 // 确认翻译
 function confirmTranslate() {

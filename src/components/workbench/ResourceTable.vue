@@ -415,6 +415,34 @@ function getItemsByScope(scope: string, lang?: Language, itemName?: string): Map
   return items
 }
 
+// 获取批量翻译（语言表头）场景下的条目集合，scope/selection 与 content/missing 取交集
+function getLangBatchItems(scope: 'selected' | 'all', content: 'missing' | 'all', lang: Language): Map<string, ResItem> {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return new Map()
+  const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
+  const def = fileMap?.get(Language.DEF)
+  if (!def) return new Map()
+
+  const items = new Map<string, ResItem>()
+  const selectedSet = new Set(selection.value.map((r: any) => r.name))
+
+  for (const [name, item] of def.items) {
+    if (scope === 'selected' && !selectedSet.has(name)) continue
+
+    if (content === 'missing') {
+      const v = getCellValue(item as any, lang)
+      if (v && v.length > 0) continue
+    }
+
+    items.set(name, item)
+  }
+
+  return items
+}
+
+function countLangBatchItems(scope: 'selected' | 'all', content: 'missing' | 'all', lang: Language): number {
+  return getLangBatchItems(scope, content, lang).size
+}
+
 /**
  * 获取指定条目的目标语言列表
  * @param itemName 条目名称
@@ -594,17 +622,19 @@ function onKeyMenuCommand(cmd: string) {
       },
       scopeOptions: [], // Key翻译不使用scopeOptions，但TypeScript要求必须有
       languageOptions: [
-        { value: 'missing', label: `未翻译 (${missingLangs.length})`, count: missingLangs.length },
-        { value: 'all', label: `全部 (${allLangs.length})`, count: allLangs.length }
+        { value: 'missing', label: '未翻译', count: missingLangs.length },
+        { value: 'all', label: '全部', count: allLangs.length }
       ],
       allTargetLanguages: allLangs,
       defaultSelectedLanguages: allLangs, // Key翻译不需要选择语言，通过languageFilter确定
       showTargetLanguages: false, // Key翻译不显示目标语言选择
       languageSelectorCollapsed: false,
-      expectedItemCount: allLangs.length, // 用于按钮禁用判断
+      expectedItemCount: missingLangs.length, // 默认选择未翻译时的可翻译数量
       context: {
         itemName: row.name,
-        lang: null as Language | null
+        lang: null as Language | null,
+        missingCount: missingLangs.length,
+        allCount: allLangs.length
       }
     }
 
@@ -625,8 +655,10 @@ function onLangHeaderMenuCommand(cmd: string) {
 
   if (cmd === 'translate') {
     // 打开翻译配置对话框，提供所有翻译范围选项
-    const selectedCount = countItemsByScope('selected', lang)
-    const allCount = countItemsByScope('all', lang)
+    const selectedCount = countLangBatchItems('selected', 'all', lang)
+    const allCount = countLangBatchItems('all', 'all', lang)
+    const missingAllCount = countLangBatchItems('all', 'missing', lang)
+    const missingSelectedCount = countLangBatchItems('selected', 'missing', lang)
 
     // 第一层：翻译范围选项（始终显示两个选项，即使selectedCount为0）
     const scopeOptions = [
@@ -641,12 +673,10 @@ function onLangHeaderMenuCommand(cmd: string) {
     }
 
     // 第二层：翻译内容选项（仅显示有数据的选项）
-    const missingCount = countItemsByScope('missing', lang)
-    const contentOptions = []
-    if (missingCount > 0) {
-      contentOptions.push({ value: 'missing', label: `未翻译 (${missingCount})`, count: missingCount })
-    }
-    contentOptions.push({ value: 'all', label: `全部 (${allCount})`, count: allCount })
+    const contentOptions = [
+      { value: 'missing', label: '未翻译', count: missingAllCount },
+      { value: 'all', label: '全部', count: allCount }
+    ]
 
     // 先关闭菜单
     currentLang.value = null
@@ -669,7 +699,10 @@ function onLangHeaderMenuCommand(cmd: string) {
       expectedItemCount: allCount, // 用于按钮禁用判断
       context: {
         itemName: null as string | null,
-        lang
+        lang,
+        selectedCount,
+        missingAllCount,
+        missingSelectedCount
       }
     }
 
@@ -763,9 +796,10 @@ async function onTranslateConfirm(data: { scope: string; content?: string; langu
       // 语言表头菜单：翻译指定语言的多个条目
       const lang = translateDialogConfig.value.context.lang
       if (!lang) return
-      // 批量翻译时，使用content参数进一步筛选
-      const scope = data.content || data.scope
-      items = getItemsByScope(scope, lang)
+      // scope与content需要取交集
+      const scope = (data.scope as 'selected' | 'all') || 'all'
+      const content = (data.content as 'missing' | 'all') || 'all'
+      items = getLangBatchItems(scope, content, lang)
       languages = [lang]
     } else {
       // cell：单元格菜单
