@@ -43,6 +43,7 @@ import { useConfigStore } from '@/stores/config'
 import { Language } from '@/models/language'
 import { Search, MessageBox } from '@element-plus/icons-vue'
 import type { ResItem } from '@/models/resource'
+import { checkAndPromptUnsavedChanges } from '@/utils/beforeUnload'
 import TranslateConfigDialog from './TranslateConfigDialog.vue'
 
 const projectStore = useProjectStore()
@@ -62,12 +63,18 @@ const canTranslate = computed(() => {
 
 async function reloadFile() {
   try {
+    // 检查是否有未保存的修改
+    await checkAndPromptUnsavedChanges()
+
     const loading = ElLoading.service({ lock: true, text: '重载中...' })
     await projectStore.reloadSelectedFile()
     loading.close()
     toast.success('文件已重新加载')
   } catch (e: any) {
-    toast.fromError(e, '重载失败')
+    // 用户取消时不显示错误
+    if (e.message !== 'User cancelled') {
+      toast.fromError(e, '重载失败')
+    }
   }
 }
 

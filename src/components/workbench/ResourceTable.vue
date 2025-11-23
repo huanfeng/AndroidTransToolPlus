@@ -209,7 +209,8 @@ const rows = computed(() => {
 })
 
 const page = ref(1)
-const pageSize = ref(20)
+// 从本地存储读取页面大小，默认为 20
+const pageSize = ref(Number(localStorage.getItem('table-page-size')) || 20)
 const filteredRows = computed(() => {
   const q = filterText.value.trim().toLowerCase()
   let list = rows.value
@@ -306,6 +307,10 @@ const translateDialogConfig = ref<{
 watch(filterText, () => { page.value = 1 })
 watch(() => projectStore.tableFilterCurrent, () => { page.value = 1 })
 watch(() => filteredRows.value.length, (n) => { projectStore.tableFilteredCount = n })
+// 监听页面大小变化，保存到本地存储
+watch(pageSize, (newSize) => {
+  localStorage.setItem('table-page-size', String(newSize))
+})
 
 function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }
 function isEditing(itemName: string, lang: Language) { return editing.value === keyFor(itemName, lang) }

@@ -414,19 +414,54 @@ export class XmlData {
     const valuesDirs = await getValuesDirs(this.resHandle)
     const languageDataMap = this.dataMap.get(fileName)
 
-    if (!languageDataMap) return
+    if (!languageDataMap) {
+      // 如果该文件的数据都不存在，重新加载整个文件
+      await this.loadFile(fileName)
+      return
+    }
 
-    for (const [valuesDirName, _valuesHandle] of valuesDirs) {
+    for (const [valuesDirName, valuesHandle] of valuesDirs) {
       const language = getLanguageByValuesDirName(valuesDirName)
       if (!language) continue
 
-      const data = languageDataMap.get(language)
-      if (!data || !data.fileHandle) continue
-
       try {
-        const content = await fs.readFile(data.fileHandle)
+        // 检查文件是否存在
+        const exists = await fileExists(valuesHandle, fileName)
+        if (!exists) {
+          // 文件不存在，创建空数据
+          const info = getLanguageInfo(language)
+          const data: XmlFileData = {
+            fileName,
+            language,
+            valuesDirName,
+            items: new Map(),
+          }
+          languageDataMap.set(language, data)
+          continue
+        }
+
+        // 获取文件句柄
+        const fileHandle = await valuesHandle.getFileHandle(fileName)
+        const content = await fs.readFile(fileHandle)
         const items = parseXml(content, language)
-        data.items = items
+
+        // 更新或创建语言数据
+        let data = languageDataMap.get(language)
+        if (!data) {
+          const info = getLanguageInfo(language)
+          data = {
+            fileName,
+            language,
+            valuesDirName,
+            items,
+            fileHandle,
+          }
+          languageDataMap.set(language, data)
+        } else {
+          data.items = items
+          data.fileHandle = fileHandle
+        }
+
         // 清除该语言的所有dirty标记
         this.clearDirtyFor(fileName, language)
       } catch (error) {
