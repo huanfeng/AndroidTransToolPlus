@@ -277,6 +277,10 @@ export const useTranslationStore = defineStore('translation', () => {
       _progressTotalDisplay.value = 0
       _progressCompleted.value = 0
       _progressFailed.value = 0
+
+      // 创建新的取消 token
+      translator.value?.createCancelToken()
+
       state.value = TranslationState.TRANSLATING
       logStore.debug(`Batch translate started, tasks cleared. Initial tasks.length: ${tasks.value.length}`)
 
@@ -420,12 +424,12 @@ export const useTranslationStore = defineStore('translation', () => {
 
         // 分批处理
         for (let i = 0; i < batchItems.length; i += maxItemsPerRequest) {
-          // 检查是否取消（如果处于 STOPPING 状态，等待当前批次完成后再真正停止）
+          // 检查是否取消（这里是最关键的：一旦取消，立即停止后续批次）
           if (isCancelled.value) {
-            logStore.info('Translation cancelled (waiting for current batch to finish)')
+            logStore.info('Translation cancelled - stopping after current batch')
             state.value = TranslationState.STOPPING
             // 不立即返回，让当前批次完成后再处理
-            // break 出来进入后续处理
+            // 这样用户点击停止后，最多再等一个批次的时间
             break
           }
 
@@ -507,6 +511,13 @@ export const useTranslationStore = defineStore('translation', () => {
             completedTasks += chunk.length
             logStore.debug(`Batch ${i / maxItemsPerRequest + 1} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${totalActualTasks}, failed: ${_progressFailed.value}`)
           } catch (err: any) {
+            // 检查是否是取消错误
+            if (err.message === 'Translation cancelled') {
+              logStore.info(`Batch ${i / maxItemsPerRequest + 1} cancelled by user`)
+              // 取消错误不标记为失败，而是直接返回
+              return
+            }
+
             logStore.error(`Batch ${i / maxItemsPerRequest + 1} failed:`, err)
 
             // 如果整个批次失败，将该批次所有任务标记为错误
@@ -721,7 +732,15 @@ export const useTranslationStore = defineStore('translation', () => {
   function stopTranslation(): void {
     isCancelled.value = true
     state.value = TranslationState.STOPPING
-    logStore.info('Translation stopping (waiting for current requests to finish)...')
+
+    // 立即取消网络请求（智能取消：请求刚开始则立即取消，已开始则5秒超时）
+    if (translator.value) {
+      const elapsed = translator.value.getRequestElapsed()
+      logStore.info(`Stopping translation (request elapsed: ${elapsed}ms)`)
+      translator.value.cancel('Translation cancelled by user')
+    }
+
+    logStore.info('Translation stop requested')
   }
 
   /**

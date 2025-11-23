@@ -7,7 +7,15 @@
     <div class="progress-row" v-if="isTranslating">
       <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 200px" />
       <span class="progress-text">{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span>
-      <el-button type="danger" @click="confirmStopTranslation" style="margin-left:12px;">停止翻译</el-button>
+      <el-button
+        type="danger"
+        @click="confirmStopTranslation"
+        :disabled="isStopping"
+        style="margin-left:12px;"
+      >
+        <span v-if="!isStopping">停止翻译</span>
+        <span v-else>正在停止中...</span>
+      </el-button>
     </div>
     <div class="btn-row">
       <el-button :icon="Setting" @click="$emit('open-settings')">设置</el-button>
@@ -23,6 +31,7 @@ import { useTranslationStore } from '@/stores/translation'
 
 const translationStore = useTranslationStore()
 const isTranslating = computed(() => translationStore.isTranslating)
+const isStopping = computed(() => translationStore.isStopping)
 const progress = computed(() => translationStore.progress)
 
 function confirmStopTranslation() {

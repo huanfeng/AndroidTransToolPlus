@@ -3,7 +3,7 @@
  * 使用 GPT-4o-mini 进行翻译
  */
 
-import axios from 'axios'
+import axios, { CancelTokenSource } from 'axios'
 import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { Language, LANGUAGE_MAP } from '@/models/language'
 import { BATCH_PROMPT_TEMPLATE, SINGLE_PROMPT_TEMPLATE, renderPromptTemplate } from '@/models/ai'
@@ -78,7 +78,7 @@ export interface OpenAIConfig {
 const DEFAULT_CONFIG: Partial<OpenAIConfig> = {
   model: 'gpt-4o-mini',
   maxRetries: 3,
-  timeout: 30000,
+  timeout: 30000, // 保持30秒超时，给AI足够时间
   temperature: 0.3, // 较低的温度以获得更一致的翻译
 }
 
@@ -88,6 +88,8 @@ const DEFAULT_CONFIG: Partial<OpenAIConfig> = {
 export class OpenAITranslator {
   private config: OpenAIConfig
   private client: AxiosInstance
+  private cancelTokenSource: CancelTokenSource | null = null
+  private requestStartTime: number | null = null // 记录请求开始时间
 
   constructor(config: OpenAIConfig) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -123,6 +125,63 @@ export class OpenAITranslator {
   updateConfig(config: Partial<OpenAIConfig>): void {
     this.config = { ...this.config, ...config }
     this.client = this.createClient()
+  }
+
+  /**
+   * 创建新的取消 token
+   */
+  createCancelToken(): CancelTokenSource {
+    // 如果之前有未取消的请求，先取消
+    if (this.cancelTokenSource && !this.cancelTokenSource.token.reason) {
+      try {
+        this.cancelTokenSource.cancel('New translation started')
+      } catch (e) {
+        // 忽略重复取消的错误
+      }
+    }
+    this.cancelTokenSource = axios.CancelToken.source()
+    return this.cancelTokenSource
+  }
+
+  /**
+   * 取消当前翻译请求
+   */
+  cancel(reason?: string): void {
+    if (!this.cancelTokenSource) return
+
+    // 记录请求已进行的时间
+    const elapsed = this.requestStartTime ? Date.now() - this.requestStartTime : 0
+
+    // 智能取消策略：
+    // - 如果请求刚开始（<2秒），则立即取消
+    // - 如果请求已进行（>2秒），设置5秒超时强制失败
+    if (elapsed > 2000) {
+      // 请求已开始超过2秒，设置短超时
+      console.log(`Request already in progress for ${elapsed}ms, setting 5s timeout`)
+      this.client.defaults.timeout = 5000
+    }
+
+    try {
+      this.cancelTokenSource.cancel(reason || 'Translation cancelled by user')
+    } catch (e) {
+      // 忽略重复取消的错误
+    }
+  }
+
+  /**
+   * 强制设置当前请求的超时时间
+   */
+  setTimeout(timeout: number): void {
+    // 更新客户端的超时配置
+    this.client.defaults.timeout = timeout
+  }
+
+  /**
+   * 获取请求开始时间（用于调试）
+   */
+  getRequestElapsed(): number {
+    if (!this.requestStartTime) return 0
+    return Date.now() - this.requestStartTime
   }
 
   /**
@@ -370,6 +429,14 @@ export class OpenAITranslator {
     prompt: string,
     expectJson: boolean = false
   ): Promise<string> {
+    // 如果没有取消 token，创建一个
+    if (!this.cancelTokenSource) {
+      this.cancelTokenSource = axios.CancelToken.source()
+    }
+
+    // 记录请求开始时间
+    this.requestStartTime = Date.now()
+
     let lastError: any = null
     const maxRetries = this.config.maxRetries || 3
 
@@ -391,6 +458,7 @@ export class OpenAITranslator {
           ],
           temperature: this.config.temperature,
           max_tokens: expectJson ? 4000 : 1000,
+          cancelToken: this.cancelTokenSource.token,
         })
 
         const content = response.data.choices[0]?.message?.content?.trim()
@@ -398,9 +466,18 @@ export class OpenAITranslator {
           throw new Error('Empty response from OpenAI')
         }
 
+        // 请求成功，重置开始时间
+        this.requestStartTime = null
         return content
       } catch (error: any) {
         lastError = error
+
+        // 检查是否是取消错误（axios.isCancel 会抛出特殊错误）
+        if (axios.isCancel(error)) {
+          console.info('OpenAI API request cancelled')
+          this.requestStartTime = null
+          throw new Error('Translation cancelled')
+        }
 
         // 如果是最后一次重试，直接抛出错误
         if (attempt === maxRetries - 1) {
@@ -414,6 +491,11 @@ export class OpenAITranslator {
     }
 
     // 所有重试都失败
+    this.requestStartTime = null
+    if (axios.isCancel(lastError)) {
+      throw new Error('Translation cancelled')
+    }
+
     const errorMsg = lastError?.response?.data?.error?.message || lastError?.message || 'Unknown error'
     throw new Error(`OpenAI API call failed after ${maxRetries} attempts: ${errorMsg}`)
   }
