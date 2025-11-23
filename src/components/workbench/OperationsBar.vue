@@ -1,11 +1,11 @@
 <template>
   <div class="toolbar ops">
-    <el-button @click="reloadFile" :disabled="!projectStore.selectedXmlFile">重新加载文件</el-button>
+    <el-button @click="reloadFile" :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating">重新加载文件</el-button>
     <el-button type="primary" @click="openBatchTranslateDialog" :disabled="!canTranslate">
       <el-icon style="margin-right:4px;"><MessageBox /></el-icon>
       批量翻译
     </el-button>
-    <el-button type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile">保存当前文件</el-button>
+    <el-button type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating">保存当前文件</el-button>
     <el-divider direction="vertical" />
     <!-- 搜索 / 筛选 放到与操作同一行 -->
     <el-input v-model="projectStore.tableFilterText" clearable placeholder="搜索 Key / 默认文本" style="max-width: 320px">
@@ -58,7 +58,8 @@ const allTargetLanguages = computed(() => configStore.config.enabledLanguages.fi
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
-  return hasFile
+  const isTranslating = translationStore.isTranslating
+  return hasFile && !isTranslating
 })
 
 async function reloadFile() {
@@ -210,11 +211,10 @@ async function onBatchTranslateConfirm(data: { scope: string; languages: Languag
 
     // 传递文件映射数据，用于统一的未翻译过滤逻辑
     await translationStore.batchTranslate(items, data.languages, data.autoUpdateTranslated, fileMap)
-    started = true
-    toast.success(`批量翻译完成`)
 
     // 关闭对话框
-    if (started) showBatchDialog.value = false
+    showBatchDialog.value = false
+    toast.success(`批量翻译完成`)
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
   }

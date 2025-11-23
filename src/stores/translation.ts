@@ -21,6 +21,7 @@ export enum TranslationState {
   IDLE = 'idle', // 空闲
   TRANSLATING = 'translating', // 翻译中
   PAUSED = 'paused', // 已暂停
+  STOPPING = 'stopping', // 正在停止（等待当前请求结束）
   COMPLETED = 'completed', // 已完成
   ERROR = 'error', // 错误
 }
@@ -70,10 +71,11 @@ export const useTranslationStore = defineStore('translation', () => {
 
   // 计算属性
   const isIdle = computed(() => state.value === TranslationState.IDLE)
-  const isTranslating = computed(() => state.value === TranslationState.TRANSLATING)
+  const isTranslating = computed(() => state.value === TranslationState.TRANSLATING || state.value === TranslationState.STOPPING)
   const isPaused = computed(() => state.value === TranslationState.PAUSED)
   const isCompleted = computed(() => state.value === TranslationState.COMPLETED)
   const hasError = computed(() => state.value === TranslationState.ERROR)
+  const isStopping = computed(() => state.value === TranslationState.STOPPING)
 
   const progress = computed<TranslationProgress>(() => {
     // 使用显示用总任务数（实际需要翻译的数量），与对话框保持一致
@@ -418,11 +420,13 @@ export const useTranslationStore = defineStore('translation', () => {
 
         // 分批处理
         for (let i = 0; i < batchItems.length; i += maxItemsPerRequest) {
-          // 检查是否取消
+          // 检查是否取消（如果处于 STOPPING 状态，等待当前批次完成后再真正停止）
           if (isCancelled.value) {
-            logStore.info('Translation cancelled')
-            state.value = TranslationState.IDLE
-            return
+            logStore.info('Translation cancelled (waiting for current batch to finish)')
+            state.value = TranslationState.STOPPING
+            // 不立即返回，让当前批次完成后再处理
+            // break 出来进入后续处理
+            break
           }
 
           const chunk = batchItems.slice(i, i + maxItemsPerRequest)
@@ -540,6 +544,15 @@ export const useTranslationStore = defineStore('translation', () => {
         return
       }
 
+      // 检查是否在翻译过程中被取消（STOPPING 状态）
+      if (isCancelled.value) {
+        logStore.info('Batch translation stopped by user')
+        state.value = TranslationState.IDLE
+        // 重置当前任务索引
+        currentTaskIndex.value = 0
+        return
+      }
+
       state.value = TranslationState.COMPLETED
       logStore.info(`Batch translation completed. Display progress: ${_progressCompleted.value}/${_progressTotalDisplay.value} (${progress.value.percentage}%), failed: ${_progressFailed.value}. Actual total: ${_progressTotal.value}`)
       // 批量翻译完成后统一刷新表格视图
@@ -548,11 +561,10 @@ export const useTranslationStore = defineStore('translation', () => {
         logStore.debug('UI refresh triggered after batch translation (dataVersion++)')
       } catch {}
     } catch (err: any) {
-      // 检查是否是取消错误
-      if (err.message === 'Translation cancelled') {
-        logStore.info('Batch translation cancelled by user')
-        // 如果是取消，不设置为 ERROR 状态，保持 IDLE
-        // 已经在 stopTranslation() 中设置状态
+      // 如果处于 STOPPING 状态，不视为错误（用户主动停止）
+      if (state.value === TranslationState.STOPPING || isCancelled.value) {
+        logStore.info('Batch translation stopped by user')
+        state.value = TranslationState.IDLE
         return
       }
 
@@ -708,9 +720,8 @@ export const useTranslationStore = defineStore('translation', () => {
    */
   function stopTranslation(): void {
     isCancelled.value = true
-    state.value = TranslationState.IDLE
-    currentTaskIndex.value = 0
-    logStore.info('Translation stopped')
+    state.value = TranslationState.STOPPING
+    logStore.info('Translation stopping (waiting for current requests to finish)...')
   }
 
   /**
@@ -788,6 +799,7 @@ export const useTranslationStore = defineStore('translation', () => {
     isPaused,
     isCompleted,
     hasError,
+    isStopping,
     progress,
     currentTask,
 

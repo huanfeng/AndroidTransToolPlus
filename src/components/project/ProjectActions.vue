@@ -1,12 +1,12 @@
 <template>
   <div class="toolbar">
-    <el-button type="primary" :icon="FolderOpened" @click="onOpen" :loading="projectStore.isScanning || projectStore.isLoading">
+    <el-button type="primary" :icon="FolderOpened" @click="onOpen" :loading="projectStore.isScanning || projectStore.isLoading" :disabled="translationStore.isTranslating">
       打开
     </el-button>
-    <el-button :icon="CloseBold" @click="onClose" :disabled="!projectStore.hasProject">
+    <el-button :icon="CloseBold" @click="onClose" :disabled="!projectStore.hasProject || translationStore.isTranslating">
       关闭
     </el-button>
-    <el-button :icon="Document" type="success" @click="onSave" :disabled="!projectStore.isLoaded">
+    <el-button :icon="Document" type="success" @click="onSave" :disabled="!projectStore.isLoaded || translationStore.isTranslating">
       保存
     </el-button>
   </div>
@@ -16,10 +16,12 @@
 import { ElLoading } from 'element-plus'
 import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
+import { useTranslationStore } from '@/stores/translation'
 import { checkAndPromptUnsavedChanges } from '@/utils/beforeUnload'
 import { FolderOpened, CloseBold, Document } from '@element-plus/icons-vue'
 
 const projectStore = useProjectStore()
+const translationStore = useTranslationStore()
 
 async function onOpen() {
   try {
