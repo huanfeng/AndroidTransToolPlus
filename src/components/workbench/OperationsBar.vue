@@ -209,11 +209,13 @@ async function onBatchTranslateConfirm(data: { scope: string; languages: Languag
       return
     }
 
+    // 先关闭对话框再执行耗时的翻译，避免界面阻塞在弹窗上
+    showBatchDialog.value = false
+    batchDialogConfig.value = null
+
     // 传递文件映射数据，用于统一的未翻译过滤逻辑
     await translationStore.batchTranslate(items, data.languages, data.autoUpdateTranslated, fileMap)
 
-    // 关闭对话框
-    showBatchDialog.value = false
     toast.success(`批量翻译完成`)
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
