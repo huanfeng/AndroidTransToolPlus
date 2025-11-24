@@ -514,8 +514,8 @@ export const useTranslationStore = defineStore('translation', () => {
             // 检查是否是取消错误
             if (err.message === 'Translation cancelled') {
               logStore.info(`Batch ${i / maxItemsPerRequest + 1} cancelled by user`)
-              // 取消错误不标记为失败，而是直接返回
-              return
+              // 抛出让外层统一进入 STOPPING 流程，及时退出“正在停止中”状态
+              throw err
             }
 
             logStore.error(`Batch ${i / maxItemsPerRequest + 1} failed:`, err)

@@ -3,7 +3,7 @@
  * 使用 GPT-4o-mini 进行翻译
  */
 
-import axios, { CancelTokenSource } from 'axios'
+import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { Language, LANGUAGE_MAP } from '@/models/language'
 import { BATCH_PROMPT_TEMPLATE, SINGLE_PROMPT_TEMPLATE, renderPromptTemplate } from '@/models/ai'
@@ -88,7 +88,7 @@ const DEFAULT_CONFIG: Partial<OpenAIConfig> = {
 export class OpenAITranslator {
   private config: OpenAIConfig
   private client: AxiosInstance
-  private cancelTokenSource: CancelTokenSource | null = null
+  private abortController: AbortController | null = null
   private requestStartTime: number | null = null // 记录请求开始时间
 
   constructor(config: OpenAIConfig) {
@@ -128,43 +128,37 @@ export class OpenAITranslator {
   }
 
   /**
-   * 创建新的取消 token
+   * 创建新的取消信号
    */
-  createCancelToken(): CancelTokenSource {
+  createCancelToken(): AbortController {
     // 如果之前有未取消的请求，先取消
-    if (this.cancelTokenSource && !this.cancelTokenSource.token.reason) {
+    if (this.abortController && !this.abortController.signal.aborted) {
       try {
-        this.cancelTokenSource.cancel('New translation started')
+        this.abortController.abort('New translation started')
       } catch (e) {
         // 忽略重复取消的错误
       }
     }
-    this.cancelTokenSource = axios.CancelToken.source()
-    return this.cancelTokenSource
+    this.abortController = new AbortController()
+    return this.abortController
   }
 
   /**
    * 取消当前翻译请求
    */
   cancel(reason?: string): void {
-    if (!this.cancelTokenSource) return
+    if (!this.abortController) return
 
-    // 记录请求已进行的时间
+    // 记录请求已进行的时间（仅用于日志）
     const elapsed = this.requestStartTime ? Date.now() - this.requestStartTime : 0
-
-    // 智能取消策略：
-    // - 如果请求刚开始（<2秒），则立即取消
-    // - 如果请求已进行（>2秒），设置5秒超时强制失败
-    if (elapsed > 2000) {
-      // 请求已开始超过2秒，设置短超时
-      console.log(`Request already in progress for ${elapsed}ms, setting 5s timeout`)
-      this.client.defaults.timeout = 5000
-    }
+    console.log(`Cancelling translation after ${elapsed}ms`)
 
     try {
-      this.cancelTokenSource.cancel(reason || 'Translation cancelled by user')
+      this.abortController.abort(reason || 'Translation cancelled by user')
     } catch (e) {
       // 忽略重复取消的错误
+    } finally {
+      this.abortController = null
     }
   }
 
@@ -429,9 +423,9 @@ export class OpenAITranslator {
     prompt: string,
     expectJson: boolean = false
   ): Promise<string> {
-    // 如果没有取消 token，创建一个
-    if (!this.cancelTokenSource) {
-      this.cancelTokenSource = axios.CancelToken.source()
+    // 如果没有取消信号，创建一个
+    if (!this.abortController || this.abortController.signal.aborted) {
+      this.abortController = new AbortController()
     }
 
     // 记录请求开始时间
@@ -442,24 +436,29 @@ export class OpenAITranslator {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await this.client.post('/chat/completions', {
-          model: this.config.model || DEFAULT_CONFIG.model,
-          messages: [
-            {
-              role: 'system',
-              content: expectJson
-                ? 'You are a professional translator. Always respond with valid JSON only.'
-                : 'You are a professional translator. Always respond with the translation only, no explanations.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          temperature: this.config.temperature,
-          max_tokens: expectJson ? 4000 : 1000,
-          cancelToken: this.cancelTokenSource.token,
-        })
+        const response = await this.client.post(
+          '/chat/completions',
+          {
+            model: this.config.model || DEFAULT_CONFIG.model,
+            messages: [
+              {
+                role: 'system',
+                content: expectJson
+                  ? 'You are a professional translator. Always respond with valid JSON only.'
+                  : 'You are a professional translator. Always respond with the translation only, no explanations.',
+              },
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            temperature: this.config.temperature,
+            max_tokens: expectJson ? 4000 : 1000,
+          },
+          {
+            signal: this.abortController.signal,
+          }
+        )
 
         const content = response.data.choices[0]?.message?.content?.trim()
         if (!content) {
@@ -468,14 +467,16 @@ export class OpenAITranslator {
 
         // 请求成功，重置开始时间
         this.requestStartTime = null
+        this.abortController = null
         return content
       } catch (error: any) {
         lastError = error
 
-        // 检查是否是取消错误（axios.isCancel 会抛出特殊错误）
-        if (axios.isCancel(error)) {
+        // 检查是否是取消错误
+        if (this.isCancelledError(error)) {
           console.info('OpenAI API request cancelled')
           this.requestStartTime = null
+          this.abortController = null
           throw new Error('Translation cancelled')
         }
 
@@ -492,7 +493,8 @@ export class OpenAITranslator {
 
     // 所有重试都失败
     this.requestStartTime = null
-    if (axios.isCancel(lastError)) {
+    this.abortController = null
+    if (this.isCancelledError(lastError)) {
       throw new Error('Translation cancelled')
     }
 
@@ -628,5 +630,17 @@ export class OpenAITranslator {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  /**
+   * 判断是否为取消导致的错误
+   */
+  private isCancelledError(error: any): boolean {
+    return (
+      axios.isCancel(error) ||
+      error?.code === 'ERR_CANCELED' ||
+      error?.name === 'CanceledError' ||
+      error?.name === 'AbortError'
+    )
   }
 }
