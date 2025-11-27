@@ -367,8 +367,9 @@ function openArrayEditor(itemName: string, lang: Language) {
  * 统一的翻译执行函数
  * @param items 要翻译的条目
  * @param languages 目标语言
+ * @param autoUpdateTranslated 是否覆盖已有译文
  */
-async function executeTranslation(items: Map<string, ResItem>, languages: Language[]) {
+async function executeTranslation(items: Map<string, ResItem>, languages: Language[], autoUpdateTranslated = false) {
   if (items.size === 0) {
     toast.warning('没有需要翻译的条目')
     return
@@ -379,7 +380,7 @@ async function executeTranslation(items: Map<string, ResItem>, languages: Langua
   }
   // 获取文件映射数据，用于统一的未翻译过滤逻辑
   const fileMap = projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
-  await translationStore.batchTranslate(items, languages, false, fileMap)
+  await translationStore.batchTranslate(items, languages, autoUpdateTranslated, fileMap)
   // batchTranslate 内部已经完成，直接提示成功
   toast.success(`批量翻译完成`)
 }
@@ -732,7 +733,7 @@ function onCellMenuCommand(cmd: string) {
   if (cmd === 'quick-translate') {
     // 快速翻译：直接翻译当前单元格，不弹出对话框
     const items = getItemsByScope('all', undefined, row.name)
-    executeTranslation(items, [lang])
+    executeTranslation(items, [lang], true)
     currentCellRow.value = null
     currentLang.value = null
   } else if (cmd === 'translate-custom') {
@@ -783,12 +784,13 @@ function onCellMenuCommand(cmd: string) {
   }
 }
 
-async function onTranslateConfirm(data: { scope: string; content?: string; languageFilter?: string; languages: Language[] }) {
+async function onTranslateConfirm(data: { scope: string; content?: string; languageFilter?: string; languages: Language[]; autoUpdateTranslated?: boolean }) {
   if (!translateDialogConfig.value) return
 
   try {
     let items: Map<string, ResItem>
     let languages: Language[]
+    let autoUpdateTranslated = false
 
     if (translateDialogConfig.value.type === 'key') {
       // Key 列菜单：翻译指定条目
@@ -799,6 +801,7 @@ async function onTranslateConfirm(data: { scope: string; content?: string; langu
       const allLangs = targetLangs.value
       const missingLangs = getTargetLanguagesForItem(itemName, 'missing')
       languages = data.languageFilter === 'missing' ? missingLangs : allLangs
+      autoUpdateTranslated = data.autoUpdateTranslated ?? data.languageFilter === 'all'
     } else if (translateDialogConfig.value.type === 'lang-header') {
       // 语言表头菜单：翻译指定语言的多个条目
       const lang = translateDialogConfig.value.context.lang
@@ -808,12 +811,14 @@ async function onTranslateConfirm(data: { scope: string; content?: string; langu
       const content = (data.content as 'missing' | 'all') || 'all'
       items = getLangBatchItems(scope, content, lang)
       languages = [lang]
+      autoUpdateTranslated = data.autoUpdateTranslated ?? content === 'all'
     } else {
       // cell：单元格菜单
       const itemName = translateDialogConfig.value.context.itemName
       if (!itemName) return
       items = getItemsByScope('all', undefined, itemName)
       languages = data.languages
+      autoUpdateTranslated = data.autoUpdateTranslated ?? true
     }
 
     // 关闭对话框
@@ -821,7 +826,7 @@ async function onTranslateConfirm(data: { scope: string; content?: string; langu
     translateDialogConfig.value = null
 
     // 执行翻译
-    await executeTranslation(items, languages)
+    await executeTranslation(items, languages, autoUpdateTranslated)
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
   }

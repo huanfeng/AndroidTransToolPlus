@@ -1,7 +1,7 @@
 <template>
   <div class="app-header">
     <div class="title-row">
-      <el-icon><Flag /></el-icon>
+      <img width="24" height="24" src="/favicon.svg" alt="logo">
       <span class="title">Android Trans Tool Plus</span>
     </div>
     <div class="progress-row" v-if="isTranslating">
@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { Flag, Setting, InfoFilled } from '@element-plus/icons-vue'
+import { Setting, InfoFilled } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 import { useTranslationStore } from '@/stores/translation'
 

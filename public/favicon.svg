@@ -1,0 +1,50 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <mask id="squircle-mask-v5">
+    <rect x="0" y="0" width="128" height="128" rx="28" fill="white" />
+  </mask>
+
+  <g mask="url(#squircle-mask-v5)">
+    <rect width="128" height="128" fill="#FFFFFF00" />
+    <g fill="#3DDC84" stroke="#1A237E" stroke-width="2"
+      transform="translate(64 64) scale(1.15) translate(-64 -64)">
+      <path d="M42 52C42 39.8497 51.8497 30 64 30C76.1503 30 86 39.8497 86 52H42Z" />
+      <circle cx="53" cy="44" r="3" fill="white" stroke="none" />
+      <circle cx="75" cy="44" r="3" fill="white" stroke="none" />
+      <rect x="48.636" y="21.5246" width="4" height="12" rx="2"
+        transform="rotate(-30 48.636 21.5246)" />
+      <rect x="75.9004" y="19.5247" width="4" height="12" rx="2"
+        transform="rotate(30 75.9004 19.5247)" />
+      <rect x="42" y="56" width="44" height="36" rx="6" />
+      <rect x="30" y="58" width="10" height="30" rx="5" />
+      <rect x="88" y="58" width="10" height="30" rx="5" />
+      <rect x="50" y="94" width="10" height="18" rx="5" />
+      <rect x="68" y="94" width="10" height="18" rx="5" />
+    </g>
+
+    <g transform="translate(64 70) scale(1.2) translate(-64 -70)">
+      <defs>
+        <filter id="shadow-strong" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+          <feOffset dx="2" dy="3" result="offsetblur" />
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.4" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <rect x="36" y="52" width="34" height="34" rx="6" fill="#4285F4" />
+      <text x="43" y="75" fill="white" font-family="sans-serif" font-weight="bold" font-size="18">A</text>
+
+      <g filter="url(#shadow-strong)">
+        <rect x="58" y="62" width="34" height="34" rx="6" fill="#FFFFFF" stroke="#1A237E"
+          stroke-width="2" />
+        <text x="64" y="86" fill="#1A237E" font-family="sans-serif" font-weight="bold"
+          font-size="18">文</text>
+      </g>
+    </g>
+  </g>
+</svg>

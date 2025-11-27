@@ -137,7 +137,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
-  (e: 'confirm', data: { scope: string; content?: string; languages: Language[]; autoUpdateTranslated?: boolean }): void
+  (e: 'confirm', data: { scope: string; content?: string; languages: Language[]; languageFilter?: string; autoUpdateTranslated?: boolean }): void
 }>()
 
 const configStore = useConfigStore()
@@ -357,12 +357,20 @@ function confirmTranslate() {
   // Key翻译使用languageFilter作为语言选择
   if (isKeyTranslate.value) {
     emitData.languageFilter = selectedContent.value
+    // 选择“全部”时允许覆盖已有译文
+    emitData.autoUpdateTranslated = selectedContent.value === 'all'
   }
 
   // 批量翻译：将过滤选项映射为 autoUpdateTranslated
   // 'missing' -> false（跳过已有译文），'all' -> true（更新已有译文）
   if (isBatchTranslate.value || isBatchToolbar.value) {
+    emitData.content = selectedContent.value
     emitData.autoUpdateTranslated = selectedContent.value === 'all'
+  }
+
+  // 单元格翻译默认允许覆盖已有译文
+  if (isCellTranslate.value) {
+    emitData.autoUpdateTranslated = true
   }
 
   emit('confirm', emitData)
