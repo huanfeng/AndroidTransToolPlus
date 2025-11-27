@@ -19,6 +19,22 @@ const BUILDER_OPTIONS = {
 }
 
 /**
+ * 修复 XML 转义
+ * Android strings.xml 的转义规则与标准 XML 不同：
+ * - 不需要将单引号转义为 &apos;（保留用户输入的 \' 格式）
+ * - 不需要将双引号转义为 &quot;（保留用户输入的 \" 格式）
+ * - 仍然需要转义 &, <, > 等 XML 特殊字符
+ */
+function fixXmlEscaping(xml: string): string {
+  // 将 &apos; 替换回 '
+  // 将 &quot; 替换回 "
+  // 注意：我们需要小心处理，避免影响已经存在的实体引用
+  return xml
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+}
+
+/**
  * 生成 Android 字符串资源 XML
  */
 export function generateXml(
@@ -77,8 +93,11 @@ export function generateXml(
   const builder = new XMLBuilder(BUILDER_OPTIONS)
   const xml = builder.build({ resources })
 
+  // 修复转义：将 &apos; 和 &quot; 替换回引号
+  const fixedXml = fixXmlEscaping(xml)
+
   // 添加 XML 声明
-  return '<?xml version="1.0" encoding="utf-8"?>\n' + xml
+  return '<?xml version="1.0" encoding="utf-8"?>\n' + fixedXml
 }
 
 /**
@@ -111,17 +130,24 @@ function sortByDefaultOrder(
 }
 
 /**
- * 转义 XML 文本
+ * 处理 Android 特殊字符
+ * 注意：XML 特殊字符（&, <, >）由 fast-xml-parser 自动处理
+ * 这里只处理 Android 特有的转义
  */
 function escapeXmlText(text: string): string {
   if (!text) return text
 
-  // 在Android strings.xml中，单引号通常不需要转义
-  // 其他 XML 特殊字符由 fast-xml-parser 自动处理
-  // 但我们需要手动处理一些 Android 特殊情况
+  // Android strings.xml 的特殊处理：
+  // 1. 将实际换行符转换为字面量 \n（反斜杠+n）
+  // 2. 将实际制表符转换为字面量 \t（反斜杠+t）
+  // 3. 不转义单引号和双引号（保留用户输入的格式，如 \' 或 \"）
+  // 4. XML 特殊字符（&, <, >）由 fast-xml-parser 自动处理后再通过 fixXmlEscaping 修正
 
-  // 保留换行符
-  text = text.replace(/\n/g, '\\n')
+  // 使用字符码明确表示反斜杠，避免转义混淆
+  const backslash = String.fromCharCode(92)
+  text = text.replace(/\n/g, backslash + 'n')   // 实际换行符 -> 字面量\n
+  text = text.replace(/\t/g, backslash + 't')   // 实际制表符 -> 字面量\t
+  text = text.replace(/\r/g, backslash + 'r')   // 实际回车符 -> 字面量\r
 
   return text
 }
@@ -142,7 +168,10 @@ export function formatXml(xmlContent: string): string {
     const builder = new XMLBuilder(BUILDER_OPTIONS)
     const formatted = builder.build(result)
 
-    return '<?xml version="1.0" encoding="utf-8"?>\n' + formatted
+    // 修复转义
+    const fixedXml = fixXmlEscaping(formatted)
+
+    return '<?xml version="1.0" encoding="utf-8"?>\n' + fixedXml
   } catch (error) {
     console.error('Failed to format XML:', error)
     return xmlContent
