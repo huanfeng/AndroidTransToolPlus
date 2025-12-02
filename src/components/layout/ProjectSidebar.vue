@@ -10,7 +10,7 @@
         <el-button :icon="Setting" @click="$emit('open-settings')">设置</el-button>
         <el-button :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
       </div>
-      <el-divider style="margin:8px 0" v-if="false" />
+      <el-divider style="margin: 8px 0" v-if="false" />
       <div><ProjectActions class="actions" /></div>
       <div class="project-info">
         <el-icon><Folder /></el-icon>
@@ -27,7 +27,6 @@
       <el-button type="" :underline="true" @click="toggleLog">日志</el-button>
     </div>
   </div>
-
 </template>
 
 <script setup lang="ts">

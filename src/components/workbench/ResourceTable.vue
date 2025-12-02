@@ -1,6 +1,9 @@
 <template>
   <div class="table-wrap">
-    <el-empty v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile" description="请选择左侧 XML 文件" />
+    <el-empty
+      v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile"
+      description="请选择左侧 XML 文件"
+    />
     <template v-else>
       <div class="table-inner">
         <div class="table-scroll">
@@ -16,7 +19,11 @@
             <el-table-column prop="name" label="Key" width="260" fixed>
               <template #default="{ row }">
                 <div class="cell-with-menu">
-                  <span :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']" :title="row.name">{{ row.name }}</span>
+                  <span
+                    :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']"
+                    :title="row.name"
+                    >{{ row.name }}</span
+                  >
                 </div>
                 <el-button
                   class="cell-menu-btn"
@@ -30,17 +37,23 @@
             </el-table-column>
             <el-table-column label="可翻译" width="90">
               <template #default="{ row }">
-                <el-tag size="small" :type="row.translatable ? 'success' : 'info'">{{ row.translatable ? '是' : '否' }}</el-tag>
+                <el-tag size="small" :type="row.translatable ? 'success' : 'info'">{{
+                  row.translatable ? '是' : '否'
+                }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column :label="langName(Language.DEF)" min-width="220">
               <template #default="{ row }">
                 <div class="cell-with-menu">
                   <template v-if="!isEditing(row.name, Language.DEF)">
-                    <span :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']" :title="getCellValue(row, Language.DEF)">{{ getCellValue(row, Language.DEF) }}</span>
+                    <span
+                      :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']"
+                      :title="getCellValue(row, Language.DEF)"
+                      >{{ getCellValue(row, Language.DEF) }}</span
+                    >
                   </template>
                   <el-input
-                    v-else-if="row.type==='string'"
+                    v-else-if="row.type === 'string'"
                     v-model="editable[row.name + ':' + Language.DEF]"
                     :ref="setEditRef"
                     @change="(val: string) => onEdit(row.name, Language.DEF, val)"
@@ -48,10 +61,14 @@
                     @keydown.esc="cancelEdit()"
                     @blur="stopEdit()"
                   />
-                  <span v-if="!isEditing(row.name, Language.DEF) && row.type!=='string'" :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']">{{ getCellValue(row, Language.DEF) }}</span>
+                  <span
+                    v-if="!isEditing(row.name, Language.DEF) && row.type !== 'string'"
+                    :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']"
+                    >{{ getCellValue(row, Language.DEF) }}</span
+                  >
                 </div>
                 <el-button
-                  v-if="!isEditing(row.name, Language.DEF) || row.type!=='string'"
+                  v-if="!isEditing(row.name, Language.DEF) || row.type !== 'string'"
                   class="cell-menu-btn"
                   text
                   size="small"
@@ -61,7 +78,12 @@
                 </el-button>
               </template>
             </el-table-column>
-            <el-table-column v-for="l in targetLangs" :key="l" :label="langHeader(l)" min-width="220">
+            <el-table-column
+              v-for="l in targetLangs"
+              :key="l"
+              :label="langHeader(l)"
+              min-width="220"
+            >
               <template #header>
                 <div class="header-container">
                   <span>{{ langHeader(l) }}</span>
@@ -80,7 +102,11 @@
                   <template v-if="row.type === 'string'">
                     <template v-if="row.translatable">
                       <template v-if="!isEditing(row.name, l)">
-                        <span :class="['text-ellipsis', isCellDirty(row.name, l) ? 'dirty' : '']" :title="getCellValue(row, l)">{{ getCellValue(row, l) || '—' }}</span>
+                        <span
+                          :class="['text-ellipsis', isCellDirty(row.name, l) ? 'dirty' : '']"
+                          :title="getCellValue(row, l)"
+                          >{{ getCellValue(row, l) || '—' }}</span
+                        >
                       </template>
                       <el-input
                         v-else
@@ -97,11 +123,15 @@
                     </template>
                   </template>
                   <template v-else>
-                    <span :class="['text-ellipsis', isCellDirty(row.name, l) ? 'dirty' : '']" :title="getCellValue(row, l)">{{ getCellValue(row, l) }}</span>
+                    <span
+                      :class="['text-ellipsis', isCellDirty(row.name, l) ? 'dirty' : '']"
+                      :title="getCellValue(row, l)"
+                      >{{ getCellValue(row, l) }}</span
+                    >
                   </template>
                 </div>
                 <el-button
-                  v-if="!isEditing(row.name, l) || row.type!=='string'"
+                  v-if="!isEditing(row.name, l) || row.type !== 'string'"
                   class="cell-menu-btn"
                   text
                   size="small"
@@ -121,9 +151,14 @@
             :total="filteredRows.length"
             :current-page="page"
             :page-size="pageSize"
-            :page-sizes="[10,20,50,100]"
-            @update:current-page="(v:number)=>page=v"
-            @update:page-size="(v:number)=>{pageSize=v; page=1}"
+            :page-sizes="[10, 20, 50, 100]"
+            @update:current-page="(v: number) => (page = v)"
+            @update:page-size="
+              (v: number) => {
+                pageSize = v
+                page = 1
+              }
+            "
           />
         </div>
       </div>
@@ -134,36 +169,56 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="translate">翻译此条目...</el-dropdown-item>
-            <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided>还原此条目</el-dropdown-item>
+            <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided
+              >还原此条目</el-dropdown-item
+            >
           </el-dropdown-menu>
         </template>
       </el-dropdown>
 
       <!-- 语言表头菜单下拉 -->
-      <el-dropdown ref="langHeaderMenu" trigger="click" :hide-on-click="true" @command="onLangHeaderMenuCommand">
+      <el-dropdown
+        ref="langHeaderMenu"
+        trigger="click"
+        :hide-on-click="true"
+        @command="onLangHeaderMenuCommand"
+      >
         <span />
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="translate">翻译此语言...</el-dropdown-item>
-            <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided>还原此语言</el-dropdown-item>
+            <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided
+              >还原此语言</el-dropdown-item
+            >
           </el-dropdown-menu>
         </template>
       </el-dropdown>
 
       <!-- 单元格菜单下拉 -->
-      <el-dropdown ref="cellMenu" trigger="click" :hide-on-click="true" @command="onCellMenuCommand">
+      <el-dropdown
+        ref="cellMenu"
+        trigger="click"
+        :hide-on-click="true"
+        @command="onCellMenuCommand"
+      >
         <span />
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="quick-translate">快速翻译</el-dropdown-item>
             <el-dropdown-item command="translate-custom">翻译...</el-dropdown-item>
-            <el-dropdown-item v-if="hasEditedCell" command="restore-cell" divided>还原</el-dropdown-item>
+            <el-dropdown-item v-if="hasEditedCell" command="restore-cell" divided
+              >还原</el-dropdown-item
+            >
             <el-dropdown-item command="copy" divided>复制内容</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
 
-      <ArrayEditDialog v-model:visible="showArrayEdit" :item-name="arrayEditPayload?.itemName || ''" :lang="arrayEditPayload?.lang || Language.DEF" />
+      <ArrayEditDialog
+        v-model:visible="showArrayEdit"
+        :item-name="arrayEditPayload?.itemName || ''"
+        :lang="arrayEditPayload?.lang || Language.DEF"
+      />
 
       <!-- 翻译配置弹框 -->
       <TranslateConfigDialog
@@ -194,7 +249,10 @@ const configStore = useConfigStore()
 const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
 // 共享筛选状态来自 store
-const filterText = computed({ get: () => projectStore.tableFilterText, set: v => projectStore.tableFilterText = v })
+const filterText = computed({
+  get: () => projectStore.tableFilterText,
+  set: v => (projectStore.tableFilterText = v),
+})
 const selection = ref<any[]>([])
 
 const rows = computed(() => {
@@ -241,7 +299,9 @@ const filteredRows = computed(() => {
         // "已编辑" = 任一语言（默认或目标）有未保存修改
         if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
         const langs: Language[] = [Language.DEF, ...targetLangs.value]
-        return langs.some(l => projectStore.selectedXmlData!.isDirty(projectStore.selectedXmlFile!, l, r.name))
+        return langs.some(l =>
+          projectStore.selectedXmlData!.isDirty(projectStore.selectedXmlFile!, l, r.name)
+        )
       })
       break
     // case '' 或其他值：显示全部（不筛选）
@@ -254,9 +314,13 @@ const pagedRows = computed(() => {
   return filteredRows.value.slice(start, start + pageSize.value)
 })
 
-const targetLangs = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
+const targetLangs = computed(() =>
+  configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+)
 
-function langName(l: Language) { return getLanguageName(l, 'cn') }
+function langName(l: Language) {
+  return getLanguageName(l, 'cn')
+}
 function langHeader(l: Language) {
   if (l === Language.DEF) return getLanguageName(l, 'cn')
   const info = getLanguageInfo(l)
@@ -304,22 +368,40 @@ const translateDialogConfig = ref<{
   }
 } | null>(null)
 
-watch(filterText, () => { page.value = 1 })
-watch(() => projectStore.tableFilterCurrent, () => { page.value = 1 })
-watch(() => filteredRows.value.length, (n) => { projectStore.tableFilteredCount = n })
+watch(filterText, () => {
+  page.value = 1
+})
+watch(
+  () => projectStore.tableFilterCurrent,
+  () => {
+    page.value = 1
+  }
+)
+watch(
+  () => filteredRows.value.length,
+  n => {
+    projectStore.tableFilteredCount = n
+  }
+)
 // 监听页面大小变化，保存到本地存储
-watch(pageSize, (newSize) => {
+watch(pageSize, newSize => {
   localStorage.setItem('table-page-size', String(newSize))
 })
 
-function keyFor(itemName: string, lang: Language) { return `${itemName}:${lang}` }
-function isEditing(itemName: string, lang: Language) { return editing.value === keyFor(itemName, lang) }
+function keyFor(itemName: string, lang: Language) {
+  return `${itemName}:${lang}`
+}
+function isEditing(itemName: string, lang: Language) {
+  return editing.value === keyFor(itemName, lang)
+}
 function startEdit(itemName: string, lang: Language, type: ResItem['type']) {
   if (type !== 'string') return
   editing.value = keyFor(itemName, lang)
   editable[editing.value] = getStringValue(itemName, lang)
 }
-function stopEdit() { editing.value = null }
+function stopEdit() {
+  editing.value = null
+}
 function commitEdit() {
   if (!editing.value) return
   const [itemName, lang] = editing.value.split(':') as [string, Language]
@@ -369,7 +451,11 @@ function openArrayEditor(itemName: string, lang: Language) {
  * @param languages 目标语言
  * @param autoUpdateTranslated 是否覆盖已有译文
  */
-async function executeTranslation(items: Map<string, ResItem>, languages: Language[], autoUpdateTranslated = false) {
+async function executeTranslation(
+  items: Map<string, ResItem>,
+  languages: Language[],
+  autoUpdateTranslated = false
+) {
   if (items.size === 0) {
     toast.warning('没有需要翻译的条目')
     return
@@ -424,7 +510,11 @@ function getItemsByScope(scope: string, lang?: Language, itemName?: string): Map
 }
 
 // 获取批量翻译（语言表头）场景下的条目集合，scope/selection 与 content/missing 取交集
-function getLangBatchItems(scope: 'selected' | 'all', content: 'missing' | 'all', lang: Language): Map<string, ResItem> {
+function getLangBatchItems(
+  scope: 'selected' | 'all',
+  content: 'missing' | 'all',
+  lang: Language
+): Map<string, ResItem> {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return new Map()
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
   const def = fileMap?.get(Language.DEF)
@@ -447,7 +537,11 @@ function getLangBatchItems(scope: 'selected' | 'all', content: 'missing' | 'all'
   return items
 }
 
-function countLangBatchItems(scope: 'selected' | 'all', content: 'missing' | 'all', lang: Language): number {
+function countLangBatchItems(
+  scope: 'selected' | 'all',
+  content: 'missing' | 'all',
+  lang: Language
+): number {
   return getLangBatchItems(scope, content, lang).size
 }
 
@@ -542,7 +636,9 @@ function setEditRef(el: any) {
   if (el && typeof el.focus === 'function') {
     // 确保渲染后自动聚焦
     requestAnimationFrame(() => {
-      try { el.focus() } catch {}
+      try {
+        el.focus()
+      } catch {}
     })
   }
 }
@@ -626,12 +722,12 @@ function onKeyMenuCommand(cmd: string) {
       confirmText: '开始翻译',
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) }
+        defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
       },
       scopeOptions: [], // Key翻译不使用scopeOptions，但TypeScript要求必须有
       languageOptions: [
         { value: 'missing', label: '未翻译', count: missingLangs.length },
-        { value: 'all', label: '全部', count: allLangs.length }
+        { value: 'all', label: '全部', count: allLangs.length },
       ],
       allTargetLanguages: allLangs,
       defaultSelectedLanguages: allLangs, // Key翻译不需要选择语言，通过languageFilter确定
@@ -642,8 +738,8 @@ function onKeyMenuCommand(cmd: string) {
         itemName: row.name,
         lang: null as Language | null,
         missingCount: missingLangs.length,
-        allCount: allLangs.length
-      }
+        allCount: allLangs.length,
+      },
     }
 
     // 使用setTimeout确保配置设置在菜单关闭后执行
@@ -671,7 +767,7 @@ function onLangHeaderMenuCommand(cmd: string) {
     // 第一层：翻译范围选项（始终显示两个选项，即使selectedCount为0）
     const scopeOptions = [
       { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
-      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount }
+      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount },
     ]
 
     if (scopeOptions.length === 0) {
@@ -683,7 +779,7 @@ function onLangHeaderMenuCommand(cmd: string) {
     // 第二层：翻译内容选项（仅显示有数据的选项）
     const contentOptions = [
       { value: 'missing', label: '未翻译', count: missingAllCount },
-      { value: 'all', label: '全部', count: allCount }
+      { value: 'all', label: '全部', count: allCount },
     ]
 
     // 先关闭菜单
@@ -696,7 +792,10 @@ function onLangHeaderMenuCommand(cmd: string) {
       title: '批量翻译',
       confirmText: '开始翻译',
       description: {
-        language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
+        language: {
+          label: '目标语言',
+          value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})`,
+        },
       },
       scopeOptions,
       contentOptions,
@@ -710,8 +809,8 @@ function onLangHeaderMenuCommand(cmd: string) {
         lang,
         selectedCount,
         missingAllCount,
-        missingSelectedCount
-      }
+        missingSelectedCount,
+      },
     }
 
     // 使用setTimeout确保配置设置在菜单关闭后执行
@@ -752,7 +851,10 @@ function onCellMenuCommand(cmd: string) {
       description: {
         key: { label: 'Key', value: row.name },
         defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
-        language: { label: '目标语言', value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})` }
+        language: {
+          label: '目标语言',
+          value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})`,
+        },
       },
       scopeOptions: [], // cell翻译不使用scopeOptions
       allTargetLanguages: targetLangs.value,
@@ -762,8 +864,8 @@ function onCellMenuCommand(cmd: string) {
       expectedItemCount: 1, // 只有一个单元格
       context: {
         itemName: row.name,
-        lang
-      }
+        lang,
+      },
     }
 
     // 使用setTimeout确保配置设置在菜单关闭后执行
@@ -784,7 +886,13 @@ function onCellMenuCommand(cmd: string) {
   }
 }
 
-async function onTranslateConfirm(data: { scope: string; content?: string; languageFilter?: string; languages: Language[]; autoUpdateTranslated?: boolean }) {
+async function onTranslateConfirm(data: {
+  scope: string
+  content?: string
+  languageFilter?: string
+  languages: Language[]
+  autoUpdateTranslated?: boolean
+}) {
   if (!translateDialogConfig.value) return
 
   try {
@@ -836,17 +944,41 @@ function isCellDirty(itemName: string, lang: Language): boolean {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
   return projectStore.selectedXmlData.isDirty(projectStore.selectedXmlFile, lang, itemName)
 }
-
 </script>
 
 <style scoped>
-.table-wrap { height: 100%; }
-.table-inner { height: 100%; display: flex; flex-direction: column; }
-.table-scroll { flex: 1; min-height: 0; }
-:deep(.el-table) { --el-table-header-bg-color: var(--el-fill-color-light); }
-.pagination { padding: 6px 8px; border-top: 1px solid var(--el-border-color); background: var(--el-bg-color); }
-.table-toolbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--el-border-color); flex-wrap: wrap; row-gap: 6px; }
-.dirty { color: var(--el-color-danger); }
+.table-wrap {
+  height: 100%;
+}
+.table-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.table-scroll {
+  flex: 1;
+  min-height: 0;
+}
+:deep(.el-table) {
+  --el-table-header-bg-color: var(--el-fill-color-light);
+}
+.pagination {
+  padding: 6px 8px;
+  border-top: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+}
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color);
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.dirty {
+  color: var(--el-color-danger);
+}
 
 .header-container {
   display: flex;

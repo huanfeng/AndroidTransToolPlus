@@ -10,10 +10,12 @@
     @close="closeDialog"
   >
     <template #header>
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
         <div>
-          <div style="font-size: 16px; font-weight: 600;">应用设置</div>
-          <div style="font-size: 12px; color: var(--el-text-color-secondary);">配置接口、语言顺序以及 AI 翻译参数</div>
+          <div style="font-size: 16px; font-weight: 600">应用设置</div>
+          <div style="font-size: 12px; color: var(--el-text-color-secondary)">
+            配置接口、语言顺序以及 AI 翻译参数
+          </div>
         </div>
         <el-button text circle @click="closeDialog">
           <el-icon><Close /></el-icon>
@@ -23,7 +25,11 @@
 
     <el-tabs v-model="activeTab">
       <el-tab-pane label="基础" name="general">
-        <el-form label-width="140px" :model="form" style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y;">
+        <el-form
+          label-width="140px"
+          :model="form"
+          style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y"
+        >
           <el-form-item label="每批最大条目">
             <el-input-number v-model="form.maxItemsPerRequest" :min="1" :max="100" />
           </el-form-item>
@@ -43,38 +49,59 @@
       </el-tab-pane>
 
       <el-tab-pane label="语言" name="language">
-        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y;">
-          <el-alert
-            type="info"
-            show-icon
-            :closable="false"
-            style="margin-bottom: 16px;"
-          >
+        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y">
+          <el-alert type="info" show-icon :closable="false" style="margin-bottom: 16px">
             <template #title>
-              默认语言：<strong>{{ langLabel(defLang) }}</strong>（始终第一位）
+              默认语言：<strong>{{ langLabel(defLang) }}</strong
+              >（始终第一位）
             </template>
           </el-alert>
 
-          <div style="margin-bottom: 20px;">
-            <div style="font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="margin-bottom: 20px">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
               <span>已启用语言</span>
-              <div style="display: flex; gap: 8px;">
+              <div style="display: flex; gap: 8px">
                 <el-button size="small" type="primary" plain @click="addAllLanguages">
                   添加全部 ({{ availableLangCodes.length }})
                 </el-button>
-                <el-button size="small" type="danger" plain :disabled="!enabledLangCodes.length" @click="clearAllLanguages">
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  :disabled="!enabledLangCodes.length"
+                  @click="clearAllLanguages"
+                >
                   清空
                 </el-button>
               </div>
             </div>
-            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px;">
+            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px">
               <span>拖拽可调整顺序，点击 × 可移除</span>
             </div>
-            <div style="min-height: 60px; padding: 12px; border: 1px solid var(--el-border-color); border-radius: 8px; background: var(--el-fill-color-lighter);">
-              <div v-if="enabledLangCodes.length === 0" style="color: var(--el-text-color-secondary); text-align: center; padding: 12px;">
+            <div
+              style="
+                min-height: 60px;
+                padding: 12px;
+                border: 1px solid var(--el-border-color);
+                border-radius: 8px;
+                background: var(--el-fill-color-lighter);
+              "
+            >
+              <div
+                v-if="enabledLangCodes.length === 0"
+                style="color: var(--el-text-color-secondary); text-align: center; padding: 12px"
+              >
                 尚未启用其他语言
               </div>
-              <div v-else style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <div v-else style="display: flex; flex-wrap: wrap; gap: 8px">
                 <el-tag
                   v-for="(code, idx) in enabledLangCodes"
                   :key="code"
@@ -92,15 +119,15 @@
           </div>
 
           <div>
-            <div style="font-weight: 600; margin-bottom: 8px;">可启用的语言</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div style="font-weight: 600; margin-bottom: 8px">可启用的语言</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
               <el-tag
                 v-for="code in availableLangCodes"
                 :key="code"
                 type="info"
                 effect="plain"
                 @click="addLanguage(code)"
-                style="cursor: pointer;"
+                style="cursor: pointer"
               >
                 {{ langLabel(code) }}
               </el-tag>
@@ -108,31 +135,28 @@
           </div>
 
           <!-- 自定义语言管理 -->
-          <div style="margin-top: 30px;">
+          <div style="margin-top: 30px">
             <el-divider content-position="left">
-              <span style="font-weight: 600;">自定义语言管理</span>
+              <span style="font-weight: 600">自定义语言管理</span>
             </el-divider>
 
-            <el-alert
-              type="info"
-              show-icon
-              :closable="false"
-              style="margin-bottom: 16px;"
-            >
-              <template #title>
-                支持添加任意 Android 语言代码（如 th, vi, es 等）
-              </template>
+            <el-alert type="info" show-icon :closable="false" style="margin-bottom: 16px">
+              <template #title> 支持添加任意 Android 语言代码（如 th, vi, es 等） </template>
             </el-alert>
 
             <!-- 添加自定义语言表单 -->
-            <div style="margin-bottom: 20px;">
-              <div style="font-weight: 600; margin-bottom: 12px;">添加自定义语言</div>
-              <el-form label-width="120px" :model="customLangForm" style="background: var(--el-fill-color-lighter); padding: 16px; border-radius: 8px;">
+            <div style="margin-bottom: 20px">
+              <div style="font-weight: 600; margin-bottom: 12px">添加自定义语言</div>
+              <el-form
+                label-width="120px"
+                :model="customLangForm"
+                style="background: var(--el-fill-color-lighter); padding: 16px; border-radius: 8px"
+              >
                 <el-form-item label="Android 代码">
                   <el-input
                     v-model="customLangForm.androidCode"
                     placeholder="例如：th, vi, es"
-                    style="width: 200px;"
+                    style="width: 200px"
                     @blur="formatAndroidCode"
                   />
                 </el-form-item>
@@ -140,18 +164,22 @@
                   <el-input
                     v-model="customLangForm.nameCn"
                     placeholder="例如：泰语、越南语"
-                    style="width: 200px;"
+                    style="width: 200px"
                   />
                 </el-form-item>
                 <el-form-item label="英文名称">
                   <el-input
                     v-model="customLangForm.nameEn"
                     placeholder="例如：Thai, Vietnamese"
-                    style="width: 200px;"
+                    style="width: 200px"
                   />
                 </el-form-item>
                 <el-form-item>
-                  <el-button type="primary" @click="addCustomLanguage" :disabled="!canAddCustomLang">
+                  <el-button
+                    type="primary"
+                    @click="addCustomLanguage"
+                    :disabled="!canAddCustomLang"
+                  >
                     添加语言
                   </el-button>
                   <el-button @click="resetCustomLangForm">重置</el-button>
@@ -161,10 +189,10 @@
 
             <!-- 自定义语言列表 -->
             <div v-if="customLanguages.length > 0">
-              <div style="font-weight: 600; margin-bottom: 12px;">
+              <div style="font-weight: 600; margin-bottom: 12px">
                 已添加的自定义语言 ({{ customLanguages.length }})
               </div>
-              <el-table :data="customLanguages" style="width: 100%;" size="small">
+              <el-table :data="customLanguages" style="width: 100%" size="small">
                 <el-table-column prop="androidCode" label="Android 代码" width="120">
                   <template #default="{ row }">
                     <el-tag size="small">{{ row.androidCode }}</el-tag>
@@ -174,7 +202,14 @@
                 <el-table-column prop="nameEn" label="英文名称" width="150" />
                 <el-table-column prop="valuesDirName" label="Values 目录">
                   <template #default="{ row }">
-                    <code style="background: var(--el-fill-color-lighter); padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+                    <code
+                      style="
+                        background: var(--el-fill-color-lighter);
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                      "
+                    >
                       {{ row.valuesDirName || `values-${row.androidCode}` }}
                     </code>
                   </template>
@@ -194,7 +229,10 @@
               </el-table>
             </div>
 
-            <div v-else style="text-align: center; color: var(--el-text-color-secondary); padding: 20px;">
+            <div
+              v-else
+              style="text-align: center; color: var(--el-text-color-secondary); padding: 20px"
+            >
               暂无自定义语言
             </div>
           </div>
@@ -202,9 +240,9 @@
       </el-tab-pane>
 
       <el-tab-pane label="AI" name="ai">
-        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y;">
-          <div style="margin-bottom: 20px;">
-            <div style="font-weight: 600; margin-bottom: 12px;">API 配置</div>
+        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y">
+          <div style="margin-bottom: 20px">
+            <div style="font-weight: 600; margin-bottom: 12px">API 配置</div>
             <el-form label-width="140px" :model="form">
               <el-form-item label="API URL">
                 <el-input v-model="form.apiUrl" placeholder="https://api.openai.com/v1" />
@@ -218,32 +256,37 @@
             </el-form>
           </div>
 
-          <div style="margin-bottom: 20px;">
-            <div style="font-weight: 600; margin-bottom: 12px;">模型配置</div>
+          <div style="margin-bottom: 20px">
+            <div style="font-weight: 600; margin-bottom: 12px">模型配置</div>
             <el-form label-width="100px" :model="form">
               <el-form-item label="模型名称">
-                <el-select v-model="form.aiModelPreset" style="width: 100%;">
+                <el-select v-model="form.aiModelPreset" style="width: 100%">
                   <el-option
                     v-for="preset in modelPresets"
                     :key="preset.model"
                     :label="getModelLabel(preset.model)"
                     :value="preset.model"
                   >
-                    <div style="display: flex; flex-direction: column;">
-                      <span style="font-weight: 500;">{{ getModelLabel(preset.model) }}</span>
-                      <small style="color: var(--el-text-color-secondary);">{{ preset.description }}</small>
+                    <div style="display: flex; flex-direction: column">
+                      <span style="font-weight: 500">{{ getModelLabel(preset.model) }}</span>
+                      <small style="color: var(--el-text-color-secondary)">{{
+                        preset.description
+                      }}</small>
                     </div>
                   </el-option>
                 </el-select>
               </el-form-item>
               <el-form-item v-if="isCustomModel" label="自定义名称">
-                <el-input v-model="form.aiCustomModel" placeholder="gpt-4-turbo / claude-3-opus ..." />
+                <el-input
+                  v-model="form.aiCustomModel"
+                  placeholder="gpt-4-turbo / claude-3-opus ..."
+                />
               </el-form-item>
               <el-form-item>
                 <el-button @click="onTest" :loading="testLoading">
                   测试连接
                   <template v-if="testStatus">
-                    <span style="margin-left: 8px;">{{ testStatus }}</span>
+                    <span style="margin-left: 8px">{{ testStatus }}</span>
                   </template>
                 </el-button>
               </el-form-item>
@@ -251,7 +294,7 @@
           </div>
 
           <div>
-            <div style="font-weight: 600; margin-bottom: 12px;">提示词配置</div>
+            <div style="font-weight: 600; margin-bottom: 12px">提示词配置</div>
             <el-form label-width="100px" :model="form">
               <el-form-item label="补充提示词">
                 <el-input
@@ -263,20 +306,70 @@
               </el-form-item>
             </el-form>
 
-            <div style="margin-top: 16px;">
-              <div style="font-weight: 500; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="margin-top: 16px">
+              <div
+                style="
+                  font-weight: 500;
+                  margin-bottom: 8px;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
                 <span>单条翻译提示预览</span>
                 <el-tag size="small" type="info">系统自动生成</el-tag>
               </div>
-              <pre style="background: var(--el-fill-color-lighter); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 12px; margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--el-text-color-regular); max-height: 150px; overflow-y: auto; touch-action: pan-y;">{{ singlePromptPreview }}</pre>
+              <pre
+                style="
+                  background: var(--el-fill-color-lighter);
+                  border: 1px solid var(--el-border-color);
+                  border-radius: 6px;
+                  padding: 12px;
+                  margin: 0;
+                  white-space: pre-wrap;
+                  font-family: 'JetBrains Mono', Consolas, monospace;
+                  font-size: 11px;
+                  line-height: 1.6;
+                  color: var(--el-text-color-regular);
+                  max-height: 150px;
+                  overflow-y: auto;
+                  touch-action: pan-y;
+                "
+                >{{ singlePromptPreview }}</pre
+              >
             </div>
 
-            <div style="margin-top: 16px;">
-              <div style="font-weight: 500; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="margin-top: 16px">
+              <div
+                style="
+                  font-weight: 500;
+                  margin-bottom: 8px;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
                 <span>批量翻译提示预览</span>
                 <el-tag size="small" type="info">系统自动生成</el-tag>
               </div>
-              <pre style="background: var(--el-fill-color-lighter); border: 1px solid var(--el-border-color); border-radius: 6px; padding: 12px; margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px; line-height: 1.6; color: var(--el-text-color-regular); max-height: 150px; overflow-y: auto; touch-action: pan-y;">{{ batchPromptPreview }}</pre>
+              <pre
+                style="
+                  background: var(--el-fill-color-lighter);
+                  border: 1px solid var(--el-border-color);
+                  border-radius: 6px;
+                  padding: 12px;
+                  margin: 0;
+                  white-space: pre-wrap;
+                  font-family: 'JetBrains Mono', Consolas, monospace;
+                  font-size: 11px;
+                  line-height: 1.6;
+                  color: var(--el-text-color-regular);
+                  max-height: 150px;
+                  overflow-y: auto;
+                  touch-action: pan-y;
+                "
+                >{{ batchPromptPreview }}</pre
+              >
             </div>
           </div>
         </div>
@@ -284,8 +377,10 @@
     </el-tabs>
 
     <template #footer>
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span style="font-size: 12px; color: var(--el-text-color-secondary);">保存后立即生效，并写入本地配置</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
+        <span style="font-size: 12px; color: var(--el-text-color-secondary)"
+          >保存后立即生效，并写入本地配置</span
+        >
         <div>
           <el-button @click="closeDialog">取消</el-button>
           <el-button type="primary" @click="onSave">保存</el-button>
@@ -300,7 +395,13 @@ import { computed, ref, watch } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
-import { Language, getAllLanguages, getLanguageInfo, getLanguageName, type CustomLanguage } from '@/models/language'
+import {
+  Language,
+  getAllLanguages,
+  getLanguageInfo,
+  getLanguageName,
+  type CustomLanguage,
+} from '@/models/language'
 import {
   AI_MODEL_PRESETS,
   getModelLabel,
@@ -318,7 +419,7 @@ const translationStore = useTranslationStore()
 
 const form = computed({
   get: () => configStore.config,
-  set: (v) => configStore.updateBatch(v),
+  set: v => configStore.updateBatch(v),
 })
 
 const activeTab = ref('general')
@@ -372,7 +473,7 @@ function onDrop(event: DragEvent, targetIndex: number) {
 
 watch(
   () => props.visible,
-  (visible) => {
+  visible => {
     if (visible) {
       activeTab.value = 'general'
       const current = form.value.enabledLanguages || []
@@ -442,7 +543,13 @@ async function onTest() {
 }
 
 watch(
-  () => [form.value.apiUrl, form.value.apiKey, form.value.httpProxy, form.value.aiModelPreset, form.value.aiCustomModel],
+  () => [
+    form.value.apiUrl,
+    form.value.apiKey,
+    form.value.httpProxy,
+    form.value.aiModelPreset,
+    form.value.aiCustomModel,
+  ],
   () => {
     testStatus.value = ''
   }
@@ -475,9 +582,11 @@ const customLangForm = ref<CustomLanguage>({
 })
 
 const canAddCustomLang = computed(() => {
-  return customLangForm.value.androidCode.trim() &&
-         customLangForm.value.nameCn.trim() &&
-         customLangForm.value.nameEn.trim()
+  return (
+    customLangForm.value.androidCode.trim() &&
+    customLangForm.value.nameCn.trim() &&
+    customLangForm.value.nameEn.trim()
+  )
 })
 
 function formatAndroidCode() {
@@ -509,7 +618,9 @@ function addCustomLanguage() {
     }
 
     configStore.addCustomLanguage(langData)
-    customLanguages.value = configStore.getAllAvailableLanguages().filter(l => !l.isDefault)
+    customLanguages.value = configStore
+      .getAllAvailableLanguages()
+      .filter(l => !l.isDefault)
       .map(l => ({
         androidCode: l.androidCode,
         nameCn: l.nameCn,
@@ -536,7 +647,9 @@ function removeCustomLanguage(androidCode: string) {
 
 // 加载自定义语言列表
 function loadCustomLanguages() {
-  customLanguages.value = configStore.getAllAvailableLanguages().filter(l => !l.isDefault)
+  customLanguages.value = configStore
+    .getAllAvailableLanguages()
+    .filter(l => !l.isDefault)
     .map(l => ({
       androidCode: l.androidCode,
       nameCn: l.nameCn,
@@ -547,7 +660,7 @@ function loadCustomLanguages() {
 
 watch(
   () => props.visible,
-  (visible) => {
+  visible => {
     if (visible) {
       activeTab.value = 'general'
       const current = form.value.enabledLanguages || []

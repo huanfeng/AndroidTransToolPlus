@@ -113,7 +113,11 @@ function parseArrayElements(
       const itemElements = Array.isArray(element.item) ? element.item : [element.item]
       for (const itemElement of itemElements) {
         let value = ''
-        if (itemElement && typeof itemElement === 'object' && (itemElement as any)['#text'] !== undefined) {
+        if (
+          itemElement &&
+          typeof itemElement === 'object' &&
+          (itemElement as any)['#text'] !== undefined
+        ) {
           value = String((itemElement as any)['#text'])
         } else if (typeof itemElement === 'string') {
           value = itemElement
@@ -182,8 +186,5 @@ export function validateXml(xmlContent: string): { valid: boolean; error?: strin
  */
 export function isStringResourceFile(fileName: string): boolean {
   const name = fileName.toLowerCase()
-  return (
-    (name.startsWith('strings') || name.startsWith('arrays')) &&
-    name.endsWith('.xml')
-  )
+  return (name.startsWith('strings') || name.startsWith('arrays')) && name.endsWith('.xml')
 }

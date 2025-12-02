@@ -1,12 +1,27 @@
 <template>
   <div class="toolbar">
-    <el-button type="primary" :icon="FolderOpened" @click="onOpen" :loading="projectStore.isScanning || projectStore.isLoading" :disabled="translationStore.isTranslating">
+    <el-button
+      type="primary"
+      :icon="FolderOpened"
+      @click="onOpen"
+      :loading="projectStore.isScanning || projectStore.isLoading"
+      :disabled="translationStore.isTranslating"
+    >
       打开
     </el-button>
-    <el-button :icon="CloseBold" @click="onClose" :disabled="!projectStore.hasProject || translationStore.isTranslating">
+    <el-button
+      :icon="CloseBold"
+      @click="onClose"
+      :disabled="!projectStore.hasProject || translationStore.isTranslating"
+    >
       关闭
     </el-button>
-    <el-button :icon="Document" type="success" @click="onSave" :disabled="!projectStore.isLoaded || translationStore.isTranslating">
+    <el-button
+      :icon="Document"
+      type="success"
+      @click="onSave"
+      :disabled="!projectStore.isLoaded || translationStore.isTranslating"
+    >
       保存
     </el-button>
   </div>
@@ -68,5 +83,8 @@ async function onSave() {
 </script>
 
 <style scoped>
-.toolbar { display: flex; gap: 0px; }
+.toolbar {
+  display: flex;
+  gap: 0px;
+}
 </style>

@@ -52,11 +52,7 @@ export interface FileSystemAdapter {
   /**
    * 创建或覆盖文件
    */
-  createFile(
-    dirHandle: DirectoryHandle,
-    fileName: string,
-    content: string
-  ): Promise<FileHandle>
+  createFile(dirHandle: DirectoryHandle, fileName: string, content: string): Promise<FileHandle>
 
   /**
    * 检查文件是否存在
@@ -66,9 +62,7 @@ export interface FileSystemAdapter {
   /**
    * 遍历目录
    */
-  readDirectory(
-    dirHandle: DirectoryHandle
-  ): AsyncIterable<[string, FileHandle | DirectoryHandle]>
+  readDirectory(dirHandle: DirectoryHandle): AsyncIterable<[string, FileHandle | DirectoryHandle]>
 }
 
 /**

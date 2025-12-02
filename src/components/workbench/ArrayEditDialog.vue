@@ -1,5 +1,10 @@
 <template>
-  <el-dialog :model-value="visible" title="编辑字符串数组" width="560px" @close="emit('update:visible', false)">
+  <el-dialog
+    :model-value="visible"
+    title="编辑字符串数组"
+    width="560px"
+    @close="emit('update:visible', false)"
+  >
     <div class="desc">
       <p>每行代表一个数组项，保存时会覆盖该语言下的整个数组。</p>
     </div>
@@ -36,19 +41,32 @@ const arrValue = computed<string[]>(() => {
   return Array.isArray(v) ? v : []
 })
 
-watch(() => props.visible, (v) => {
-  if (v) text.value = arrValue.value.join('\n')
-})
+watch(
+  () => props.visible,
+  v => {
+    if (v) text.value = arrValue.value.join('\n')
+  }
+)
 
 function onSave() {
-  const lines = text.value.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0)
+  const lines = text.value
+    .split(/\r?\n/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
-  projectStore.selectedXmlData.updateItem(projectStore.selectedXmlFile, props.itemName, props.lang, lines)
+  projectStore.selectedXmlData.updateItem(
+    projectStore.selectedXmlFile,
+    props.itemName,
+    props.lang,
+    lines
+  )
   emit('update:visible', false)
 }
 </script>
 
 <style scoped>
-.desc { color: var(--ep-text-color-secondary); margin-bottom: 8px; }
+.desc {
+  color: var(--ep-text-color-secondary);
+  margin-bottom: 8px;
+}
 </style>
-

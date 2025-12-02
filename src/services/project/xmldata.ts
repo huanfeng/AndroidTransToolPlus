@@ -5,7 +5,12 @@
 
 import type { DirectoryHandle, FileHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
-import { Language, getLanguageByValuesDirName, getLanguageInfo, LanguageManager } from '@/models/language'
+import {
+  Language,
+  getLanguageByValuesDirName,
+  getLanguageInfo,
+  LanguageManager,
+} from '@/models/language'
 import type { ResItem } from '@/models/resource'
 import { createResItem } from '@/models/resource'
 import { parseXml } from '../xml/parser'
@@ -34,11 +39,7 @@ export class XmlData {
   private dataMap: Map<string, Map<Language, XmlFileData>> = new Map()
   private dirtyKeys: Set<string> = new Set()
 
-  constructor(
-    resHandle: DirectoryHandle,
-    relativePath: string,
-    xmlFileNames: string[]
-  ) {
+  constructor(resHandle: DirectoryHandle, relativePath: string, xmlFileNames: string[]) {
     this.resHandle = resHandle
     this.relativePath = relativePath
     this.xmlFileNames = xmlFileNames
@@ -113,10 +114,7 @@ export class XmlData {
             fileHandle,
           })
         } catch (error) {
-          console.warn(
-            `Failed to load ${valuesDirName}/${fileName}:`,
-            error
-          )
+          console.warn(`Failed to load ${valuesDirName}/${fileName}:`, error)
         }
       }
 
@@ -194,10 +192,7 @@ export class XmlData {
   /**
    * 获取指定文件和语言的数据
    */
-  getLanguageData(
-    fileName: string,
-    language: Language
-  ): XmlFileData | undefined {
+  getLanguageData(fileName: string, language: Language): XmlFileData | undefined {
     return this.dataMap.get(fileName)?.get(language)
   }
 
@@ -330,17 +325,10 @@ export class XmlData {
     const defaultData = languageDataMap.get(Language.DEF)
 
     // 生成 XML
-    const xmlContent = generateXml(
-      data.items,
-      language,
-      defaultData?.items
-    )
+    const xmlContent = generateXml(data.items, language, defaultData?.items)
 
     // 获取或创建 values 目录
-    const valuesHandle = await getOrCreateValuesDir(
-      this.resHandle,
-      data.valuesDirName
-    )
+    const valuesHandle = await getOrCreateValuesDir(this.resHandle, data.valuesDirName)
 
     // 写入文件
     if (data.fileHandle) {
@@ -348,11 +336,7 @@ export class XmlData {
       await fs.writeFile(data.fileHandle, xmlContent)
     } else {
       // 文件不存在，创建新文件
-      const fileHandle = await fs.createFile(
-        valuesHandle,
-        fileName,
-        xmlContent
-      )
+      const fileHandle = await fs.createFile(valuesHandle, fileName, xmlContent)
       data.fileHandle = fileHandle
     }
 
@@ -388,10 +372,7 @@ export class XmlData {
         try {
           await this.saveFile(fileName, language)
         } catch (error) {
-          console.error(
-            `Failed to save ${fileName} for ${language}:`,
-            error
-          )
+          console.error(`Failed to save ${fileName} for ${language}:`, error)
           errors.push({ file: fileName, language, error })
         }
       }
@@ -465,10 +446,7 @@ export class XmlData {
         // 清除该语言的所有dirty标记
         this.clearDirtyFor(fileName, language)
       } catch (error) {
-        console.warn(
-          `Failed to reload ${valuesDirName}/${fileName}:`,
-          error
-        )
+        console.warn(`Failed to reload ${valuesDirName}/${fileName}:`, error)
       }
     }
   }

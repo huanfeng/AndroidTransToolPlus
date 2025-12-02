@@ -105,7 +105,7 @@ export class OpenAITranslator {
       timeout: this.config.timeout,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.apiToken}`,
+        Authorization: `Bearer ${this.config.apiToken}`,
       },
     }
 
@@ -242,7 +242,12 @@ export class OpenAITranslator {
           results.set(item.key, response.translatedText)
         } else {
           // 字符串数组翻译
-          const translatedArray = await this.translateArray(item.text, item.key, targetLanguage, sourceLanguage)
+          const translatedArray = await this.translateArray(
+            item.text,
+            item.key,
+            targetLanguage,
+            sourceLanguage
+          )
           results.set(item.key, translatedArray)
         }
       } catch (error: any) {
@@ -285,11 +290,7 @@ export class OpenAITranslator {
       const chunk = items.slice(i, i + chunkSize)
 
       try {
-        const chunkResults = await this.translateChunk(
-          chunk,
-          targetLanguage,
-          sourceLanguage
-        )
+        const chunkResults = await this.translateChunk(chunk, targetLanguage, sourceLanguage)
 
         // 合并结果
         for (const [key, value] of chunkResults.entries()) {
@@ -313,7 +314,12 @@ export class OpenAITranslator {
               })
               results.set(item.key, response.translatedText)
             } else {
-              const translatedArray = await this.translateArray(item.text, item.key, targetLanguage, sourceLanguage)
+              const translatedArray = await this.translateArray(
+                item.text,
+                item.key,
+                targetLanguage,
+                sourceLanguage
+              )
               results.set(item.key, translatedArray)
             }
           } catch (err: any) {
@@ -419,10 +425,7 @@ export class OpenAITranslator {
   /**
    * 调用 OpenAI API
    */
-  private async callOpenAI(
-    prompt: string,
-    expectJson: boolean = false
-  ): Promise<string> {
+  private async callOpenAI(prompt: string, expectJson: boolean = false): Promise<string> {
     // 如果没有取消信号，创建一个
     if (!this.abortController || this.abortController.signal.aborted) {
       this.abortController = new AbortController()
@@ -498,7 +501,8 @@ export class OpenAITranslator {
       throw new Error('Translation cancelled')
     }
 
-    const errorMsg = lastError?.response?.data?.error?.message || lastError?.message || 'Unknown error'
+    const errorMsg =
+      lastError?.response?.data?.error?.message || lastError?.message || 'Unknown error'
     throw new Error(`OpenAI API call failed after ${maxRetries} attempts: ${errorMsg}`)
   }
 

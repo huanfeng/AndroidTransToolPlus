@@ -35,7 +35,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   title: '选择目标语言',
-  defaultCollapsed: false
+  defaultCollapsed: false,
 })
 
 const emit = defineEmits<{
@@ -48,7 +48,7 @@ const selected = computed({
   get: () => props.modelValue,
   set: (val: Language[]) => {
     emit('update:modelValue', val)
-  }
+  },
 })
 
 const langLabel = (l: Language) => {

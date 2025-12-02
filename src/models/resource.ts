@@ -84,9 +84,7 @@ export class ArrayItem implements ResItem {
 
   clone(): ArrayItem {
     const item = new ArrayItem(this.name, this.translatable)
-    item.valueMap = new Map(
-      Array.from(this.valueMap.entries()).map(([k, v]) => [k, [...v]])
-    )
+    item.valueMap = new Map(Array.from(this.valueMap.entries()).map(([k, v]) => [k, [...v]]))
     return item
   }
 }

@@ -9,7 +9,7 @@ export const AI_MODEL_PRESETS: Record<string, string> = {
   'gpt-5-nano': 'nano模型, 价格便宜',
   'gpt-4.1-mini': '',
   'gpt-4o-mini': '',
-  'custom': '手动指定任意模型名称（需支持 JSON 模式）',
+  custom: '手动指定任意模型名称（需支持 JSON 模式）',
 }
 
 export const DEFAULT_AI_MODEL_PRESET = 'gpt-5-mini'
@@ -66,6 +66,9 @@ For each item:
 
 Return ONLY valid JSON without any explanations: {"key": "translated_text_or_array"}`
 
-export function renderPromptTemplate(template: string, replacements: Record<string, string>): string {
+export function renderPromptTemplate(
+  template: string,
+  replacements: Record<string, string>
+): string {
   return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => replacements[key] ?? '')
 }

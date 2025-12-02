@@ -3,7 +3,9 @@ $header-height: 40px;
 $aside-width: 280px;
 $log-panel-height: 220px;
 
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
 }
 
@@ -84,7 +86,7 @@ body {
 
 /* 现代清爽主题（亮色） */
 :root,
-:root[data-theme="light"] {
+:root[data-theme='light'] {
   --el-color-primary: #6366f1;
   --el-color-primary-light-3: color-mix(in oklab, var(--el-color-primary), white 30%);
   --el-color-primary-light-5: color-mix(in oklab, var(--el-color-primary), white 50%);
@@ -117,9 +119,9 @@ body {
   /* slate-50 */
   --el-bg-color-overlay: #ffffff;
 
-  --el-box-shadow: 0 10px 30px rgba(2, 6, 23, .06);
-  --el-box-shadow-light: 0 6px 18px rgba(2, 6, 23, .05);
-  --el-box-shadow-lighter: 0 2px 10px rgba(2, 6, 23, .04);
+  --el-box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  --el-box-shadow-light: 0 6px 18px rgba(2, 6, 23, 0.05);
+  --el-box-shadow-lighter: 0 2px 10px rgba(2, 6, 23, 0.04);
 
   --el-component-size-small: 28px;
   --el-component-size: 36px;
@@ -129,7 +131,7 @@ body {
 }
 
 /* 暗色主题（可选） */
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   --el-color-primary: #8b93ff;
   --el-bg-color: #0b1220;
   --el-bg-color-page: #0b1220;
@@ -139,7 +141,7 @@ body {
   --el-text-color-regular: #cbd5e1;
   --el-border-color: #1f2937;
 
-  --el-box-shadow: 0 12px 36px rgba(0, 0, 0, .45);
+  --el-box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 /* 如果只想让某个容器用新风格，可以加容器类选择器： */

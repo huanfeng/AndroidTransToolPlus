@@ -108,9 +108,7 @@ export function disableBeforeUnloadPrompt(): void {
  */
 export async function checkAndPromptUnsavedChanges(): Promise<void> {
   if (hasUnsavedChanges()) {
-    const confirmed = window.confirm(
-      '您有未保存的修改，确定要继续吗？\n\n未保存的修改将会丢失。'
-    )
+    const confirmed = window.confirm('您有未保存的修改，确定要继续吗？\n\n未保存的修改将会丢失。')
     if (!confirmed) {
       throw new Error('User cancelled')
     }

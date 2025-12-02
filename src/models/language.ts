@@ -261,7 +261,9 @@ export class LanguageManager {
       info => info.androidCode === lang.androidCode
     )
     if (existsInDefault) {
-      throw new Error(`Language with Android code "${lang.androidCode}" already exists in default languages`)
+      throw new Error(
+        `Language with Android code "${lang.androidCode}" already exists in default languages`
+      )
     }
 
     // 自动生成 values 目录名（如果未提供）

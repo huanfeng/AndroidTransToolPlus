@@ -1,19 +1,33 @@
 <template>
   <div class="toolbar ops">
-    <el-button @click="reloadFile" :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating">重新加载文件</el-button>
+    <el-button
+      @click="reloadFile"
+      :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating"
+      >重新加载文件</el-button
+    >
     <el-button type="primary" @click="openBatchTranslateDialog" :disabled="!canTranslate">
-      <el-icon style="margin-right:4px;"><MessageBox /></el-icon>
+      <el-icon style="margin-right: 4px"><MessageBox /></el-icon>
       批量翻译
     </el-button>
-    <el-button type="success" @click="saveCurrentFile" :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating">保存当前文件</el-button>
+    <el-button
+      type="success"
+      @click="saveCurrentFile"
+      :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating"
+      >保存当前文件</el-button
+    >
     <el-divider direction="vertical" />
     <!-- 搜索 / 筛选 放到与操作同一行 -->
-    <el-input v-model="projectStore.tableFilterText" clearable placeholder="搜索 Key / 默认文本" style="max-width: 320px">
+    <el-input
+      v-model="projectStore.tableFilterText"
+      clearable
+      placeholder="搜索 Key / 默认文本"
+      style="max-width: 320px"
+    >
       <template #prefix>
         <el-icon><Search /></el-icon>
       </template>
     </el-input>
-    <el-radio-group v-model="projectStore.tableFilterCurrent" style="margin-left: 8px;">
+    <el-radio-group v-model="projectStore.tableFilterCurrent" style="margin-left: 8px">
       <el-radio-button value="">全部</el-radio-button>
       <el-radio-button value="incomplete">未完成</el-radio-button>
       <el-radio-button value="untranslatable">不可翻译</el-radio-button>
@@ -22,7 +36,9 @@
     <div class="toolbar-spacer"></div>
     <!-- 统计标签移至同一行显示 -->
     <el-tag type="info">筛选: {{ projectStore.tableFilteredCount }}</el-tag>
-    <el-tag type="success" style="margin-left:6px;">选中: {{ projectStore.tableSelectionCount }}</el-tag>
+    <el-tag type="success" style="margin-left: 6px"
+      >选中: {{ projectStore.tableSelectionCount }}</el-tag
+    >
   </div>
 
   <!-- 统一的翻译配置对话框 -->
@@ -31,7 +47,7 @@
     :config="batchDialogConfig"
     @confirm="onBatchTranslateConfirm"
   />
- </template>
+</template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
@@ -54,7 +70,9 @@ const configStore = useConfigStore()
 const showBatchDialog = ref(false)
 const batchDialogConfig = ref<any>(null)
 
-const allTargetLanguages = computed(() => configStore.config.enabledLanguages.filter(l => l !== Language.DEF))
+const allTargetLanguages = computed(() =>
+  configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+)
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
@@ -100,7 +118,9 @@ function openBatchTranslateDialog() {
   let missingAllCount = 0
   let missingSelectedCount = 0
   const allItemNames: string[] = []
-  const selectedItemNames = projectStore.selectedItemNames ? [...projectStore.selectedItemNames] : []
+  const selectedItemNames = projectStore.selectedItemNames
+    ? [...projectStore.selectedItemNames]
+    : []
   const missingByItem: Record<string, Language[]> = {}
   if (projectStore.selectedXmlData && projectStore.selectedXmlFile) {
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
@@ -121,11 +141,8 @@ function openBatchTranslateDialog() {
           const langData = fileMap.get(lang)
           const langItem = langData?.items.get(name)
           const v = langItem?.valueMap.get(lang)
-          const missing = typeof v === 'string'
-            ? v.length === 0
-            : Array.isArray(v)
-              ? v.length === 0
-              : true
+          const missing =
+            typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
           if (missing) missingLangs.push(lang)
         }
 
@@ -146,11 +163,11 @@ function openBatchTranslateDialog() {
     description: null, // 工具栏对话框不需要显示基本信息
     scopeOptions: [
       { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
-      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount }
+      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount },
     ],
     contentOptions: [
       { value: 'missing', label: '未翻译', count: missingAllCount },
-      { value: 'all', label: '全部', count: allCount }
+      { value: 'all', label: '全部', count: allCount },
     ],
     allTargetLanguages: allTargetLanguages.value,
     defaultSelectedLanguages: configStore.config.targetLanguages,
@@ -165,14 +182,18 @@ function openBatchTranslateDialog() {
       allNames: allItemNames,
       missingByItem,
       missingAllCount,
-      missingSelectedCount
-    }
+      missingSelectedCount,
+    },
   }
 
   showBatchDialog.value = true
 }
 
-async function onBatchTranslateConfirm(data: { scope: string; languages: Language[]; autoUpdateTranslated?: boolean }) {
+async function onBatchTranslateConfirm(data: {
+  scope: string
+  languages: Language[]
+  autoUpdateTranslated?: boolean
+}) {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
 
   // 检查是否选择了目标语言
@@ -224,7 +245,16 @@ async function onBatchTranslateConfirm(data: { scope: string; languages: Languag
 </script>
 
 <style scoped>
-.ops { padding: 8px 12px; border-bottom: 1px solid var(--ep-border-color); flex-wrap: wrap; row-gap: 6px; }
-.ops :deep(.el-checkbox) { margin-right: 6px; }
-.ops :deep(.el-checkbox:last-child) { margin-right: 0; }
+.ops {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ep-border-color);
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.ops :deep(.el-checkbox) {
+  margin-right: 6px;
+}
+.ops :deep(.el-checkbox:last-child) {
+  margin-right: 0;
+}
 </style>

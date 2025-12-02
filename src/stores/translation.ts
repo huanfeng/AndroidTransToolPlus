@@ -64,14 +64,16 @@ export const useTranslationStore = defineStore('translation', () => {
   const isCancelled = ref<boolean>(false) // 取消标记
 
   // 进度跟踪（独立于 tasks 数组）
-  const _progressTotal = ref<number>(0)  // 总任务数（条目数 × 语言数）
-  const _progressTotalDisplay = ref<number>(0)  // 显示用总任务数（实际需要翻译的数量）
+  const _progressTotal = ref<number>(0) // 总任务数（条目数 × 语言数）
+  const _progressTotalDisplay = ref<number>(0) // 显示用总任务数（实际需要翻译的数量）
   const _progressCompleted = ref<number>(0)
   const _progressFailed = ref<number>(0)
 
   // 计算属性
   const isIdle = computed(() => state.value === TranslationState.IDLE)
-  const isTranslating = computed(() => state.value === TranslationState.TRANSLATING || state.value === TranslationState.STOPPING)
+  const isTranslating = computed(
+    () => state.value === TranslationState.TRANSLATING || state.value === TranslationState.STOPPING
+  )
   const isPaused = computed(() => state.value === TranslationState.PAUSED)
   const isCompleted = computed(() => state.value === TranslationState.COMPLETED)
   const hasError = computed(() => state.value === TranslationState.ERROR)
@@ -86,7 +88,9 @@ export const useTranslationStore = defineStore('translation', () => {
 
     // 调试日志
     if (total > 0) {
-      logStore.debug(`Progress computed (display): ${completed}/${total} (${percentage}%), failed: ${failed}, actual total: ${_progressTotal.value}, state: ${state.value}`)
+      logStore.debug(
+        `Progress computed (display): ${completed}/${total} (${percentage}%), failed: ${failed}, actual total: ${_progressTotal.value}, state: ${state.value}`
+      )
     }
 
     return { total, completed, failed, percentage }
@@ -282,10 +286,13 @@ export const useTranslationStore = defineStore('translation', () => {
       translator.value?.createCancelToken()
 
       state.value = TranslationState.TRANSLATING
-      logStore.debug(`Batch translate started, tasks cleared. Initial tasks.length: ${tasks.value.length}`)
+      logStore.debug(
+        `Batch translate started, tasks cleared. Initial tasks.length: ${tasks.value.length}`
+      )
 
       // 获取文件映射（优先使用传入的参数，其次从projectStore获取）
-      const currentFileMap = fileMap || projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
+      const currentFileMap =
+        fileMap || projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
       if (!currentFileMap) {
         throw new Error('File map not available')
       }
@@ -309,11 +316,8 @@ export const useTranslationStore = defineStore('translation', () => {
             const langData = currentFileMap.get(targetLang)
             const langItem = langData?.items.get(itemName)
             const v = langItem?.valueMap.get(targetLang)
-            const isMissing = typeof v === 'string'
-              ? v.length === 0
-              : Array.isArray(v)
-                ? v.length === 0
-                : true
+            const isMissing =
+              typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
 
             if (!isMissing) {
               shouldSkip = true
@@ -335,13 +339,18 @@ export const useTranslationStore = defineStore('translation', () => {
 
       // 计算总任务数：所有语言的任务数之和
       const totalTasks = Object.values(languageTaskCounts).reduce((sum, count) => sum + count, 0)
-      const totalActualTasks = Object.values(languageActualCounts).reduce((sum, count) => sum + count, 0)
+      const totalActualTasks = Object.values(languageActualCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      )
 
       _progressTotal.value = totalTasks
-      _progressTotalDisplay.value = totalActualTasks  // 显示用总量是实际需要翻译的数量
+      _progressTotalDisplay.value = totalActualTasks // 显示用总量是实际需要翻译的数量
       _progressCompleted.value = 0 // 重置已完成计数
 
-      logStore.info(`Pre-calculated total tasks: ${totalTasks} (entries: ${items.size}, languages: ${languages.length}), actual to translate: ${totalActualTasks}`)
+      logStore.info(
+        `Pre-calculated total tasks: ${totalTasks} (entries: ${items.size}, languages: ${languages.length}), actual to translate: ${totalActualTasks}`
+      )
       logStore.debug(`Per-language task counts:`, languageTaskCounts)
       logStore.debug(`Per-language actual counts:`, languageActualCounts)
 
@@ -370,11 +379,8 @@ export const useTranslationStore = defineStore('translation', () => {
             const langData = currentFileMap.get(targetLang)
             const langItem = langData?.items.get(itemName)
             const v = langItem?.valueMap.get(targetLang)
-            const isMissing = typeof v === 'string'
-              ? v.length === 0
-              : Array.isArray(v)
-                ? v.length === 0
-                : true
+            const isMissing =
+              typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
 
             if (!isMissing) {
               shouldSkip = true
@@ -384,7 +390,9 @@ export const useTranslationStore = defineStore('translation', () => {
 
           // 如果应该跳过（已有翻译），则不添加到批次中，也不计入任务项（因为显示用总量不包含跳过项）
           if (shouldSkip) {
-            logStore.trace(`Skip ${itemName} for ${targetLang} (has existing translation, not counted in display total)`)
+            logStore.trace(
+              `Skip ${itemName} for ${targetLang} (has existing translation, not counted in display total)`
+            )
             continue
           }
 
@@ -403,7 +411,9 @@ export const useTranslationStore = defineStore('translation', () => {
             targetLanguage: targetLang,
             status: 'pending',
           })
-          logStore.debug(`Added task for translation: ${itemName}->${targetLang}, tasks.length: ${tasks.value.length}, expected display total: ${totalActualTasks}`)
+          logStore.debug(
+            `Added task for translation: ${itemName}->${targetLang}, tasks.length: ${tasks.value.length}, expected display total: ${totalActualTasks}`
+          )
         }
 
         if (batchItems.length === 0) {
@@ -413,7 +423,9 @@ export const useTranslationStore = defineStore('translation', () => {
 
         hasAnyBatchItems = true
 
-        logStore.info(`Translating ${batchItems.length} items to ${targetLang} (${languageActualCounts[targetLang]} actual to translate, ${languageTaskCounts[targetLang]} total in this language)...`)
+        logStore.info(
+          `Translating ${batchItems.length} items to ${targetLang} (${languageActualCounts[targetLang]} actual to translate, ${languageTaskCounts[targetLang]} total in this language)...`
+        )
 
         // 批量翻译
         if (!translator.value) {
@@ -458,7 +470,9 @@ export const useTranslationStore = defineStore('translation', () => {
               (current, total) => {
                 // 注意：这个回调表示该批次已处理的任务数，不需要额外更新_progressCompleted
                 // _progressCompleted 会在翻译结果应用后更新
-                logStore.debug(`Batch ${i / maxItemsPerRequest + 1} progress: ${chunkStartIdx + current}/${totalTasks}`)
+                logStore.debug(
+                  `Batch ${i / maxItemsPerRequest + 1} progress: ${chunkStartIdx + current}/${totalTasks}`
+                )
               },
               () => {
                 // 取消检查回调
@@ -479,14 +493,18 @@ export const useTranslationStore = defineStore('translation', () => {
                 )
 
                 // 更新任务状态为已完成
-                const task = tasks.value.find(t => t.itemName === itemName && t.targetLanguage === targetLang)
+                const task = tasks.value.find(
+                  t => t.itemName === itemName && t.targetLanguage === targetLang
+                )
                 if (task) {
                   task.translatedText = translatedText
                   task.status = 'completed'
                   batchSuccessCount++
                 }
               } catch (err: any) {
-                const task = tasks.value.find(t => t.itemName === itemName && t.targetLanguage === targetLang)
+                const task = tasks.value.find(
+                  t => t.itemName === itemName && t.targetLanguage === targetLang
+                )
                 if (task) {
                   task.status = 'error'
                   task.error = err.message
@@ -497,7 +515,9 @@ export const useTranslationStore = defineStore('translation', () => {
 
             // 处理错误（这些错误来自API调用失败，不在chunkResult.results中）
             for (const [itemName, errorMsg] of chunkResult.errors) {
-              const task = tasks.value.find(t => t.itemName === itemName && t.targetLanguage === targetLang)
+              const task = tasks.value.find(
+                t => t.itemName === itemName && t.targetLanguage === targetLang
+              )
               if (task) {
                 task.status = 'error'
                 task.error = errorMsg
@@ -509,7 +529,9 @@ export const useTranslationStore = defineStore('translation', () => {
             _progressCompleted.value += batchSuccessCount
             _progressFailed.value += batchErrorCount
             completedTasks += chunk.length
-            logStore.debug(`Batch ${i / maxItemsPerRequest + 1} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${totalActualTasks}, failed: ${_progressFailed.value}`)
+            logStore.debug(
+              `Batch ${i / maxItemsPerRequest + 1} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${totalActualTasks}, failed: ${_progressFailed.value}`
+            )
           } catch (err: any) {
             // 检查是否是取消错误
             if (err.message === 'Translation cancelled') {
@@ -522,7 +544,9 @@ export const useTranslationStore = defineStore('translation', () => {
 
             // 如果整个批次失败，将该批次所有任务标记为错误
             for (const item of chunk) {
-              const task = tasks.value.find(t => t.itemName === item.key && t.targetLanguage === targetLang)
+              const task = tasks.value.find(
+                t => t.itemName === item.key && t.targetLanguage === targetLang
+              )
               if (task) {
                 task.status = 'error'
                 task.error = err.message || 'Batch translation failed'
@@ -533,7 +557,9 @@ export const useTranslationStore = defineStore('translation', () => {
             _progressFailed.value += chunk.length
             completedTasks += chunk.length
             // 注意：批次失败不算完成，因为没有成功翻译任何内容
-            logStore.debug(`Batch failed, updated progress: ${completedTasks}/${totalActualTasks}, failed: ${_progressFailed.value}`)
+            logStore.debug(
+              `Batch failed, updated progress: ${completedTasks}/${totalActualTasks}, failed: ${_progressFailed.value}`
+            )
           }
         }
 
@@ -544,7 +570,9 @@ export const useTranslationStore = defineStore('translation', () => {
         const errorCount = langTasks.filter(t => t.status === 'error').length
         const skippedCount = totalInThisLang - batchItems.length // 被跳过的条目数
 
-        logStore.info(`[${targetLang}] Total: ${totalInThisLang}, Should translate (actual): ${languageActualCounts[targetLang]}, Actually translated: ${batchItems.length}, Skipped: ${skippedCount}, Success: ${successCount}, Failed: ${errorCount}`)
+        logStore.info(
+          `[${targetLang}] Total: ${totalInThisLang}, Should translate (actual): ${languageActualCounts[targetLang]}, Actually translated: ${batchItems.length}, Skipped: ${skippedCount}, Success: ${successCount}, Failed: ${errorCount}`
+        )
       }
 
       // 如果所有目标语言都没有可翻译项，提示并结束
@@ -565,7 +593,9 @@ export const useTranslationStore = defineStore('translation', () => {
       }
 
       state.value = TranslationState.COMPLETED
-      logStore.info(`Batch translation completed. Display progress: ${_progressCompleted.value}/${_progressTotalDisplay.value} (${progress.value.percentage}%), failed: ${_progressFailed.value}. Actual total: ${_progressTotal.value}`)
+      logStore.info(
+        `Batch translation completed. Display progress: ${_progressCompleted.value}/${_progressTotalDisplay.value} (${progress.value.percentage}%), failed: ${_progressFailed.value}. Actual total: ${_progressTotal.value}`
+      )
       // 批量翻译完成后统一刷新表格视图
       try {
         projectStore.dataVersion++
@@ -612,9 +642,7 @@ export const useTranslationStore = defineStore('translation', () => {
         const originalText = task.originalText
         if (typeof originalText === 'string') {
           // 单个字符串翻译
-          logStore.debug(
-            `Translating ${task.itemName} -> ${task.targetLanguage}`
-          )
+          logStore.debug(`Translating ${task.itemName} -> ${task.targetLanguage}`)
           const response = await translator.value!.translate({
             text: originalText,
             targetLanguage: task.targetLanguage,
@@ -633,17 +661,13 @@ export const useTranslationStore = defineStore('translation', () => {
               task.targetLanguage,
               response.translatedText
             )
-            logStore.trace(
-              `Applied translation: ${task.itemName} -> ${task.targetLanguage}`
-            )
+            logStore.trace(`Applied translation: ${task.itemName} -> ${task.targetLanguage}`)
           }
 
           logStore.debug(`Translated ${task.itemName} to ${task.targetLanguage}`)
         } else {
           // 字符串数组翻译：逐个元素翻译
-          logStore.debug(
-            `Translating array ${task.itemName} -> ${task.targetLanguage}`
-          )
+          logStore.debug(`Translating array ${task.itemName} -> ${task.targetLanguage}`)
 
           const translatedArray: string[] = []
           for (let i = 0; i < originalText.length; i++) {
@@ -657,9 +681,7 @@ export const useTranslationStore = defineStore('translation', () => {
               translatedArray[i] = response.translatedText
             } catch (err: any) {
               // 翻译失败的元素保留原文
-              logStore.warning(
-                `Failed to translate ${task.itemName}[${i}], keeping original`
-              )
+              logStore.warning(`Failed to translate ${task.itemName}[${i}], keeping original`)
               translatedArray[i] = originalText[i]
             }
           }
@@ -675,9 +697,7 @@ export const useTranslationStore = defineStore('translation', () => {
               task.targetLanguage,
               translatedArray
             )
-            logStore.trace(
-              `Applied array translation: ${task.itemName} -> ${task.targetLanguage}`
-            )
+            logStore.trace(`Applied array translation: ${task.itemName} -> ${task.targetLanguage}`)
           }
 
           logStore.debug(

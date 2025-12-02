@@ -29,9 +29,7 @@ function fixXmlEscaping(xml: string): string {
   // 将 &apos; 替换回 '
   // 将 &quot; 替换回 "
   // 注意：我们需要小心处理，避免影响已经存在的实体引用
-  return xml
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"')
+  return xml.replace(/&apos;/g, "'").replace(/&quot;/g, '"')
 }
 
 /**
@@ -145,9 +143,9 @@ function escapeXmlText(text: string): string {
 
   // 使用字符码明确表示反斜杠，避免转义混淆
   const backslash = String.fromCharCode(92)
-  text = text.replace(/\n/g, backslash + 'n')   // 实际换行符 -> 字面量\n
-  text = text.replace(/\t/g, backslash + 't')   // 实际制表符 -> 字面量\t
-  text = text.replace(/\r/g, backslash + 'r')   // 实际回车符 -> 字面量\r
+  text = text.replace(/\n/g, backslash + 'n') // 实际换行符 -> 字面量\n
+  text = text.replace(/\t/g, backslash + 't') // 实际制表符 -> 字面量\t
+  text = text.replace(/\r/g, backslash + 'r') // 实际回车符 -> 字面量\r
 
   return text
 }

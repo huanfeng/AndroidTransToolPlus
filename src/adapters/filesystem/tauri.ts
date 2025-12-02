@@ -1,8 +1,4 @@
-import type {
-  FileSystemAdapter,
-  DirectoryHandle,
-  FileHandle,
-} from '../types'
+import type { FileSystemAdapter, DirectoryHandle, FileHandle } from '../types'
 
 /**
  * Tauri 文件系统适配器
@@ -111,10 +107,7 @@ export class TauriFileSystem implements FileSystemAdapter {
       kind: 'directory',
       path, // 保存路径
 
-      async getFileHandle(
-        name: string,
-        options?: { create?: boolean }
-      ): Promise<FileHandle> {
+      async getFileHandle(name: string, options?: { create?: boolean }): Promise<FileHandle> {
         const filePath = `${path}/${name}`
         if (options?.create && !(await self.existsPath(filePath))) {
           await self.writeTextFile(filePath, '')

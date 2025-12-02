@@ -159,11 +159,7 @@ export const useProjectStore = defineStore('project', () => {
 
       // 创建 XmlData 实例
       for (const resDir of resDirs) {
-        const xmlData = new XmlData(
-          resDir.dirHandle,
-          resDir.relativePath,
-          resDir.xmlFileNames
-        )
+        const xmlData = new XmlData(resDir.dirHandle, resDir.relativePath, resDir.xmlFileNames)
         project.value.xmlDataMap.set(resDir.relativePath, xmlData)
       }
 
@@ -329,7 +325,9 @@ export const useProjectStore = defineStore('project', () => {
       }
     }
     if (errors.length > 0) {
-      throw new Error(`Failed to save ${fileName}: ${errors.map(e => String(e.language)).join(', ')}`)
+      throw new Error(
+        `Failed to save ${fileName}: ${errors.map(e => String(e.language)).join(', ')}`
+      )
     }
   }
 

@@ -1,17 +1,19 @@
 <template>
   <div class="app-header">
     <div class="title-row">
-      <img width="24" height="24" src="/favicon.svg" alt="logo">
+      <img width="24" height="24" src="/favicon.svg" alt="logo" />
       <span class="title">Android Trans Tool Plus</span>
     </div>
     <div class="progress-row" v-if="isTranslating">
       <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 200px" />
-      <span class="progress-text">{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span>
+      <span class="progress-text"
+        >{{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}</span
+      >
       <el-button
         type="danger"
         @click="confirmStopTranslation"
         :disabled="isStopping"
-        style="margin-left:12px;"
+        style="margin-left: 12px"
       >
         <span v-if="!isStopping">停止翻译</span>
         <span v-else>正在停止中...</span>
@@ -43,7 +45,6 @@ defineEmits<{
   (e: 'open-settings'): void
   (e: 'open-about'): void
 }>()
-
 </script>
 
 <style scoped>

@@ -1,8 +1,13 @@
 <template>
-  <el-dialog :model-value="visible" title="关于" width="520px" @close="emit('update:visible', false)">
+  <el-dialog
+    :model-value="visible"
+    title="关于"
+    width="520px"
+    @close="emit('update:visible', false)"
+  >
     <div class="about">
       <div class="logo-container">
-        <img class="logo" src="/favicon.svg" alt="Android Trans Tool Plus">
+        <img class="logo" src="/favicon.svg" alt="Android Trans Tool Plus" />
       </div>
       <p><b>Android Trans Tool Plus</b></p>
       <p>一个面向 Android 字符串资源的 AI 翻译与管理工具。</p>

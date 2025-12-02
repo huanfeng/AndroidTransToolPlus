@@ -81,13 +81,7 @@ async function scanDirectory(
         }
       } else {
         // 继续递归扫描
-        await scanDirectory(
-          handle as DirectoryHandle,
-          currentPath,
-          resDirs,
-          options,
-          depth + 1
-        )
+        await scanDirectory(handle as DirectoryHandle, currentPath, resDirs, options, depth + 1)
       }
     }
   } catch (error) {
@@ -98,10 +92,7 @@ async function scanDirectory(
 /**
  * 扫描 res 目录
  */
-async function scanResDir(
-  resHandle: DirectoryHandle,
-  relativePath: string
-): Promise<ResDirInfo> {
+async function scanResDir(resHandle: DirectoryHandle, relativePath: string): Promise<ResDirInfo> {
   const xmlFileNames = new Set<string>()
 
   try {
@@ -159,10 +150,7 @@ export async function getValuesDirs(
 /**
  * 检查文件是否存在
  */
-export async function fileExists(
-  dirHandle: DirectoryHandle,
-  fileName: string
-): Promise<boolean> {
+export async function fileExists(dirHandle: DirectoryHandle, fileName: string): Promise<boolean> {
   try {
     await dirHandle.getFileHandle(fileName)
     return true
