@@ -15,7 +15,7 @@ export const AI_MODEL_PRESETS: Record<string, string> = {
 export const DEFAULT_AI_MODEL_PRESET = 'gpt-5-mini'
 
 export function resolveAiModel(presetId: string, customModel: string): string {
-  if (presetId && presetId !== 'custom' && AI_MODEL_PRESETS[presetId]) {
+  if (presetId && presetId !== 'custom' && presetId in AI_MODEL_PRESETS) {
     return presetId
   }
   const trimmed = customModel?.trim()
