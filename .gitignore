@@ -13,7 +13,6 @@ dist-ssr
 *.local
 
 # pnpm
-pnpm-lock.yaml
 .pnpm-debug.log
 .pnpm-store
 
