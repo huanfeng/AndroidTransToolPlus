@@ -128,10 +128,14 @@ function onNodeClick(node: TreeNode) {
       projectStore.selectResDir(resPath)
       projectStore.selectXmlFile(fileName)
       loadingFileId.value = node.id
-      
+
       // 调用 loadSelectedFile 方法
-      if ('loadSelectedFile' in projectStore && typeof projectStore.loadSelectedFile === 'function') {
-        projectStore.loadSelectedFile()
+      if (
+        'loadSelectedFile' in projectStore &&
+        typeof projectStore.loadSelectedFile === 'function'
+      ) {
+        projectStore
+          .loadSelectedFile()
           .catch(() => {})
           .finally(() => {
             loadingFileId.value = null

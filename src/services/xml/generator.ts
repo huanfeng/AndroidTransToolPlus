@@ -46,7 +46,7 @@ export function generateXml(
     _?: string
     '#text'?: string
     item?: Array<{ '#text': string }>
-    [key: string]: any  // 允许其他属性
+    [key: string]: any // 允许其他属性
   }
 
   interface XmlResources {
