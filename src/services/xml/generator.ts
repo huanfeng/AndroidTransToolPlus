@@ -138,7 +138,7 @@ function escapeXmlText(text: string): string {
   // Android strings.xml 的特殊处理：
   // 1. 将实际换行符转换为字面量 \n（反斜杠+n）
   // 2. 将实际制表符转换为字面量 \t（反斜杠+t）
-  // 3. 不转义单引号和双引号（保留用户输入的格式，如 \' 或 \"）
+  // 3. 保留用户输入的引号格式，但未转义的单引号需要补上反斜杠
   // 4. XML 特殊字符（&, <, >）由 fast-xml-parser 自动处理后再通过 fixXmlEscaping 修正
 
   // 使用字符码明确表示反斜杠，避免转义混淆
@@ -146,6 +146,10 @@ function escapeXmlText(text: string): string {
   text = text.replace(/\n/g, backslash + 'n') // 实际换行符 -> 字面量\n
   text = text.replace(/\t/g, backslash + 't') // 实际制表符 -> 字面量\t
   text = text.replace(/\r/g, backslash + 'r') // 实际回车符 -> 字面量\r
+
+  // Android 要求未转义的单引号使用反斜杠，否则会在编译时失败
+  // 已有的 \' 保持不变，避免重复转义
+  text = text.replace(/(^|[^\\])'/g, `$1${backslash}'`)
 
   return text
 }
