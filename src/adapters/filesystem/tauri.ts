@@ -29,7 +29,7 @@ export class TauriFileSystem implements FileSystemAdapter {
       this.existsFunc = fs.exists
       this.createDir = fs.mkdir
     } catch (error) {
-      console.error('Failed to load Tauri APIs:', error)
+      // Tauri API 加载失败，通常是在非 Tauri 环境中
     }
   }
 

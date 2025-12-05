@@ -40,9 +40,27 @@ export function generateXml(
   language: Language,
   defaultLanguageItems?: Map<string, ResItem>
 ): string {
-  const resources: any = {}
-  const strings: any[] = []
-  const arrays: any[] = []
+  interface XmlElement {
+    '@_name'?: string
+    $?: Record<string, string>
+    _?: string
+    '#text'?: string
+    item?: Array<{ '#text': string }>
+    [key: string]: any  // 允许其他属性
+  }
+
+  interface XmlResources {
+    resources: {
+      string?: XmlElement[]
+      'string-array'?: XmlElement[]
+    }
+    string?: XmlElement[]
+    'string-array'?: XmlElement[]
+  }
+
+  const resources: XmlResources = { resources: {} }
+  const strings: XmlElement[] = []
+  const arrays: XmlElement[] = []
 
   // 使用默认语言的顺序（如果提供）
   const sortedItems = defaultLanguageItems

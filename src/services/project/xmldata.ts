@@ -512,7 +512,22 @@ export class XmlData {
    * 导出为 JSON（用于调试或备份）
    */
   exportToJson(): string {
-    const data: any = {
+    interface ExportedItem {
+      type: string
+      translatable: boolean
+      value: string | string[] | undefined
+    }
+
+    interface ExportedFile {
+      [language: string]: Record<string, ExportedItem>
+    }
+
+    interface ExportedData {
+      relativePath: string
+      files: Record<string, ExportedFile>
+    }
+
+    const data: ExportedData = {
       relativePath: this.relativePath,
       files: {},
     }
@@ -521,7 +536,7 @@ export class XmlData {
       data.files[fileName] = {}
 
       for (const [language, fileData] of languageDataMap) {
-        const items: any = {}
+        const items: Record<string, ExportedItem> = {}
         for (const [name, item] of fileData.items) {
           items[name] = {
             type: item.type,

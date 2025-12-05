@@ -30,7 +30,7 @@ export function saveProjectToStorage(info: StoredProjectInfo): void {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   } catch (err) {
-    console.warn('Failed to save project to storage:', err)
+    // 静默失败，storage 错误通常是由于配额限制
   }
 }
 
@@ -53,7 +53,7 @@ export function loadProjectFromStorage(): StoredProjectInfo | null {
 
     return parsed
   } catch (err) {
-    console.warn('Failed to load project from storage:', err)
+    // 静默失败，可能是 JSON 格式错误
     return null
   }
 }
@@ -65,7 +65,7 @@ export function clearProjectFromStorage(): void {
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch (err) {
-    console.warn('Failed to clear project from storage:', err)
+    // 静默失败
   }
 }
 

@@ -397,7 +397,15 @@ watch(
 
 // 确认翻译
 function confirmTranslate() {
-  const emitData: any = {
+  interface TranslateEmitData {
+    scope: string
+    languages: Language[]
+    languageFilter?: string
+    content?: string
+    autoUpdateTranslated?: boolean
+  }
+
+  const emitData: TranslateEmitData = {
     scope: selectedScope.value,
     languages: selectedLanguages.value,
   }

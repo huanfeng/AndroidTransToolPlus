@@ -246,7 +246,7 @@ describe('翻译服务', () => {
       expect(result.results.has('greeting')).toBe(true)
     })
 
-    it('应该在批量请求失败时抛出错误', async () => {
+    it('应该在批量请求失败时记录错误', async () => {
       const mockPost = vi.mocked(axios.post).mockRejectedValue(new Error('Network error'))
 
       const request = {
@@ -254,7 +254,12 @@ describe('翻译服务', () => {
         targetLanguage: Language.CN,
       }
 
-      await expect(translator.batchTranslate(request)).rejects.toThrow('Network error')
+      const result = await translator.batchTranslate(request)
+
+      // 应该返回结果，而不是抛出错误
+      expect(result.errors.size).toBeGreaterThan(0)
+      expect(result.errors.has('greeting')).toBe(true)
+      expect(result.errors.get('greeting')).toContain('Network error')
     })
   })
 

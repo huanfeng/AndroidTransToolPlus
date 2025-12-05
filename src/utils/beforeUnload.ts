@@ -33,7 +33,6 @@ export function hasUnsavedChanges(): boolean {
     return false
   } catch (err) {
     // 如果出现错误（比如在初始化阶段），不阻止关闭
-    console.warn('Error checking unsaved changes:', err)
     return false
   }
 }
@@ -85,7 +84,6 @@ export function enableBeforeUnloadPrompt(): void {
       }
     } catch (err) {
       // 静默处理错误
-      console.warn('Error in beforeUnload handler:', err)
     }
   }
 

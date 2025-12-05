@@ -98,7 +98,8 @@ describe('项目持久化工具', () => {
         timestamp: Date.now() - 31 * 24 * 60 * 60 * 1000, // 31天前
       }
 
-      saveProjectToStorage(expiredInfo)
+      // 直接设置到 localStorage，绕过 saveProjectToStorage 的时间戳更新
+      localStorage.setItem('android_trans_tool_project', JSON.stringify(expiredInfo))
 
       const loaded = loadProjectFromStorage()
 
@@ -170,7 +171,8 @@ describe('项目持久化工具', () => {
         timestamp: Date.now() - 31 * 24 * 60 * 60 * 1000,
       }
 
-      saveProjectToStorage(expiredInfo)
+      // 直接设置到 localStorage，绕过 saveProjectToStorage 的时间戳更新
+      localStorage.setItem('android_trans_tool_project', JSON.stringify(expiredInfo))
 
       expect(hasStoredProject()).toBe(false)
     })

@@ -37,9 +37,9 @@ describe('页面刷新/关闭提示工具', () => {
   })
 
   describe('hasUnsavedChanges - 核心逻辑测试', () => {
-    it('应该在项目有脏数据时返回 true', () => {
-      const { useProjectStore } = require('@/stores/project')
-      const { useTranslationStore } = require('@/stores/translation')
+    it('应该在项目有脏数据时返回 true', async () => {
+      const { useProjectStore } = await import('@/stores/project')
+      const { useTranslationStore } = await import('@/stores/translation')
 
       const mockProjectStore = {
         project: {
@@ -58,15 +58,15 @@ describe('页面刷新/关闭提示工具', () => {
         isTranslating: false,
       }
 
-      useProjectStore.mockReturnValue(mockProjectStore)
-      useTranslationStore.mockReturnValue(mockTranslationStore)
+      vi.mocked(useProjectStore).mockReturnValue(mockProjectStore as any)
+      vi.mocked(useTranslationStore).mockReturnValue(mockTranslationStore as any)
 
       expect(hasUnsavedChanges()).toBe(true)
     })
 
-    it('应该在翻译任务进行中时返回 true', () => {
-      const { useProjectStore } = require('@/stores/project')
-      const { useTranslationStore } = require('@/stores/translation')
+    it('应该在翻译任务进行中时返回 true', async () => {
+      const { useProjectStore } = await import('@/stores/project')
+      const { useTranslationStore } = await import('@/stores/translation')
 
       const mockProjectStore = {
         project: null,
@@ -76,15 +76,15 @@ describe('页面刷新/关闭提示工具', () => {
         isTranslating: true,
       }
 
-      useProjectStore.mockReturnValue(mockProjectStore)
-      useTranslationStore.mockReturnValue(mockTranslationStore)
+      vi.mocked(useProjectStore).mockReturnValue(mockProjectStore as any)
+      vi.mocked(useTranslationStore).mockReturnValue(mockTranslationStore as any)
 
       expect(hasUnsavedChanges()).toBe(true)
     })
 
-    it('应该在没有未保存修改时返回 false', () => {
-      const { useProjectStore } = require('@/stores/project')
-      const { useTranslationStore } = require('@/stores/translation')
+    it('应该在没有未保存修改时返回 false', async () => {
+      const { useProjectStore } = await import('@/stores/project')
+      const { useTranslationStore } = await import('@/stores/translation')
 
       const mockProjectStore = {
         project: {
@@ -103,15 +103,15 @@ describe('页面刷新/关闭提示工具', () => {
         isTranslating: false,
       }
 
-      useProjectStore.mockReturnValue(mockProjectStore)
-      useTranslationStore.mockReturnValue(mockTranslationStore)
+      vi.mocked(useProjectStore).mockReturnValue(mockProjectStore as any)
+      vi.mocked(useTranslationStore).mockReturnValue(mockTranslationStore as any)
 
       expect(hasUnsavedChanges()).toBe(false)
     })
 
-    it('应该在没有打开项目时返回 false', () => {
-      const { useProjectStore } = require('@/stores/project')
-      const { useTranslationStore } = require('@/stores/translation')
+    it('应该在没有打开项目时返回 false', async () => {
+      const { useProjectStore } = await import('@/stores/project')
+      const { useTranslationStore } = await import('@/stores/translation')
 
       const mockProjectStore = {
         project: null,
@@ -121,20 +121,20 @@ describe('页面刷新/关闭提示工具', () => {
         isTranslating: false,
       }
 
-      useProjectStore.mockReturnValue(mockProjectStore)
-      useTranslationStore.mockReturnValue(mockTranslationStore)
+      vi.mocked(useProjectStore).mockReturnValue(mockProjectStore as any)
+      vi.mocked(useTranslationStore).mockReturnValue(mockTranslationStore as any)
 
       expect(hasUnsavedChanges()).toBe(false)
     })
 
-    it('应该在检查出错时返回 false', () => {
-      const { useProjectStore } = require('@/stores/project')
-      const { useTranslationStore } = require('@/stores/translation')
+    it('应该在检查出错时返回 false', async () => {
+      const { useProjectStore } = await import('@/stores/project')
+      const { useTranslationStore } = await import('@/stores/translation')
 
-      useProjectStore.mockImplementation(() => {
+      vi.mocked(useProjectStore).mockImplementation(() => {
         throw new Error('Store error')
       })
-      useTranslationStore.mockReturnValue({ isTranslating: false })
+      vi.mocked(useTranslationStore).mockReturnValue({ isTranslating: false } as any)
 
       expect(hasUnsavedChanges()).toBe(false)
     })

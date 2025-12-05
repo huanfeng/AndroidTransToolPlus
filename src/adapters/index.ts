@@ -15,14 +15,12 @@ export async function initAdapters(): Promise<void> {
     const { TauriStorage } = await import('./storage/tauri')
     fileSystemAdapter = new TauriFileSystem()
     storageAdapter = new TauriStorage()
-    console.log('[Platform] Initialized Tauri adapters')
   } else {
     // 浏览器环境
     const { BrowserFileSystem } = await import('./filesystem/browser')
     const { BrowserStorage } = await import('./storage/browser')
     fileSystemAdapter = new BrowserFileSystem()
     storageAdapter = new BrowserStorage()
-    console.log('[Platform] Initialized Browser adapters')
   }
 }
 

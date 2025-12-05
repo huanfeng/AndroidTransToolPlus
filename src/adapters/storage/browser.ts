@@ -14,7 +14,6 @@ export class BrowserStorage implements StorageAdapter {
       }
       return JSON.parse(item) as T
     } catch (error) {
-      console.error(`Failed to get item "${key}":`, error)
       return defaultValue !== undefined ? defaultValue : null
     }
   }
@@ -23,7 +22,6 @@ export class BrowserStorage implements StorageAdapter {
     try {
       localStorage.setItem(this.prefix + key, JSON.stringify(value))
     } catch (error) {
-      console.error(`Failed to set item "${key}":`, error)
       throw error
     }
   }
@@ -32,7 +30,6 @@ export class BrowserStorage implements StorageAdapter {
     try {
       localStorage.removeItem(this.prefix + key)
     } catch (error) {
-      console.error(`Failed to remove item "${key}":`, error)
       throw error
     }
   }
@@ -44,7 +41,6 @@ export class BrowserStorage implements StorageAdapter {
         await this.remove(key)
       }
     } catch (error) {
-      console.error('Failed to clear storage:', error)
       throw error
     }
   }
@@ -60,7 +56,6 @@ export class BrowserStorage implements StorageAdapter {
       }
       return keys
     } catch (error) {
-      console.error('Failed to get keys:', error)
       return []
     }
   }

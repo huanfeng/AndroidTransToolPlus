@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios'
-import type { AxiosInstance, AxiosRequestConfig } from 'axios'
+import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios'
 import { Language, LANGUAGE_MAP } from '@/models/language'
 import { BATCH_PROMPT_TEMPLATE, SINGLE_PROMPT_TEMPLATE, renderPromptTemplate } from '@/models/ai'
 
@@ -148,10 +148,6 @@ export class OpenAITranslator {
    */
   cancel(reason?: string): void {
     if (!this.abortController) return
-
-    // 记录请求已进行的时间（仅用于日志）
-    const elapsed = this.requestStartTime ? Date.now() - this.requestStartTime : 0
-    console.log(`Cancelling translation after ${elapsed}ms`)
 
     try {
       this.abortController.abort(reason || 'Translation cancelled by user')
@@ -434,7 +430,7 @@ export class OpenAITranslator {
     // 记录请求开始时间
     this.requestStartTime = Date.now()
 
-    let lastError: any = null
+    let lastError: AxiosError | Error | null = null
     const maxRetries = this.config.maxRetries || 3
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -502,7 +498,11 @@ export class OpenAITranslator {
     }
 
     const errorMsg =
-      lastError?.response?.data?.error?.message || lastError?.message || 'Unknown error'
+      (lastError && 'response' in lastError && lastError.response?.data
+        ? (lastError.response.data as any)?.error?.message
+        : undefined) ||
+      lastError?.message ||
+      'Unknown error'
     throw new Error(`OpenAI API call failed after ${maxRetries} attempts: ${errorMsg}`)
   }
 

@@ -806,7 +806,27 @@ export const useTranslationStore = defineStore('translation', () => {
    * 导出翻译结果
    */
   function exportResults(): string {
-    const results: any = {
+    interface ExportedTaskResult {
+      itemName: string
+      targetLanguage: string
+      originalText: string | string[]
+      translatedText: string | string[] | null | undefined
+      status: string
+      error: string | null | undefined
+    }
+
+    interface ExportedResults {
+      timestamp: string
+      progress: {
+        total: number
+        completed: number
+        failed: number
+        percentage: number
+      }
+      tasks: ExportedTaskResult[]
+    }
+
+    const results: ExportedResults = {
       timestamp: new Date().toISOString(),
       progress: progress.value,
       tasks: tasks.value.map(task => ({

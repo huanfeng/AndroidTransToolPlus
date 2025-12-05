@@ -70,9 +70,8 @@ export const useConfigStore = defineStore('config', () => {
       langManager.setCustomLanguages(config.value.customLanguages)
 
       loaded.value = true
-      console.log('[Config] Configuration loaded')
     } catch (error) {
-      console.error('[Config] Failed to load configuration:', error)
+      // 错误已在 storage adapter 中记录
     } finally {
       loading.value = false
     }
@@ -83,9 +82,8 @@ export const useConfigStore = defineStore('config', () => {
     try {
       const storage = getStorageAdapter()
       await storage.set('app_config', config.value)
-      console.log('[Config] Configuration saved')
     } catch (error) {
-      console.error('[Config] Failed to save configuration:', error)
+      // 错误已在 storage adapter 中记录
       throw error
     }
   }
