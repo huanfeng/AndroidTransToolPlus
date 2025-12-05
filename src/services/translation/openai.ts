@@ -459,7 +459,7 @@ export class OpenAITranslator {
             max_tokens: expectJson ? 4000 : 1000,
           },
           {
-            signal: this.abortController.signal,
+            signal: this.abortController!.signal,
           }
         )
 

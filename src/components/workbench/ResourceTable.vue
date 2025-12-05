@@ -568,13 +568,6 @@ function getTargetLanguagesForItem(itemName: string, mode: string): Language[] {
   })
 }
 
-/**
- * 统计不同范围的条目数量
- */
-function countItemsByScope(scope: string, lang?: Language): number {
-  return getItemsByScope(scope, lang).size
-}
-
 // ========== 还原辅助函数 ==========
 
 /**

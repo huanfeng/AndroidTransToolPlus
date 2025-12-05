@@ -467,7 +467,7 @@ export const useTranslationStore = defineStore('translation', () => {
                 sourceLanguage: Language.DEF,
               },
               chunk.length, // 这个批次的大小
-              (current, total) => {
+              (current, _total) => {
                 // 注意：这个回调表示该批次已处理的任务数，不需要额外更新_progressCompleted
                 // _progressCompleted 会在翻译结果应用后更新
                 logStore.debug(

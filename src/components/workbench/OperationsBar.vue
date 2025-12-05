@@ -203,7 +203,6 @@ async function onBatchTranslateConfirm(data: {
   }
 
   try {
-    let started = false
     // 获取要翻译的条目
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
     const def = fileMap?.get(Language.DEF)

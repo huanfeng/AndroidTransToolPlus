@@ -6,6 +6,7 @@ import type { FileSystemAdapter, DirectoryHandle, FileHandle } from '../types'
 export class BrowserFileSystem implements FileSystemAdapter {
   async selectDirectory(): Promise<DirectoryHandle | null> {
     // 检测浏览器是否支持 File System Access API
+    // @ts-ignore - File System Access API
     if (typeof window.showDirectoryPicker !== 'function') {
       throw new Error(
         '您的浏览器不支持 File System Access API。请使用 Chrome 86+、Edge 86+ 或 Opera 72+ 浏览器。Firefox 和 Safari 暂不支持此功能。'

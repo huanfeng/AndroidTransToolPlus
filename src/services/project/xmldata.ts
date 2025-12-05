@@ -410,7 +410,6 @@ export class XmlData {
         const exists = await fileExists(valuesHandle, fileName)
         if (!exists) {
           // 文件不存在，创建空数据
-          const info = getLanguageInfo(language)
           const data: XmlFileData = {
             fileName,
             language,
@@ -429,7 +428,6 @@ export class XmlData {
         // 更新或创建语言数据
         let data = languageDataMap.get(language)
         if (!data) {
-          const info = getLanguageInfo(language)
           data = {
             fileName,
             language,
