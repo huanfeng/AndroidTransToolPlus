@@ -1,11 +1,4 @@
 /**
- * 检测是否在 Tauri 环境中运行
- */
-export function isTauri(): boolean {
-  return '__TAURI__' in window
-}
-
-/**
  * 检测是否支持 File System Access API
  */
 export function isFileSystemAccessSupported(): boolean {
@@ -48,7 +41,6 @@ export function getOS(): 'windows' | 'macos' | 'linux' | 'unknown' {
  * 检查当前环境的能力
  */
 export interface PlatformCapabilities {
-  isTauri: boolean
   isFileSystemAccessSupported: boolean
   canAccessFileSystem: boolean
   browserName: string
@@ -56,13 +48,11 @@ export interface PlatformCapabilities {
 }
 
 export function getPlatformCapabilities(): PlatformCapabilities {
-  const tauri = isTauri()
   const fsaSupported = isFileSystemAccessSupported()
 
   return {
-    isTauri: tauri,
     isFileSystemAccessSupported: fsaSupported,
-    canAccessFileSystem: tauri || fsaSupported,
+    canAccessFileSystem: fsaSupported,
     browserName: getBrowserName(),
     os: getOS(),
   }

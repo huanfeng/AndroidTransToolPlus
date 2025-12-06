@@ -39,7 +39,4 @@ export default defineConfig({
       },
     },
   },
-  // Tauri expects a fixed port, fail if that port is not available
-  clearScreen: false,
-  envPrefix: ['VITE_', 'TAURI_'],
 })

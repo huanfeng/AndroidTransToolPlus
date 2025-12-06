@@ -12,7 +12,7 @@
       <p><b>Android Trans Tool Plus</b></p>
       <p>一个面向 Android 字符串资源的 AI 翻译与管理工具。</p>
       <p>技术栈：Vue 3 + Vite + Pinia + Element Plus</p>
-      <p class="muted">本工具支持 Browser 与 Tauri 双环境。</p>
+      <p class="muted">本工具支持 Chrome/Edge 等浏览器环境。</p>
       <el-divider />
       <p>Copyright © {{ year }}</p>
     </div>

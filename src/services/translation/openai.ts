@@ -110,10 +110,9 @@ export class OpenAITranslator {
     }
 
     // 配置代理（如果有）
+    // 注意：浏览器环境不支持 axios 代理配置
     if (this.config.httpProxy) {
-      // 注意：浏览器环境不支持代理，只在 Tauri 中生效
       axiosConfig.proxy = false
-      // 在 Tauri 环境中，需要通过系统代理设置
     }
 
     return axios.create(axiosConfig)
