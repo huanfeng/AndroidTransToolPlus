@@ -251,7 +251,15 @@
                 <el-input v-model="form.apiKey" type="password" show-password />
               </el-form-item>
               <el-form-item label="HTTP 代理">
-                <el-input v-model="form.httpProxy" placeholder="http://127.0.0.1:7890" />
+                <el-input
+                  v-model="form.httpProxy"
+                  placeholder=""
+                  disabled
+                />
+                <div style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)">
+                  <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>
+                  <span>浏览器环境下代理功能已禁用，请使用浏览器的代理功能或扩展</span>
+                </div>
               </el-form-item>
             </el-form>
           </div>
@@ -392,7 +400,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { Close } from '@element-plus/icons-vue'
+import { Close, InfoFilled } from '@element-plus/icons-vue'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
 import {
