@@ -6,9 +6,6 @@ dist-ssr
 # 依赖
 node_modules
 
-# Tauri
-src-tauri/target
-
 # Git
 .git
 

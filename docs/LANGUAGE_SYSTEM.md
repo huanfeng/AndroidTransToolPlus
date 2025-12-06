@@ -207,7 +207,6 @@ const dirInfo = langManager.getLanguageInfoByValuesDir('values-th')
 
 自定义语言配置保存在应用配置中：
 - 浏览器：localStorage
-- Tauri：Tauri Store
 
 格式：
 ```json

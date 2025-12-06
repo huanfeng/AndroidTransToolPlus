@@ -27,9 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Tauri
-src-tauri/target
-
 # Environment variables
 .env
 .env.local

@@ -14,7 +14,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const dirsToClean = {
   dist: join(__dirname, 'dist'),
   distSsr: join(__dirname, 'dist-ssr'),
-  tauriTarget: join(__dirname, 'src-tauri', 'target'),
   nodeModules: join(__dirname, 'node_modules'),
 }
 
@@ -44,11 +43,6 @@ function main() {
         cleanedCount++
       }
     })
-  } else if (args.includes('--tauri')) {
-    // 只清理 Tauri
-    if (cleanDirectory(dirsToClean.tauriTarget, 'tauri/target')) {
-      cleanedCount++
-    }
   } else {
     // 默认清理 dist 目录
     if (cleanDirectory(dirsToClean.dist, 'dist')) {
