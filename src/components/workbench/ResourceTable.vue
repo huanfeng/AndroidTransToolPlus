@@ -45,27 +45,31 @@
             <el-table-column :label="langName(LANGUAGE.DEF)" min-width="220">
               <template #default="{ row }">
                 <div class="cell-with-menu">
-                  <template v-if="!isEditing(row.name, LANGUAGE.DEF)">
+                  <template v-if="row.type === 'string'">
+                    <template v-if="!isEditing(row.name, LANGUAGE.DEF)">
+                      <span
+                        :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
+                        :title="getCellValue(row, LANGUAGE.DEF)"
+                        >{{ getCellValue(row, LANGUAGE.DEF) }}</span
+                      >
+                    </template>
+                    <el-input
+                      v-else
+                      v-model="editable[row.name + ':' + LANGUAGE.DEF]"
+                      :ref="setEditRef"
+                      @change="(val: string) => onEdit(row.name, LANGUAGE.DEF, val)"
+                      @keydown.enter.prevent="commitEdit()"
+                      @keydown.esc="cancelEdit()"
+                      @blur="stopEdit()"
+                    />
+                  </template>
+                  <template v-else>
                     <span
                       :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
                       :title="getCellValue(row, LANGUAGE.DEF)"
                       >{{ getCellValue(row, LANGUAGE.DEF) }}</span
                     >
                   </template>
-                  <el-input
-                    v-else-if="row.type === 'string'"
-                    v-model="editable[row.name + ':' + LANGUAGE.DEF]"
-                    :ref="setEditRef"
-                    @change="(val: string) => onEdit(row.name, LANGUAGE.DEF, val)"
-                    @keydown.enter.prevent="commitEdit()"
-                    @keydown.esc="cancelEdit()"
-                    @blur="stopEdit()"
-                  />
-                  <span
-                    v-if="!isEditing(row.name, LANGUAGE.DEF) && row.type !== 'string'"
-                    :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
-                    >{{ getCellValue(row, LANGUAGE.DEF) }}</span
-                  >
                 </div>
                 <el-button
                   v-if="!isEditing(row.name, LANGUAGE.DEF) || row.type !== 'string'"
