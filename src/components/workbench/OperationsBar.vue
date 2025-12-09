@@ -56,7 +56,7 @@ import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
-import { Language } from '@/models/language'
+import { LANGUAGE, type Language } from '@/models/language'
 import { Search, MessageBox } from '@element-plus/icons-vue'
 import type { ResItem } from '@/models/resource'
 import { checkAndPromptUnsavedChanges } from '@/utils/beforeUnload'
@@ -71,7 +71,7 @@ const showBatchDialog = ref(false)
 const batchDialogConfig = ref<any>(null)
 
 const allTargetLanguages = computed(() =>
-  configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+  configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
 )
 
 const canTranslate = computed(() => {
@@ -124,7 +124,7 @@ function openBatchTranslateDialog() {
   const missingByItem: Record<string, Language[]> = {}
   if (projectStore.selectedXmlData && projectStore.selectedXmlFile) {
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-    const def = fileMap?.get(Language.DEF)
+    const def = fileMap?.get(LANGUAGE.DEF)
     allCount = def?.items.size || 0
 
     // 计算未翻译数量（全部/选中）
@@ -205,7 +205,7 @@ async function onBatchTranslateConfirm(data: {
   try {
     // 获取要翻译的条目
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-    const def = fileMap?.get(Language.DEF)
+    const def = fileMap?.get(LANGUAGE.DEF)
     if (!def) throw new Error('Default language not available')
     const selectedSet = new Set(projectStore.selectedItemNames || [])
     const items = new Map<string, ResItem>()

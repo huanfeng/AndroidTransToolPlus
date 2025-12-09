@@ -5,7 +5,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { Language } from '@/models/language'
+import { LANGUAGE, type Language } from '@/models/language'
 import { resolveAiModel } from '@/models/ai'
 import type { ResItem } from '@/models/resource'
 import { OpenAITranslator, type OpenAIConfig } from '@/services/translation/openai'
@@ -192,7 +192,7 @@ export const useTranslationStore = defineStore('translation', () => {
         if (!item.translatable) continue
 
         // 获取原文（默认语言）
-        const originalText = item.valueMap.get(Language.DEF)
+        const originalText = item.valueMap.get(LANGUAGE.DEF)
         if (!originalText) continue
 
         // 为每个目标语言创建任务
@@ -307,7 +307,7 @@ export const useTranslationStore = defineStore('translation', () => {
         for (const [itemName, item] of items) {
           if (!item.translatable) continue
 
-          const originalText = item.valueMap.get(Language.DEF)
+          const originalText = item.valueMap.get(LANGUAGE.DEF)
           if (!originalText) continue
 
           // 使用统一的未翻译过滤逻辑
@@ -369,7 +369,7 @@ export const useTranslationStore = defineStore('translation', () => {
         for (const [itemName, item] of items) {
           if (!item.translatable) continue
 
-          const originalText = item.valueMap.get(Language.DEF)
+          const originalText = item.valueMap.get(LANGUAGE.DEF)
           if (!originalText) continue
 
           // 需要再次检查过滤逻辑，因为总量统计包含了所有条目
@@ -464,7 +464,7 @@ export const useTranslationStore = defineStore('translation', () => {
               {
                 items: chunk,
                 targetLanguage: targetLang,
-                sourceLanguage: Language.DEF,
+                sourceLanguage: LANGUAGE.DEF,
               },
               chunk.length, // 这个批次的大小
               (current, _total) => {
@@ -646,7 +646,7 @@ export const useTranslationStore = defineStore('translation', () => {
           const response = await translator.value!.translate({
             text: originalText,
             targetLanguage: task.targetLanguage,
-            sourceLanguage: Language.DEF,
+            sourceLanguage: LANGUAGE.DEF,
             context: task.itemName,
           })
 
@@ -675,7 +675,7 @@ export const useTranslationStore = defineStore('translation', () => {
               const response = await translator.value!.translate({
                 text: originalText[i],
                 targetLanguage: task.targetLanguage,
-                sourceLanguage: Language.DEF,
+                sourceLanguage: LANGUAGE.DEF,
                 context: `${task.itemName}[${i}]`,
               })
               translatedArray[i] = response.translatedText
@@ -876,11 +876,11 @@ export const useTranslationStore = defineStore('translation', () => {
       const file = projectStore.selectedXmlFile
       const fileMap = xml.getFileData(file)
       if (!fileMap) throw new Error('Selected file not loaded')
-      const defData = fileMap.get(Language.DEF)
+      const defData = fileMap.get(LANGUAGE.DEF)
       if (!defData) throw new Error('Default language not available')
       const item = defData.items.get(itemName)
       if (!item) throw new Error('Item not found')
-      const originalText = item.valueMap.get(Language.DEF)
+      const originalText = item.valueMap.get(LANGUAGE.DEF)
       if (!originalText || Array.isArray(originalText)) {
         throw new Error('Only single string items supported for quick translate')
       }
@@ -888,7 +888,7 @@ export const useTranslationStore = defineStore('translation', () => {
       const res = await translator.value.translate({
         text: originalText,
         targetLanguage: lang,
-        sourceLanguage: Language.DEF,
+        sourceLanguage: LANGUAGE.DEF,
         context: itemName,
       })
       xml.updateItem(file, itemName, lang, res.translatedText)

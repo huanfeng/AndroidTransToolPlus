@@ -3,7 +3,7 @@
  */
 
 import {
-  Language,
+  LANGUAGE,
   getAllLanguages,
   getLanguageByAndroidCode,
   getLanguageByValuesDirName,
@@ -14,23 +14,23 @@ import {
 } from '@/models/language'
 
 describe('语言模型', () => {
-  describe('Language 枚举', () => {
+  describe('LANGUAGE 常量', () => {
     it('应该包含所有预定义语言', () => {
-      const languages = Object.values(Language)
-      expect(languages).toContain(Language.DEF)
-      expect(languages).toContain(Language.CN)
-      expect(languages).toContain(Language.CN_HK)
-      expect(languages).toContain(Language.CN_TW)
-      expect(languages).toContain(Language.AR)
-      expect(languages).toContain(Language.DE)
-      expect(languages).toContain(Language.FR)
-      expect(languages).toContain(Language.HI)
-      expect(languages).toContain(Language.IT)
-      expect(languages).toContain(Language.IW)
-      expect(languages).toContain(Language.JA)
-      expect(languages).toContain(Language.KO)
-      expect(languages).toContain(Language.RU)
-      expect(languages).toContain(Language.UK)
+      const languages = Object.values(LANGUAGE)
+      expect(languages).toContain(LANGUAGE.DEF)
+      expect(languages).toContain(LANGUAGE.CN)
+      expect(languages).toContain(LANGUAGE.CN_HK)
+      expect(languages).toContain(LANGUAGE.CN_TW)
+      expect(languages).toContain(LANGUAGE.AR)
+      expect(languages).toContain(LANGUAGE.DE)
+      expect(languages).toContain(LANGUAGE.FR)
+      expect(languages).toContain(LANGUAGE.HI)
+      expect(languages).toContain(LANGUAGE.IT)
+      expect(languages).toContain(LANGUAGE.IW)
+      expect(languages).toContain(LANGUAGE.JA)
+      expect(languages).toContain(LANGUAGE.KO)
+      expect(languages).toContain(LANGUAGE.RU)
+      expect(languages).toContain(LANGUAGE.UK)
     })
   })
 
@@ -38,26 +38,26 @@ describe('语言模型', () => {
     it('应该返回所有语言列表', () => {
       const all = getAllLanguages()
       expect(all.length).toBeGreaterThan(0)
-      expect(all).toContain(Language.DEF)
+      expect(all).toContain(LANGUAGE.DEF)
     })
   })
 
   describe('getLanguageByAndroidCode', () => {
     it('应该根据 Android 代码返回对应语言', () => {
-      expect(getLanguageByAndroidCode('zh-rCN')).toBe(Language.CN)
-      expect(getLanguageByAndroidCode('de')).toBe(Language.DE)
-      expect(getLanguageByAndroidCode('ja')).toBe(Language.JA)
-      expect(getLanguageByAndroidCode('ko')).toBe(Language.KO)
+      expect(getLanguageByAndroidCode('zh-rCN')).toBe(LANGUAGE.CN)
+      expect(getLanguageByAndroidCode('de')).toBe(LANGUAGE.DE)
+      expect(getLanguageByAndroidCode('ja')).toBe(LANGUAGE.JA)
+      expect(getLanguageByAndroidCode('ko')).toBe(LANGUAGE.KO)
     })
 
     it('应该处理 values- 前缀', () => {
-      expect(getLanguageByAndroidCode('values-zh-rCN')).toBe(Language.CN)
-      expect(getLanguageByAndroidCode('values-de')).toBe(Language.DE)
+      expect(getLanguageByAndroidCode('values-zh-rCN')).toBe(LANGUAGE.CN)
+      expect(getLanguageByAndroidCode('values-de')).toBe(LANGUAGE.DE)
     })
 
     it('应该处理空值和 values', () => {
-      expect(getLanguageByAndroidCode('')).toBe(Language.DEF)
-      expect(getLanguageByAndroidCode('values')).toBe(Language.DEF)
+      expect(getLanguageByAndroidCode('')).toBe(LANGUAGE.DEF)
+      expect(getLanguageByAndroidCode('values')).toBe(LANGUAGE.DEF)
     })
 
     it('应该返回 null 当找不到对应语言时', () => {
@@ -68,14 +68,14 @@ describe('语言模型', () => {
 
   describe('getLanguageByValuesDirName', () => {
     it('应该根据 values 目录名返回对应语言', () => {
-      expect(getLanguageByValuesDirName('values-zh-rCN')).toBe(Language.CN)
-      expect(getLanguageByValuesDirName('values-de')).toBe(Language.DE)
-      expect(getLanguageByValuesDirName('values-ja')).toBe(Language.JA)
-      expect(getLanguageByValuesDirName('values-iw')).toBe(Language.IW)
+      expect(getLanguageByValuesDirName('values-zh-rCN')).toBe(LANGUAGE.CN)
+      expect(getLanguageByValuesDirName('values-de')).toBe(LANGUAGE.DE)
+      expect(getLanguageByValuesDirName('values-ja')).toBe(LANGUAGE.JA)
+      expect(getLanguageByValuesDirName('values-iw')).toBe(LANGUAGE.IW)
     })
 
     it('应该处理默认 values 目录', () => {
-      expect(getLanguageByValuesDirName('values')).toBe(Language.DEF)
+      expect(getLanguageByValuesDirName('values')).toBe(LANGUAGE.DEF)
     })
 
     it('应该返回 null 当找不到对应语言时', () => {
@@ -86,8 +86,8 @@ describe('语言模型', () => {
 
   describe('getLanguageInfo', () => {
     it('应该返回语言信息', () => {
-      const info = getLanguageInfo(Language.CN)
-      expect(info.code).toBe(Language.CN)
+      const info = getLanguageInfo(LANGUAGE.CN)
+      expect(info.code).toBe(LANGUAGE.CN)
       expect(info.androidCode).toBe('zh-rCN')
       expect(info.nameCn).toBe('简体中文')
       expect(info.nameEn).toBe('Simplified Chinese')
@@ -97,18 +97,18 @@ describe('语言模型', () => {
 
   describe('getLanguageName', () => {
     it('应该返回中文名称', () => {
-      expect(getLanguageName(Language.CN, 'cn')).toBe('简体中文')
-      expect(getLanguageName(Language.DE, 'cn')).toBe('德语')
+      expect(getLanguageName(LANGUAGE.CN, 'cn')).toBe('简体中文')
+      expect(getLanguageName(LANGUAGE.DE, 'cn')).toBe('德语')
     })
 
     it('应该返回英文名称', () => {
-      expect(getLanguageName(Language.CN, 'en')).toBe('Simplified Chinese')
-      expect(getLanguageName(Language.DE, 'en')).toBe('German')
+      expect(getLanguageName(LANGUAGE.CN, 'en')).toBe('Simplified Chinese')
+      expect(getLanguageName(LANGUAGE.DE, 'en')).toBe('German')
     })
 
     it('应该默认为中文', () => {
-      expect(getLanguageName(Language.CN)).toBe('简体中文')
-      expect(getLanguageName(Language.DE)).toBe('德语')
+      expect(getLanguageName(LANGUAGE.CN)).toBe('简体中文')
+      expect(getLanguageName(LANGUAGE.DE)).toBe('德语')
     })
   })
 
@@ -248,7 +248,7 @@ describe('语言模型', () => {
         expect(allLangs.length).toBeGreaterThan(14) // 默认语言 + 自定义语言
 
         // 检查默认语言
-        const defLang = allLangs.find(l => l.code === Language.CN)
+        const defLang = allLangs.find(l => l.code === LANGUAGE.CN)
         expect(defLang).toBeTruthy()
         expect(defLang?.isDefault).toBe(true)
 
@@ -281,9 +281,9 @@ describe('语言模型', () => {
 
     describe('getLanguageInfoByCode', () => {
       it('应该根据代码找到语言信息', () => {
-        const langInfo = manager.getLanguageInfoByCode(Language.CN)
+        const langInfo = manager.getLanguageInfoByCode(LANGUAGE.CN)
         expect(langInfo).toBeTruthy()
-        expect(langInfo?.code).toBe(Language.CN)
+        expect(langInfo?.code).toBe(LANGUAGE.CN)
       })
 
       it('应该返回 null 当找不到时', () => {
@@ -320,9 +320,9 @@ describe('语言模型', () => {
 
     describe('toLanguageEnum', () => {
       it('应该将代码转换为 Language 枚举', () => {
-        expect(manager.toLanguageEnum('cn')).toBe(Language.CN)
-        expect(manager.toLanguageEnum('de')).toBe(Language.DE)
-        expect(manager.toLanguageEnum('ja')).toBe(Language.JA)
+        expect(manager.toLanguageEnum('cn')).toBe(LANGUAGE.CN)
+        expect(manager.toLanguageEnum('de')).toBe(LANGUAGE.DE)
+        expect(manager.toLanguageEnum('ja')).toBe(LANGUAGE.JA)
       })
 
       it('应该返回 null 当代码无效时', () => {

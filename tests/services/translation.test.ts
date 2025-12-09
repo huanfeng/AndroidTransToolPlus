@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import axios from 'axios'
 import { OpenAITranslator } from '@/services/translation/openai'
-import { Language } from '@/models/language'
+import { LANGUAGE } from '@/models/language'
 
 // 模拟 axios
 vi.mock('axios')
@@ -84,8 +84,8 @@ describe('翻译服务', () => {
 
       const request = {
         text: 'Hello',
-        targetLanguage: Language.CN,
-        sourceLanguage: Language.DEF,
+        targetLanguage: LANGUAGE.CN,
+        sourceLanguage: LANGUAGE.DEF,
       }
 
       const result = await translator.translate(request)
@@ -93,7 +93,7 @@ describe('翻译服务', () => {
       expect(mockPost).toHaveBeenCalled()
       expect(result.originalText).toBe('Hello')
       expect(result.translatedText).toBe('你好')
-      expect(result.targetLanguage).toBe(Language.CN)
+      expect(result.targetLanguage).toBe(LANGUAGE.CN)
     })
 
     it('应该在没有源语言时使用默认', async () => {
@@ -111,7 +111,7 @@ describe('翻译服务', () => {
 
       const request = {
         text: 'Hello',
-        targetLanguage: Language.FR,
+        targetLanguage: LANGUAGE.FR,
       }
 
       await translator.translate(request)
@@ -133,7 +133,7 @@ describe('翻译服务', () => {
 
       const request = {
         text: 'Hello',
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       }
 
       await expect(translator.translate(request)).rejects.toThrow('Network error')
@@ -152,7 +152,7 @@ describe('翻译服务', () => {
 
       const request = {
         text: 'Hello',
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       }
 
       await expect(translator.translate(request)).rejects.toThrow()
@@ -180,7 +180,7 @@ describe('翻译服务', () => {
           { key: 'farewell', text: 'Goodbye' },
           { key: 'thanks', text: 'Thank you' },
         ],
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       }
 
       const result = await translator.batchTranslate(request)
@@ -212,7 +212,7 @@ describe('翻译服务', () => {
             context: 'Days of week',
           },
         ],
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       }
 
       const result = await translator.batchTranslate(request)
@@ -238,7 +238,7 @@ describe('翻译服务', () => {
           { key: 'greeting', text: 'Hello' },
           { key: 'invalid', text: '' },
         ],
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       }
 
       const result = await translator.batchTranslate(request)
@@ -251,7 +251,7 @@ describe('翻译服务', () => {
 
       const request = {
         items: [{ key: 'greeting', text: 'Hello' }],
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       }
 
       const result = await translator.batchTranslate(request)
@@ -272,7 +272,7 @@ describe('翻译服务', () => {
 
       translator.translate({
         text: 'Hello',
-        targetLanguage: Language.CN,
+        targetLanguage: LANGUAGE.CN,
       })
 
       translator.cancel()

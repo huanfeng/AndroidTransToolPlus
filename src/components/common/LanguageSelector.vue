@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
-import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
+import { type Language, getLanguageLabel } from '@/models/language'
 
 interface Props {
   modelValue: Language[]
@@ -51,10 +51,7 @@ const selected = computed({
   },
 })
 
-const langLabel = (l: Language) => {
-  const info = getLanguageInfo(l)
-  return `${getLanguageName(l, 'cn')} (${info.androidCode})`
-}
+const langLabel = (l: Language) => getLanguageLabel(l, 'cn')
 
 function selectAll() {
   selected.value = [...props.languages]

@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { getStorageAdapter } from '@/adapters'
-import { Language, getAllLanguages, LanguageManager, type CustomLanguage } from '@/models/language'
+import {
+  LANGUAGE,
+  type Language,
+  getBuiltinLanguages,
+  LanguageManager,
+  type CustomLanguage,
+} from '@/models/language'
 import { DEFAULT_AI_MODEL_PRESET } from '@/models/ai'
 
 /**
@@ -29,10 +35,10 @@ export interface AppConfig {
  * 默认配置
  */
 const DEFAULT_CONFIG: AppConfig = {
-  apiUrl: 'https://api.openai.com/v1',
+  apiUrl: '',
   apiKey: '',
   httpProxy: '',
-  enabledLanguages: getAllLanguages(),
+  enabledLanguages: getBuiltinLanguages(),
   targetLanguages: [],
   customLanguages: [],
   maxItemsPerRequest: 20,
@@ -130,6 +136,11 @@ export const useConfigStore = defineStore('config', () => {
     const success = langManager.removeCustomLanguage(androidCode)
     if (success) {
       config.value.customLanguages = langManager.getCustomLanguages()
+      // 清理已启用/目标语言中的残留项
+      config.value.enabledLanguages = config.value.enabledLanguages.filter(
+        l => l === LANGUAGE.DEF || l !== androidCode
+      )
+      config.value.targetLanguages = config.value.targetLanguages.filter(l => l !== androidCode)
     }
     return success
   }

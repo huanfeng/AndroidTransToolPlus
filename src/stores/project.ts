@@ -9,7 +9,7 @@ import type { DirectoryHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
 import { scanProjectResDirs, type ResDirInfo } from '@/services/project/scanner'
 import { XmlData } from '@/services/project/xmldata'
-import { Language } from '@/models/language'
+import type { Language } from '@/models/language'
 import { useLogStore } from './log'
 import { loadProjectFromStorage, clearProjectFromStorage } from '@/utils/projectPersistence'
 

@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { computed, watch, ref } from 'vue'
 import { useProjectStore } from '@/stores/project'
-import { Language } from '@/models/language'
+import { LANGUAGE, type Language } from '@/models/language'
 
 const props = defineProps<{ visible: boolean; itemName: string; lang: Language }>()
 const emit = defineEmits<{ (e: 'update:visible', v: boolean): void }>()
@@ -35,7 +35,7 @@ const text = ref('')
 const arrValue = computed<string[]>(() => {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return []
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-  const data = props.lang === Language.DEF ? fileMap?.get(Language.DEF) : fileMap?.get(props.lang)
+  const data = props.lang === LANGUAGE.DEF ? fileMap?.get(LANGUAGE.DEF) : fileMap?.get(props.lang)
   const item = data?.items.get(props.itemName)
   const v = item?.valueMap.get(props.lang)
   return Array.isArray(v) ? v : []

@@ -70,7 +70,7 @@
               <span>已启用语言</span>
               <div style="display: flex; gap: 8px">
                 <el-button size="small" type="primary" plain @click="addAllLanguages">
-                  添加全部 ({{ availableLangCodes.length }})
+                  添加全部 ({{ availableLangInfos.length }})
                 </el-button>
                 <el-button
                   size="small"
@@ -122,14 +122,14 @@
             <div style="font-weight: 600; margin-bottom: 8px">可启用的语言</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px">
               <el-tag
-                v-for="code in availableLangCodes"
-                :key="code"
+                v-for="info in availableLangInfos"
+                :key="info.code"
                 type="info"
                 effect="plain"
-                @click="addLanguage(code)"
+                @click="addLanguage(info.code)"
                 style="cursor: pointer"
               >
-                {{ langLabel(code) }}
+                {{ langLabel(info.code) }}
               </el-tag>
             </div>
           </div>
@@ -251,13 +251,13 @@
                 <el-input v-model="form.apiKey" type="password" show-password />
               </el-form-item>
               <el-form-item label="HTTP 代理">
-                <el-input
-                  v-model="form.httpProxy"
-                  placeholder=""
-                  disabled
-                />
-                <div style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)">
-                  <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>
+                <el-input v-model="form.httpProxy" placeholder="" disabled />
+                <div
+                  style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
+                >
+                  <el-icon style="vertical-align: middle; margin-right: 4px"
+                    ><InfoFilled
+                  /></el-icon>
                   <span>浏览器环境下代理功能已禁用，请使用浏览器的代理功能或扩展</span>
                 </div>
               </el-form-item>
@@ -403,13 +403,7 @@ import { computed, ref, watch } from 'vue'
 import { Close, InfoFilled } from '@element-plus/icons-vue'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
-import {
-  Language,
-  getAllLanguages,
-  getLanguageInfo,
-  getLanguageName,
-  type CustomLanguage,
-} from '@/models/language'
+import { LANGUAGE, type Language, getLanguageLabel, type CustomLanguage } from '@/models/language'
 import {
   AI_MODEL_PRESETS,
   getModelLabel,
@@ -431,21 +425,22 @@ const form = computed({
 })
 
 const activeTab = ref('general')
-const allLangs = getAllLanguages()
-const defLang = Language.DEF
-const nonDefaultLangs = allLangs.filter(l => l !== Language.DEF)
+const defLang = LANGUAGE.DEF
 
-function langLabel(lang: Language) {
-  const info = getLanguageInfo(lang)
-  return `${getLanguageName(lang, 'cn')} (${info.androidCode})`
+const langLabel = (lang: Language) => {
+  return getLanguageLabel(lang, 'cn')
 }
 
 // Language management
 const enabledLangCodes = ref<Language[]>([])
 const dragIndex = ref<number | null>(null)
 
-const availableLangCodes = computed(() => {
-  return nonDefaultLangs.filter(code => !enabledLangCodes.value.includes(code))
+const allLangInfos = computed(() => configStore.getAllAvailableLanguages())
+
+const availableLangInfos = computed(() => {
+  return allLangInfos.value.filter(
+    info => info.code !== defLang && !enabledLangCodes.value.includes(info.code)
+  )
 })
 
 function addLanguage(code: Language) {
@@ -457,7 +452,7 @@ function removeLanguage(code: Language) {
 }
 
 function addAllLanguages() {
-  enabledLangCodes.value = [...nonDefaultLangs]
+  enabledLangCodes.value = allLangInfos.value.filter(l => l.code !== defLang).map(l => l.code)
 }
 
 function clearAllLanguages() {
@@ -485,7 +480,7 @@ watch(
     if (visible) {
       activeTab.value = 'general'
       const current = form.value.enabledLanguages || []
-      enabledLangCodes.value = current.filter(l => l !== Language.DEF)
+      enabledLangCodes.value = current.filter(l => l !== LANGUAGE.DEF)
     }
   }
 )
@@ -565,7 +560,7 @@ watch(
 
 async function onSave() {
   try {
-    const langs: Language[] = [Language.DEF, ...enabledLangCodes.value]
+    const langs: Language[] = [LANGUAGE.DEF, ...enabledLangCodes.value]
     configStore.update('enabledLanguages', langs)
     await configStore.save()
     toast.success('设置已保存')
@@ -672,7 +667,7 @@ watch(
     if (visible) {
       activeTab.value = 'general'
       const current = form.value.enabledLanguages || []
-      enabledLangCodes.value = current.filter(l => l !== Language.DEF)
+      enabledLangCodes.value = current.filter(l => l !== LANGUAGE.DEF)
       loadCustomLanguages()
     }
   }

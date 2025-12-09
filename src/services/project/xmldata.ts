@@ -6,9 +6,10 @@
 import type { DirectoryHandle, FileHandle } from '@/adapters/types'
 import { getFileSystemAdapter } from '@/adapters'
 import {
-  Language,
+  LANGUAGE,
+  type Language,
   getLanguageByValuesDirName,
-  getLanguageInfo,
+  getFullLanguageInfo,
   LanguageManager,
 } from '@/models/language'
 import type { ResItem } from '@/models/resource'
@@ -76,7 +77,7 @@ export class XmlData {
           const langManager = LanguageManager.getInstance()
           const langInfo = langManager.getLanguageInfoByValuesDir(valuesDirName)
           if (langInfo) {
-            language = langManager.toLanguageEnum(langInfo.code)
+            language = langInfo.code
           }
         } catch {
           // 回退到旧的查找方式
@@ -140,7 +141,7 @@ export class XmlData {
         const langManager = LanguageManager.getInstance()
         const langInfo = langManager.getLanguageInfoByValuesDir(valuesDirName)
         if (langInfo) {
-          language = langManager.toLanguageEnum(langInfo.code)
+          language = langInfo.code
         }
       } catch {
         // 回退到旧的查找方式
@@ -229,7 +230,7 @@ export class XmlData {
     // 遍历所有文件
     for (const [_fileName, languageDataMap] of this.dataMap) {
       // 获取默认语言数据作为基准
-      const defaultData = languageDataMap.get(Language.DEF)
+      const defaultData = languageDataMap.get(LANGUAGE.DEF)
       if (!defaultData) continue
 
       // 遍历默认语言的所有资源项
@@ -242,7 +243,7 @@ export class XmlData {
 
         // 合并其他语言的值
         for (const [language, data] of languageDataMap) {
-          if (language === Language.DEF) continue
+          if (language === LANGUAGE.DEF) continue
 
           const otherItem = data.items.get(itemName)
           if (otherItem) {
@@ -279,11 +280,13 @@ export class XmlData {
     let data = languageDataMap.get(language)
     if (!data) {
       // 该语言的 values 目录可能不存在；创建占位数据，保存时会自动创建目录/文件
-      const info = getLanguageInfo(language)
+      const info = getFullLanguageInfo(language)
+      const valuesDirName =
+        info?.valuesDirName || LanguageManager.getInstance().generateValuesDirName(String(language))
       data = {
         fileName,
         language,
-        valuesDirName: info.valuesDirName,
+        valuesDirName,
         items: new Map(),
       }
       languageDataMap.set(language, data)
@@ -292,7 +295,7 @@ export class XmlData {
     let item = data.items.get(itemName)
     if (!item) {
       // 如果目标语言不存在该项，则按照默认语言的类型和 translatable 创建
-      const defItem = languageDataMap.get(Language.DEF)?.items.get(itemName)
+      const defItem = languageDataMap.get(LANGUAGE.DEF)?.items.get(itemName)
       if (defItem) {
         item = createResItem(defItem.type, defItem.name, defItem.translatable)
         data.items.set(itemName, item)
@@ -322,7 +325,7 @@ export class XmlData {
     const fs = getFileSystemAdapter()
 
     // 获取默认语言数据（用于排序）
-    const defaultData = languageDataMap.get(Language.DEF)
+    const defaultData = languageDataMap.get(LANGUAGE.DEF)
 
     // 生成 XML
     const xmlContent = generateXml(data.items, language, defaultData?.items)
@@ -348,28 +351,18 @@ export class XmlData {
    * 保存所有文件
    */
   async saveAll(languages?: Language[]): Promise<void> {
-    const targetLanguages = languages || [
-      Language.DEF,
-      Language.CN,
-      Language.CN_HK,
-      Language.CN_TW,
-      Language.AR,
-      Language.DE,
-      Language.FR,
-      Language.HI,
-      Language.IT,
-      Language.IW,
-      Language.JA,
-      Language.KO,
-      Language.RU,
-      Language.UK,
-    ]
+    const targetLanguages = languages || LanguageManager.getInstance().getAllLanguageCodes()
 
     const errors: Array<{ file: string; language: Language; error: any }> = []
 
     for (const fileName of this.xmlFileNames) {
+      const fileData = this.dataMap.get(fileName)
+      if (!fileData) continue
+
       for (const language of targetLanguages) {
         try {
+          // 跳过没有数据的语言（尚未创建或未翻译）
+          if (!fileData.has(language)) continue
           await this.saveFile(fileName, language)
         } catch (error) {
           console.error(`Failed to save ${fileName} for ${language}:`, error)
@@ -402,7 +395,16 @@ export class XmlData {
     }
 
     for (const [valuesDirName, valuesHandle] of valuesDirs) {
-      const language = getLanguageByValuesDirName(valuesDirName)
+      let language: Language | null = null
+      try {
+        const langInfo = LanguageManager.getInstance().getLanguageInfoByValuesDir(valuesDirName)
+        if (langInfo) {
+          language = langInfo.code
+        }
+      } catch {
+        language = getLanguageByValuesDirName(valuesDirName)
+      }
+
       if (!language) continue
 
       try {
@@ -463,22 +465,7 @@ export class XmlData {
     const missingCount = new Map<Language, number>()
 
     // 初始化计数器
-    const languages = [
-      Language.DEF,
-      Language.CN,
-      Language.CN_HK,
-      Language.CN_TW,
-      Language.AR,
-      Language.DE,
-      Language.FR,
-      Language.HI,
-      Language.IT,
-      Language.IW,
-      Language.JA,
-      Language.KO,
-      Language.RU,
-      Language.UK,
-    ]
+    const languages = LanguageManager.getInstance().getAllLanguageCodes()
 
     for (const lang of languages) {
       translatedCount.set(lang, 0)

@@ -20,7 +20,7 @@
               <template #default="{ row }">
                 <div class="cell-with-menu">
                   <span
-                    :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']"
+                    :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
                     :title="row.name"
                     >{{ row.name }}</span
                   >
@@ -42,37 +42,37 @@
                 }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column :label="langName(Language.DEF)" min-width="220">
+            <el-table-column :label="langName(LANGUAGE.DEF)" min-width="220">
               <template #default="{ row }">
                 <div class="cell-with-menu">
-                  <template v-if="!isEditing(row.name, Language.DEF)">
+                  <template v-if="!isEditing(row.name, LANGUAGE.DEF)">
                     <span
-                      :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']"
-                      :title="getCellValue(row, Language.DEF)"
-                      >{{ getCellValue(row, Language.DEF) }}</span
+                      :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
+                      :title="getCellValue(row, LANGUAGE.DEF)"
+                      >{{ getCellValue(row, LANGUAGE.DEF) }}</span
                     >
                   </template>
                   <el-input
                     v-else-if="row.type === 'string'"
-                    v-model="editable[row.name + ':' + Language.DEF]"
+                    v-model="editable[row.name + ':' + LANGUAGE.DEF]"
                     :ref="setEditRef"
-                    @change="(val: string) => onEdit(row.name, Language.DEF, val)"
+                    @change="(val: string) => onEdit(row.name, LANGUAGE.DEF, val)"
                     @keydown.enter.prevent="commitEdit()"
                     @keydown.esc="cancelEdit()"
                     @blur="stopEdit()"
                   />
                   <span
-                    v-if="!isEditing(row.name, Language.DEF) && row.type !== 'string'"
-                    :class="['text-ellipsis', isCellDirty(row.name, Language.DEF) ? 'dirty' : '']"
-                    >{{ getCellValue(row, Language.DEF) }}</span
+                    v-if="!isEditing(row.name, LANGUAGE.DEF) && row.type !== 'string'"
+                    :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
+                    >{{ getCellValue(row, LANGUAGE.DEF) }}</span
                   >
                 </div>
                 <el-button
-                  v-if="!isEditing(row.name, Language.DEF) || row.type !== 'string'"
+                  v-if="!isEditing(row.name, LANGUAGE.DEF) || row.type !== 'string'"
                   class="cell-menu-btn"
                   text
                   size="small"
-                  @click="openCellMenu(row, Language.DEF, $event)"
+                  @click="openCellMenu(row, LANGUAGE.DEF, $event)"
                 >
                   <el-icon><MoreFilled /></el-icon>
                 </el-button>
@@ -217,7 +217,7 @@
       <ArrayEditDialog
         v-model:visible="showArrayEdit"
         :item-name="arrayEditPayload?.itemName || ''"
-        :lang="arrayEditPayload?.lang || Language.DEF"
+        :lang="arrayEditPayload?.lang || LANGUAGE.DEF"
       />
 
       <!-- 翻译配置弹框 -->
@@ -236,7 +236,7 @@ import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
 import type { ResItem } from '@/models/resource'
-import { Language, getLanguageName, getLanguageInfo } from '@/models/language'
+import { LANGUAGE, type Language, getLanguageLabel } from '@/models/language'
 import { MoreFilled } from '@element-plus/icons-vue'
 import toast from '@/utils/toast'
 import ArrayEditDialog from './ArrayEditDialog.vue'
@@ -261,7 +261,7 @@ const rows = computed(() => {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return [] as ResItem[]
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
   if (!fileMap) return [] as ResItem[]
-  const def = fileMap.get(Language.DEF)
+  const def = fileMap.get(LANGUAGE.DEF)
   if (!def) return [] as ResItem[]
   return Array.from(def.items.values())
 })
@@ -275,7 +275,7 @@ const filteredRows = computed(() => {
   if (q) {
     list = list.filter(r => {
       const keyHit = r.name.toLowerCase().includes(q)
-      const def = getCellValue(r, Language.DEF).toLowerCase()
+      const def = getCellValue(r, LANGUAGE.DEF).toLowerCase()
       return keyHit || def.includes(q)
     })
   }
@@ -298,7 +298,7 @@ const filteredRows = computed(() => {
       list = list.filter(r => {
         // "已编辑" = 任一语言（默认或目标）有未保存修改
         if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return false
-        const langs: Language[] = [Language.DEF, ...targetLangs.value]
+        const langs: Language[] = [LANGUAGE.DEF, ...targetLangs.value]
         return langs.some(l =>
           projectStore.selectedXmlData!.isDirty(projectStore.selectedXmlFile!, l, r.name)
         )
@@ -314,23 +314,21 @@ const pagedRows = computed(() => {
   return filteredRows.value.slice(start, start + pageSize.value)
 })
 
-const targetLangs = computed(() =>
-  configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+const targetLangs = computed<Language[]>(() =>
+  configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
 )
 
 function langName(l: Language) {
-  return getLanguageName(l, 'cn')
+  return getLanguageLabel(l, 'cn')
 }
 function langHeader(l: Language) {
-  if (l === Language.DEF) return getLanguageName(l, 'cn')
-  const info = getLanguageInfo(l)
-  return `${getLanguageName(l, 'cn')} (${info.androidCode})`
+  return getLanguageLabel(l, 'cn')
 }
 
 function getCellValue(row: ResItem, lang: Language): string {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return ''
-  if (lang === Language.DEF) {
-    const v = row.valueMap.get(Language.DEF)
+  if (lang === LANGUAGE.DEF) {
+    const v = row.valueMap.get(LANGUAGE.DEF)
     return typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : ''
   }
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
@@ -415,11 +413,11 @@ function cancelEdit() {
 
 function getStringValue(itemName: string, lang: Language): string {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return ''
-  if (lang === Language.DEF) {
+  if (lang === LANGUAGE.DEF) {
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-    const def = fileMap?.get(Language.DEF)
+    const def = fileMap?.get(LANGUAGE.DEF)
     const it = def?.items.get(itemName)
-    const v = it?.valueMap.get(Language.DEF)
+    const v = it?.valueMap.get(LANGUAGE.DEF)
     return typeof v === 'string' ? v : ''
   } else {
     const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
@@ -480,7 +478,7 @@ async function executeTranslation(
 function getItemsByScope(scope: string, lang?: Language, itemName?: string): Map<string, ResItem> {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return new Map()
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-  const def = fileMap?.get(Language.DEF)
+  const def = fileMap?.get(LANGUAGE.DEF)
   if (!def) return new Map()
 
   const items = new Map<string, ResItem>()
@@ -517,7 +515,7 @@ function getLangBatchItems(
 ): Map<string, ResItem> {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return new Map()
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-  const def = fileMap?.get(Language.DEF)
+  const def = fileMap?.get(LANGUAGE.DEF)
   if (!def) return new Map()
 
   const items = new Map<string, ResItem>()
@@ -553,7 +551,7 @@ function countLangBatchItems(
 function getTargetLanguagesForItem(itemName: string, mode: string): Language[] {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return []
   const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile)
-  const def = fileMap?.get(Language.DEF)
+  const def = fileMap?.get(LANGUAGE.DEF)
   if (!def) return []
   const it = def.items.get(itemName)
   if (!it) return []
@@ -615,8 +613,8 @@ function onCellDblClick(row: any, column: any, _cell: HTMLElement, _event: Mouse
   if (!label) return
   // 识别语言
   let lang: Language | null = null
-  if (label === langName(Language.DEF)) {
-    lang = Language.DEF
+  if (label === langName(LANGUAGE.DEF)) {
+    lang = LANGUAGE.DEF
   } else {
     lang = targetLangs.value.find(l => label.includes(langName(l))) || null
   }
@@ -682,7 +680,7 @@ function openCellMenu(row: any, lang: Language, event: MouseEvent) {
 
 const hasEditedRow = computed(() => {
   if (!currentKeyRow.value) return false
-  const langs: Language[] = [Language.DEF, ...targetLangs.value]
+  const langs: Language[] = [LANGUAGE.DEF, ...targetLangs.value]
   return langs.some(l => isCellDirty(currentKeyRow.value!.name, l))
 })
 
@@ -715,7 +713,7 @@ function onKeyMenuCommand(cmd: string) {
       confirmText: '开始翻译',
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
+        defaultText: { label: '默认文本', value: getCellValue(row, LANGUAGE.DEF) },
       },
       scopeOptions: [], // Key翻译不使用scopeOptions，但TypeScript要求必须有
       languageOptions: [
@@ -779,7 +777,6 @@ function onLangHeaderMenuCommand(cmd: string) {
     currentLang.value = null
 
     // 准备对话框配置
-    const langInfo = getLanguageInfo(lang)
     const dialogConfig = {
       type: 'lang-header' as const,
       title: '批量翻译',
@@ -787,7 +784,7 @@ function onLangHeaderMenuCommand(cmd: string) {
       description: {
         language: {
           label: '目标语言',
-          value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})`,
+          value: getLanguageLabel(lang, 'cn'),
         },
       },
       scopeOptions,
@@ -830,8 +827,6 @@ function onCellMenuCommand(cmd: string) {
     currentLang.value = null
   } else if (cmd === 'translate-custom') {
     // 自定义翻译：打开配置对话框
-    const langInfo = getLanguageInfo(lang)
-
     // 先关闭菜单
     currentCellRow.value = null
     currentLang.value = null
@@ -843,10 +838,10 @@ function onCellMenuCommand(cmd: string) {
       confirmText: '开始翻译',
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: '默认文本', value: getCellValue(row, Language.DEF) },
+        defaultText: { label: '默认文本', value: getCellValue(row, LANGUAGE.DEF) },
         language: {
           label: '目标语言',
-          value: `${getLanguageName(lang, 'cn')} (${langInfo.androidCode})`,
+          value: getLanguageLabel(lang, 'cn'),
         },
       },
       scopeOptions: [], // cell翻译不使用scopeOptions

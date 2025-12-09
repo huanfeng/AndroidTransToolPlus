@@ -5,7 +5,7 @@
 
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios'
-import { Language, LANGUAGE_MAP } from '@/models/language'
+import { LANGUAGE, type Language, getFullLanguageInfo } from '@/models/language'
 import { BATCH_PROMPT_TEMPLATE, SINGLE_PROMPT_TEMPLATE, renderPromptTemplate } from '@/models/ai'
 
 /**
@@ -177,10 +177,10 @@ export class OpenAITranslator {
    * 翻译单个文本
    */
   async translate(request: TranslateRequest): Promise<TranslateResponse> {
-    const { text, targetLanguage, sourceLanguage = Language.DEF, context } = request
+    const { text, targetLanguage, sourceLanguage = LANGUAGE.DEF, context } = request
 
-    const targetLangInfo = LANGUAGE_MAP[targetLanguage]
-    const sourceLangInfo = LANGUAGE_MAP[sourceLanguage]
+    const targetLangInfo = getFullLanguageInfo(targetLanguage)
+    const sourceLangInfo = getFullLanguageInfo(sourceLanguage)
 
     if (!targetLangInfo) {
       throw new Error(`Unsupported target language: ${targetLanguage}`)
@@ -212,7 +212,7 @@ export class OpenAITranslator {
     onProgress?: ProgressCallback,
     checkCancellation?: CancellationCallback
   ): Promise<BatchTranslateResponse> {
-    const { items, targetLanguage, sourceLanguage = Language.DEF } = request
+    const { items, targetLanguage, sourceLanguage = LANGUAGE.DEF } = request
     const results = new Map<string, string | string[]>()
     const errors = new Map<string, string>()
 
@@ -268,7 +268,7 @@ export class OpenAITranslator {
     onProgress?: ProgressCallback,
     checkCancellation?: CancellationCallback
   ): Promise<BatchTranslateResponse> {
-    const { items, targetLanguage, sourceLanguage = Language.DEF } = request
+    const { items, targetLanguage, sourceLanguage = LANGUAGE.DEF } = request
     const results = new Map<string, string | string[]>()
     const errors = new Map<string, string>()
 
@@ -340,8 +340,8 @@ export class OpenAITranslator {
     targetLanguage: Language,
     sourceLanguage: Language
   ): Promise<Map<string, string | string[]>> {
-    const targetLangInfo = LANGUAGE_MAP[targetLanguage]
-    const sourceLangInfo = LANGUAGE_MAP[sourceLanguage]
+    const targetLangInfo = getFullLanguageInfo(targetLanguage)
+    const sourceLangInfo = getFullLanguageInfo(sourceLanguage)
 
     if (!targetLangInfo) {
       throw new Error(`Unsupported target language: ${targetLanguage}`)

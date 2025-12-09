@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useConfigStore } from '@/stores/config'
-import { Language } from '@/models/language'
+import { LANGUAGE, type Language } from '@/models/language'
 import LanguageSelector from '@/components/common/LanguageSelector.vue'
 
 interface ScopeOption {
@@ -234,7 +234,7 @@ const allTargetLanguagesComputed = computed(() => {
   }
   return (
     props.config.allTargetLanguages ||
-    configStore.config.enabledLanguages.filter(l => l !== Language.DEF)
+    configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
   )
 })
 
