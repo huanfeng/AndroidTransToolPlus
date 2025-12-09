@@ -54,8 +54,6 @@ export function generateXml(
       string?: XmlElement[]
       'string-array'?: XmlElement[]
     }
-    string?: XmlElement[]
-    'string-array'?: XmlElement[]
   }
 
   const resources: XmlResources = { resources: {} }
@@ -99,21 +97,27 @@ export function generateXml(
 
   // 添加到 resources
   if (strings.length > 0) {
-    resources.string = strings
+    resources.resources.string = strings
   }
   if (arrays.length > 0) {
-    resources['string-array'] = arrays
+    resources.resources['string-array'] = arrays
   }
 
   // 构建 XML
   const builder = new XMLBuilder(BUILDER_OPTIONS)
-  const xml = builder.build({ resources })
+  const xml = builder.build(resources)
 
   // 修复转义：将 &apos; 和 &quot; 替换回引号
   const fixedXml = fixXmlEscaping(xml)
 
+  // 如果内容为空，确保生成完整的 <resources> 标签而不是自闭合标签
+  let finalXml = fixedXml
+  if (strings.length === 0 && arrays.length === 0) {
+    finalXml = fixedXml.replace(/<resources\/>/, '<resources>\n</resources>')
+  }
+
   // 添加 XML 声明
-  return '<?xml version="1.0" encoding="utf-8"?>\n' + fixedXml
+  return '<?xml version="1.0" encoding="utf-8"?>\n' + finalXml
 }
 
 /**
