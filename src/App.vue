@@ -3,12 +3,12 @@
     <el-container class="app-shell">
       <!-- 顶部栏：标题 + 设置/关于 -->
       <el-header class="app-header">
-        <AppHeader @open-settings="showSettings = true" @open-about="showAbout = true" />
+        <AppHeader @open-settings="showSettings = true" @open-about="openAbout" />
       </el-header>
       <!-- 主体区域：左侧栏 + 工作区 -->
       <el-container class="app-body">
         <el-aside width="280px" class="app-aside">
-          <ProjectSidebar @open-settings="showSettings = true" @open-about="showAbout = true" />
+          <ProjectSidebar @open-settings="showSettings = true" @open-about="openAbout" />
         </el-aside>
 
         <el-main class="app-main">
@@ -31,7 +31,12 @@
 
   <!-- 设置与关于对话框 -->
   <SettingsDialog v-model:visible="showSettings" />
-  <AboutDialog v-model:visible="showAbout" />
+  <AboutDialog
+    v-model:visible="showAbout"
+    v-model:activeTab="aboutActiveTab"
+    :require-acknowledge="requireOnboardingAck"
+    @acknowledge="handleOnboardingAcknowledge"
+  />
 
   <!-- 项目恢复对话框 -->
   <el-dialog
@@ -73,12 +78,18 @@ import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import AboutDialog from '@/components/about/AboutDialog.vue'
 import { enableBeforeUnloadPrompt } from '@/utils/beforeUnload'
 import { hasStoredProject } from '@/utils/projectPersistence'
+import { getStorageAdapter } from '@/adapters'
 
 const configStore = useConfigStore()
 const projectStore = useProjectStore()
 const showSettings = ref(false)
 const showAbout = ref(false)
 const showRestoreDialog = ref(false)
+const aboutActiveTab = ref<'notice' | 'info'>('info')
+const requireOnboardingAck = ref(false)
+const onboardingAcked = ref(false)
+const storage = getStorageAdapter()
+const ONBOARDING_KEY = 'onboarding_ack'
 
 onMounted(() => {
   // 立即执行必要的同步操作
@@ -92,6 +103,15 @@ onMounted(() => {
     // 检查是否有存储的项目，尝试自动恢复
     if (hasStoredProject() && projectStore.isIdle) {
       showRestoreDialog.value = true
+    }
+
+    // 首次使用须知
+    const acknowledged = await storage.get<boolean>(ONBOARDING_KEY, false)
+    onboardingAcked.value = Boolean(acknowledged)
+    if (!acknowledged) {
+      aboutActiveTab.value = 'notice'
+      requireOnboardingAck.value = true
+      showAbout.value = true
     }
 
     // 启用页面刷新/关闭提示
@@ -122,6 +142,19 @@ function applyTheme(theme: 'light' | 'dark') {
   window.requestAnimationFrame(() => {
     root.classList.remove('theme-changing')
   })
+}
+
+function openAbout() {
+  aboutActiveTab.value = onboardingAcked.value ? 'info' : 'notice'
+  requireOnboardingAck.value = !onboardingAcked.value
+  showAbout.value = true
+}
+
+async function handleOnboardingAcknowledge() {
+  await storage.set(ONBOARDING_KEY, true)
+  onboardingAcked.value = true
+  requireOnboardingAck.value = false
+  showAbout.value = false
 }
 </script>
 

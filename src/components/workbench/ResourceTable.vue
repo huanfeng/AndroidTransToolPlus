@@ -48,7 +48,10 @@
                   <template v-if="row.type === 'string'">
                     <template v-if="!isEditing(row.name, LANGUAGE.DEF)">
                       <span
-                        :class="['text-ellipsis', isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '']"
+                        :class="[
+                          'text-ellipsis',
+                          isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '',
+                        ]"
                         :title="getCellValue(row, LANGUAGE.DEF)"
                         >{{ getCellValue(row, LANGUAGE.DEF) }}</span
                       >
@@ -272,7 +275,7 @@ const rows = computed(() => {
 
 const page = ref(1)
 // 从本地存储读取页面大小，默认为 20
-const pageSize = ref(Number(localStorage.getItem('table-page-size')) || 20)
+const pageSize = ref(Number(localStorage.getItem('android_trans_table_page_size')) || 20)
 const filteredRows = computed(() => {
   const q = filterText.value.trim().toLowerCase()
   let list = rows.value
@@ -387,7 +390,7 @@ watch(
 )
 // 监听页面大小变化，保存到本地存储
 watch(pageSize, newSize => {
-  localStorage.setItem('table-page-size', String(newSize))
+  localStorage.setItem('android_trans_table_page_size', String(newSize))
 })
 
 function keyFor(itemName: string, lang: Language) {
