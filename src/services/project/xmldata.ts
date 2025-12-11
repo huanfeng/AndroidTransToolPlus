@@ -309,6 +309,22 @@ export class XmlData {
   }
 
   /**
+   * 更新指定资源项的 translatable 属性
+   */
+  updateTranslatable(fileName: string, itemName: string, translatable: boolean): void {
+    const languageDataMap = this.dataMap.get(fileName)
+    if (!languageDataMap) return
+
+    for (const [language, data] of languageDataMap) {
+      const item = data.items.get(itemName)
+      if (!item) continue
+      if (item.translatable === translatable) continue
+      item.translatable = translatable
+      this.dirtyKeys.add(this.makeDirtyKey(fileName, language, itemName))
+    }
+  }
+
+  /**
    * 保存指定文件的指定语言数据
    */
   async saveFile(fileName: string, language: Language): Promise<void> {

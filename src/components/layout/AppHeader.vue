@@ -22,7 +22,7 @@
       </el-button>
     </div>
     <el-dialog v-model="showStatus" title="翻译状态" width="520px">
-      <el-descriptions :column="1" border>
+      <el-descriptions :column="1" border class="status-desc">
         <el-descriptions-item label="文件进度">
           {{ projectProgress.filesCompleted }}/{{ projectProgress.filesTotal }}
           <el-progress
@@ -125,5 +125,13 @@ defineEmits<{
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+.status-desc :deep(.el-descriptions__label.is-bordered-label) {
+  width: 110px;
+  min-width: 110px;
+  white-space: nowrap;
+}
+.status-desc :deep(.el-descriptions__content) {
+  word-break: break-all;
 }
 </style>

@@ -37,9 +37,23 @@
             </el-table-column>
             <el-table-column label="可翻译" width="90">
               <template #default="{ row }">
-                <el-tag size="small" :type="row.translatable ? 'success' : 'info'">{{
-                  row.translatable ? '是' : '否'
-                }}</el-tag>
+                <div
+                  :class="[
+                    'translatable-toggle',
+                    isCellDirty(row.name, LANGUAGE.DEF) ? 'dirty' : '',
+                  ]"
+                >
+                  <el-switch
+                    class="translatable-switch"
+                    :model-value="row.translatable"
+                    size="small"
+                    inline-prompt
+                    active-text="是"
+                    inactive-text="否"
+                    :disabled="translationStore.isTranslating"
+                    @change="(val: boolean) => onToggleTranslatable(row.name, val)"
+                  />
+                </div>
               </template>
             </el-table-column>
             <el-table-column :label="langName(LANGUAGE.DEF)" min-width="220">
@@ -438,6 +452,19 @@ function getStringValue(itemName: string, lang: Language): string {
 function onEdit(itemName: string, lang: Language, val: string) {
   if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
   projectStore.selectedXmlData.updateItem(projectStore.selectedXmlFile, itemName, lang, val)
+}
+
+function onToggleTranslatable(itemName: string, translatable: boolean) {
+  if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) return
+  const fileName = projectStore.selectedXmlFile
+  const xml = projectStore.selectedXmlData
+
+  const defItem = xml.getLanguageData(fileName, LANGUAGE.DEF)?.items.get(itemName)
+  if (defItem && defItem.translatable === translatable) return
+
+  xml.updateTranslatable(fileName, itemName, translatable)
+  // 触发依赖 dataVersion 的视图刷新，避免过滤/分页状态滞后
+  projectStore.dataVersion++
 }
 
 // 数组编辑
@@ -1010,5 +1037,15 @@ function isCellDirty(itemName: string, lang: Language): boolean {
 :deep(.el-table__cell:hover .cell-menu-btn),
 :deep(.el-table__cell:hover .header-menu-btn) {
   opacity: 1;
+}
+
+.translatable-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.translatable-switch .el-switch__core) {
+  width: 40px;
 }
 </style>
