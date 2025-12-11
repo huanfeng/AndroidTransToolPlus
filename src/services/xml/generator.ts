@@ -7,6 +7,11 @@ import { XMLBuilder } from 'fast-xml-parser'
 import type { Language } from '@/models/language'
 import type { ResItem } from '@/models/resource'
 
+export interface GenerateXmlResult {
+  xml: string
+  hasEntries: boolean
+}
+
 /**
  * XML 构建选项
  */
@@ -39,7 +44,7 @@ export function generateXml(
   items: Map<string, ResItem>,
   language: Language,
   defaultLanguageItems?: Map<string, ResItem>
-): string {
+): GenerateXmlResult {
   interface XmlElement {
     '@_name'?: string
     $?: Record<string, string>
@@ -66,34 +71,42 @@ export function generateXml(
     : Array.from(items.values())
 
   for (const item of sortedItems) {
-    // 跳过不可翻译的项
-    if (!item.translatable) continue
-
     // 获取该语言的值
     const value = item.valueMap.get(language)
     if (value === undefined || value === null) continue
 
+    const commonAttrs =
+      item.translatable === false
+        ? {
+            '@_name': item.name,
+            '@_translatable': 'false',
+          }
+        : { '@_name': item.name }
+
     if (item.type === 'string') {
+      const stringValue = value as string
       // 跳过空字符串
-      if (value === '') continue
+      if (stringValue === '') continue
 
       strings.push({
-        '@_name': item.name,
-        '#text': escapeXmlText(value as string),
+        ...commonAttrs,
+        '#text': escapeXmlText(stringValue),
       })
     } else if (item.type === 'string-array') {
-      // 跳过空数组
       const arrayValue = value as string[]
+      // 跳过空数组
       if (arrayValue.length === 0) continue
 
       arrays.push({
-        '@_name': item.name,
+        ...commonAttrs,
         item: arrayValue.map(v => ({
           '#text': escapeXmlText(v),
         })),
       })
     }
   }
+
+  const hasEntries = strings.length > 0 || arrays.length > 0
 
   // 添加到 resources
   if (strings.length > 0) {
@@ -112,12 +125,12 @@ export function generateXml(
 
   // 如果内容为空，确保生成完整的 <resources> 标签而不是自闭合标签
   let finalXml = fixedXml
-  if (strings.length === 0 && arrays.length === 0) {
+  if (!hasEntries) {
     finalXml = fixedXml.replace(/<resources\/>/, '<resources>\n</resources>')
   }
 
   // 添加 XML 声明
-  return '<?xml version="1.0" encoding="utf-8"?>\n' + finalXml
+  return { xml: '<?xml version="1.0" encoding="utf-8"?>\n' + finalXml, hasEntries }
 }
 
 /**

@@ -328,7 +328,13 @@ export class XmlData {
     const defaultData = languageDataMap.get(LANGUAGE.DEF)
 
     // 生成 XML
-    const xmlContent = generateXml(data.items, language, defaultData?.items)
+    const { xml, hasEntries } = generateXml(data.items, language, defaultData?.items)
+
+    // 如果没有任何可写条目（如仅有 translatable="false" 且无值），跳过创建/覆盖
+    if (!hasEntries) {
+      this.clearDirtyFor(fileName, language)
+      return
+    }
 
     // 获取或创建 values 目录
     const valuesHandle = await getOrCreateValuesDir(this.resHandle, data.valuesDirName)
@@ -336,10 +342,10 @@ export class XmlData {
     // 写入文件
     if (data.fileHandle) {
       // 文件已存在，直接写入
-      await fs.writeFile(data.fileHandle, xmlContent)
+      await fs.writeFile(data.fileHandle, xml)
     } else {
       // 文件不存在，创建新文件
-      const fileHandle = await fs.createFile(valuesHandle, fileName, xmlContent)
+      const fileHandle = await fs.createFile(valuesHandle, fileName, xml)
       data.fileHandle = fileHandle
     }
 
@@ -363,6 +369,8 @@ export class XmlData {
         try {
           // 跳过没有数据的语言（尚未创建或未翻译）
           if (!fileData.has(language)) continue
+          // 跳过未修改的语言，避免无意义的重写
+          if (!this.hasDirty(fileName, language)) continue
           await this.saveFile(fileName, language)
         } catch (error) {
           console.error(`Failed to save ${fileName} for ${language}:`, error)
