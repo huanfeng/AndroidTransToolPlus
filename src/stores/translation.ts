@@ -9,6 +9,7 @@ import { LANGUAGE, type Language } from '@/models/language'
 import { resolveAiModel } from '@/models/ai'
 import type { ResItem } from '@/models/resource'
 import { OpenAITranslator, type OpenAIConfig } from '@/services/translation/openai'
+import type { XmlData } from '@/services/project/xmldata'
 import toast from '@/utils/toast'
 import { useConfigStore } from './config'
 import { useLogStore } from './log'
@@ -68,6 +69,10 @@ export const useTranslationStore = defineStore('translation', () => {
   const _progressTotalDisplay = ref<number>(0) // 显示用总任务数（实际需要翻译的数量）
   const _progressCompleted = ref<number>(0)
   const _progressFailed = ref<number>(0)
+  const _progressFilesTotal = ref<number>(0) // 文件总数（项目级）
+  const _progressFilesCompleted = ref<number>(0) // 已处理文件数（项目级）
+  const currentFileName = ref<string | null>(null)
+  const currentResDir = ref<string | null>(null)
 
   // 计算属性
   const isIdle = computed(() => state.value === TranslationState.IDLE)
@@ -95,6 +100,11 @@ export const useTranslationStore = defineStore('translation', () => {
 
     return { total, completed, failed, percentage }
   })
+
+  const projectProgress = computed(() => ({
+    filesTotal: _progressFilesTotal.value,
+    filesCompleted: _progressFilesCompleted.value,
+  }))
 
   const currentTask = computed<TranslationTask | null>(() => {
     if (currentTaskIndex.value >= 0 && currentTaskIndex.value < tasks.value.length) {
@@ -184,6 +194,10 @@ export const useTranslationStore = defineStore('translation', () => {
       targetLanguages.value = languages
       error.value = null
       isCancelled.value = false // 重置取消标记
+      _progressFilesTotal.value = 1
+      _progressFilesCompleted.value = 0
+      currentFileName.value = projectStore.selectedXmlFile
+      currentResDir.value = projectStore.selectedResDir
 
       // 创建翻译任务
       const fileMap = projectStore.selectedXmlData.getFileData(projectStore.selectedXmlFile!)
@@ -235,11 +249,368 @@ export const useTranslationStore = defineStore('translation', () => {
       try {
         projectStore.dataVersion++
         logStore.debug('UI refresh triggered after translation (dataVersion++)')
+        _progressFilesCompleted.value = 1
       } catch {}
+      currentFileName.value = null
+      currentResDir.value = null
     } catch (err: any) {
       logStore.error('Failed to start translation', err)
       error.value = err.message || 'Unknown error'
       state.value = TranslationState.ERROR
+      currentFileName.value = null
+      currentResDir.value = null
+      throw err
+    }
+  }
+
+  /**
+   * 通用文件级批量翻译（可被项目级复用）
+   */
+  async function batchTranslateForFile(params: {
+    xmlData: XmlData
+    fileName: string
+    items: Map<string, ResItem>
+    languages: Language[]
+    autoUpdateTranslated?: boolean
+    fileMap?: Map<Language, any>
+    resetProgress?: boolean
+    finalizeState?: boolean
+    bumpDataVersion?: boolean
+    reuseCancelToken?: boolean
+    resPath?: string
+  }): Promise<void> {
+    const {
+      xmlData,
+      fileName,
+      items,
+      languages,
+      autoUpdateTranslated = false,
+      fileMap,
+      resetProgress = true,
+      finalizeState = true,
+      bumpDataVersion = true,
+      reuseCancelToken = false,
+      resPath,
+    } = params
+
+    try {
+      initTranslator()
+
+      logStore.info(`Starting batch translation for ${fileName}...`)
+      logStore.debug(
+        `Context: file=${fileName}, langs=[${languages.join(
+          ', '
+        )}], items=${items.size}, autoUpdateTranslated=${autoUpdateTranslated}`
+      )
+
+      if (resetProgress) {
+        // 清空之前的任务和进度
+        tasks.value = []
+        currentTaskIndex.value = 0
+        targetLanguages.value = languages
+        error.value = null
+        isCancelled.value = false // 重置取消标记
+        _progressTotal.value = 0
+        _progressTotalDisplay.value = 0
+        _progressCompleted.value = 0
+        _progressFailed.value = 0
+        _progressFilesTotal.value = 1
+        _progressFilesCompleted.value = 0
+      } else {
+        error.value = null
+      }
+
+      // 创建新的取消 token（除非要求复用已有的）
+      if (!reuseCancelToken) {
+        translator.value?.createCancelToken()
+      }
+
+      state.value = TranslationState.TRANSLATING
+      currentFileName.value = fileName
+      currentResDir.value = resPath || projectStore.selectedResDir || null
+      logStore.debug(
+        `Batch translate started, tasks cleared: ${resetProgress}. Initial tasks.length: ${tasks.value.length}`
+      )
+
+      // 获取文件映射（优先使用传入的参数）
+      const currentFileMap = fileMap || xmlData.getFileData(fileName)
+      if (!currentFileMap) {
+        throw new Error('File map not available')
+      }
+
+      const languageTaskCounts: Record<string, number> = {}
+      const languageActualCounts: Record<string, number> = {}
+      for (const targetLang of languages) {
+        let count = 0
+        let actualCount = 0
+        for (const [itemName, item] of items) {
+          if (!item.translatable) continue
+          const originalText = item.valueMap.get(LANGUAGE.DEF)
+          if (!originalText) continue
+
+          let shouldSkip = false
+          if (!autoUpdateTranslated) {
+            const langData = currentFileMap.get(targetLang)
+            const langItem = langData?.items.get(itemName)
+            const v = langItem?.valueMap.get(targetLang)
+            const isMissing =
+              typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
+            if (!isMissing) {
+              shouldSkip = true
+            }
+          }
+
+          count++
+          if (!shouldSkip) actualCount++
+        }
+        languageTaskCounts[targetLang] = count
+        languageActualCounts[targetLang] = actualCount
+      }
+
+      const totalTasks = Object.values(languageTaskCounts).reduce((sum, count) => sum + count, 0)
+      const totalActualTasks = Object.values(languageActualCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      )
+
+      if (resetProgress) {
+        _progressTotal.value = totalTasks
+        _progressTotalDisplay.value = totalActualTasks
+        _progressCompleted.value = 0
+      }
+
+      logStore.info(
+        `Pre-calculated total tasks: ${totalTasks} (entries: ${items.size}, languages: ${languages.length}), actual to translate: ${totalActualTasks}`
+      )
+      logStore.debug(`Per-language task counts:`, languageTaskCounts)
+      logStore.debug(`Per-language actual counts:`, languageActualCounts)
+
+      let hasAnyBatchItems = false
+      let completedTasks = 0
+
+      for (const targetLang of languages) {
+        const batchItems: Array<{ key: string; text: string | string[]; context?: string }> = []
+
+        for (const [itemName, item] of items) {
+          if (!item.translatable) continue
+          const originalText = item.valueMap.get(LANGUAGE.DEF)
+          if (!originalText) continue
+
+          let shouldSkip = false
+          if (!autoUpdateTranslated) {
+            const langData = currentFileMap.get(targetLang)
+            const langItem = langData?.items.get(itemName)
+            const v = langItem?.valueMap.get(targetLang)
+            const isMissing =
+              typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
+            if (!isMissing) {
+              shouldSkip = true
+              logStore.trace(`Skip ${itemName} for ${targetLang} (has existing translation)`)
+            }
+          }
+
+          if (shouldSkip) {
+            logStore.trace(
+              `Skip ${itemName} for ${targetLang} (has existing translation, not counted in display total)`
+            )
+            continue
+          }
+
+          batchItems.push({ key: itemName, text: originalText, context: itemName })
+          tasks.value.push({
+            id: `${itemName}_${targetLang}_${fileName}`,
+            itemName,
+            originalText,
+            targetLanguage: targetLang,
+            status: 'pending',
+          })
+        }
+
+        if (batchItems.length === 0) {
+          logStore.info(`No items to translate for ${targetLang}`)
+          continue
+        }
+
+        hasAnyBatchItems = true
+        logStore.info(
+          `Translating ${batchItems.length} items to ${targetLang} (${languageActualCounts[targetLang]} actual to translate, ${languageTaskCounts[targetLang]} total in this language)...`
+        )
+
+        if (!translator.value) throw new Error('Translator not initialized')
+        const maxItemsPerRequest = configStore.config.maxItemsPerRequest || 20
+        logStore.debug(`Batch size: ${maxItemsPerRequest}`)
+
+        for (let i = 0; i < batchItems.length; i += maxItemsPerRequest) {
+          if (isCancelled.value) {
+            logStore.info('Translation cancelled - stopping after current batch')
+            state.value = TranslationState.STOPPING
+            break
+          }
+
+          const chunk = batchItems.slice(i, i + maxItemsPerRequest)
+          const chunkStartIdx = i
+
+          try {
+            for (let j = 0; j < chunk.length; j++) {
+              const taskIdx = tasks.value.findIndex(
+                t => t.itemName === chunk[j].key && t.targetLanguage === targetLang
+              )
+              if (taskIdx !== -1) {
+                tasks.value[taskIdx].status = 'translating'
+              }
+            }
+
+            const chunkResult = await translator.value.batchTranslateChunked(
+              { items: chunk, targetLanguage: targetLang, sourceLanguage: LANGUAGE.DEF },
+              chunk.length,
+              (current, _total) => {
+                logStore.debug(
+                  `Batch ${i / maxItemsPerRequest + 1} progress: ${chunkStartIdx + current}/${totalTasks}`
+                )
+              },
+              () => isCancelled.value
+            )
+
+            let batchSuccessCount = 0
+            let batchErrorCount = 0
+            for (const [itemName, translatedText] of chunkResult.results) {
+              try {
+                xmlData.updateItem(
+                  fileName,
+                  itemName,
+                  targetLang,
+                  translatedText as string | string[]
+                )
+                const task = tasks.value.find(
+                  t => t.itemName === itemName && t.targetLanguage === targetLang
+                )
+                if (task) {
+                  task.translatedText = translatedText
+                  task.status = 'completed'
+                  batchSuccessCount++
+                }
+              } catch (err: any) {
+                const task = tasks.value.find(
+                  t => t.itemName === itemName && t.targetLanguage === targetLang
+                )
+                if (task) {
+                  task.status = 'error'
+                  task.error = err.message
+                  batchErrorCount++
+                }
+              }
+            }
+
+            for (const [itemName, errorMsg] of chunkResult.errors) {
+              const task = tasks.value.find(
+                t => t.itemName === itemName && t.targetLanguage === targetLang
+              )
+              if (task) {
+                task.status = 'error'
+                task.error = errorMsg
+                batchErrorCount++
+              }
+            }
+
+            _progressCompleted.value += batchSuccessCount
+            _progressFailed.value += batchErrorCount
+            completedTasks += chunk.length
+            logStore.debug(
+              `Batch ${i / maxItemsPerRequest + 1} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${_progressTotalDisplay.value || totalActualTasks}, failed: ${_progressFailed.value}`
+            )
+          } catch (err: any) {
+            if (err.message === 'Translation cancelled') {
+              logStore.info(`Batch ${i / maxItemsPerRequest + 1} cancelled by user`)
+              throw err
+            }
+
+            logStore.error(`Batch ${i / maxItemsPerRequest + 1} failed:`, err)
+
+            for (const item of chunk) {
+              const task = tasks.value.find(
+                t => t.itemName === item.key && t.targetLanguage === targetLang
+              )
+              if (task) {
+                task.status = 'error'
+                task.error = err.message || 'Batch translation failed'
+              }
+            }
+
+            _progressFailed.value += chunk.length
+            completedTasks += chunk.length
+            logStore.debug(
+              `Batch failed, updated progress: ${completedTasks}/${_progressTotalDisplay.value || totalActualTasks}, failed: ${_progressFailed.value}`
+            )
+          }
+        }
+
+        const langTasks = tasks.value.filter(t => t.targetLanguage === targetLang)
+        const totalInThisLang = langTasks.length
+        const successCount = langTasks.filter(t => t.status === 'completed').length
+        const errorCount = langTasks.filter(t => t.status === 'error').length
+        const skippedCount = totalInThisLang - batchItems.length
+
+        logStore.info(
+          `[${targetLang}] Total: ${totalInThisLang}, Should translate (actual): ${languageActualCounts[targetLang]}, Actually translated: ${batchItems.length}, Skipped: ${skippedCount}, Success: ${successCount}, Failed: ${errorCount}`
+        )
+      }
+
+      if (!hasAnyBatchItems) {
+        if (finalizeState) {
+          toast.warning('无可翻译的条目')
+          state.value = TranslationState.COMPLETED
+          logStore.info('Batch translation completed (no items)')
+          _progressFilesCompleted.value += 1
+          currentFileName.value = null
+          currentResDir.value = null
+        }
+        return
+      }
+
+      if (isCancelled.value) {
+        logStore.info('Batch translation stopped by user')
+        state.value = TranslationState.IDLE
+        currentTaskIndex.value = 0
+        currentFileName.value = null
+        currentResDir.value = null
+        return
+      }
+
+      if (finalizeState) {
+        state.value = TranslationState.COMPLETED
+        logStore.info(
+          `Batch translation completed. Display progress: ${_progressCompleted.value}/${_progressTotalDisplay.value} (${progress.value.percentage}%), failed: ${_progressFailed.value}. Actual total: ${_progressTotal.value}`
+        )
+        try {
+          projectStore.dataVersion++
+          logStore.debug('UI refresh triggered after batch translation (dataVersion++)')
+          _progressFilesCompleted.value += 1
+        } catch {}
+      } else if (bumpDataVersion) {
+        try {
+          projectStore.dataVersion++
+          logStore.debug(
+            `UI refresh triggered after batch translation for ${fileName} (dataVersion++)`
+          )
+        } catch {}
+        _progressFilesCompleted.value += 1
+      }
+      currentFileName.value = null
+      currentResDir.value = null
+    } catch (err: any) {
+      if (state.value === TranslationState.STOPPING || isCancelled.value) {
+        logStore.info('Batch translation stopped by user')
+        state.value = TranslationState.IDLE
+        currentFileName.value = null
+        currentResDir.value = null
+        return
+      }
+
+      logStore.error('Batch translation failed', err)
+      error.value = err.message || 'Unknown error'
+      if (finalizeState) {
+        state.value = TranslationState.ERROR
+      }
       throw err
     }
   }
@@ -261,355 +632,172 @@ export const useTranslationStore = defineStore('translation', () => {
       throw new Error('No XML data selected')
     }
 
+    await batchTranslateForFile({
+      xmlData: projectStore.selectedXmlData as XmlData,
+      fileName: projectStore.selectedXmlFile!,
+      items,
+      languages,
+      autoUpdateTranslated,
+      fileMap,
+      resetProgress: true,
+      finalizeState: true,
+      bumpDataVersion: true,
+      reuseCancelToken: false,
+    })
+  }
+
+  /**
+   * 项目级批量翻译：遍历项目的所有 res 目录与 XML 文件
+   */
+  async function translateProject(options: {
+    languages: Language[]
+    autoUpdateTranslated?: boolean
+    scope?: 'all' | 'current'
+  }): Promise<void> {
+    const { languages, autoUpdateTranslated = false, scope = 'all' } = options
+    if (!languages?.length) {
+      throw new Error('No target languages provided')
+    }
+    if (!projectStore.project) {
+      throw new Error('No project opened')
+    }
+
+    const resTargets =
+      scope === 'current' && projectStore.selectedResDir
+        ? [projectStore.selectedResDir]
+        : projectStore.project.resDirs.map(d => d.relativePath)
+
+    initTranslator()
+    translator.value?.createCancelToken()
+    tasks.value = []
+    targetLanguages.value = languages
+    error.value = null
+    isCancelled.value = false
+    _progressTotal.value = 0
+    _progressTotalDisplay.value = 0
+    _progressCompleted.value = 0
+    _progressFailed.value = 0
+    _progressFilesCompleted.value = 0
+    state.value = TranslationState.TRANSLATING
+
+    let totalFiles = 0
+    let translatedFiles = 0
+
+    // 预先统计 scope 内的文件数
+    for (const resPath of resTargets) {
+      const xmlData = projectStore.project.xmlDataMap.get(resPath) as XmlData | undefined
+      if (!xmlData) continue
+      totalFiles += xmlData.getXmlFileNames().length
+    }
+    _progressFilesTotal.value = totalFiles
+
     try {
-      initTranslator()
+      for (const resPath of resTargets) {
+        if (isCancelled.value) break
+        const xmlData = projectStore.project.xmlDataMap.get(resPath) as XmlData | undefined
+        if (!xmlData) continue
 
-      logStore.info('Starting batch translation...')
-      logStore.debug(
-        `Context: file=${projectStore.selectedXmlFile}, langs=[${languages.join(
-          ', '
-        )}], items=${items.size}, autoUpdateTranslated=${autoUpdateTranslated}`
-      )
+        const fileNames = xmlData.getXmlFileNames()
 
-      // 清空之前的任务和进度
-      tasks.value = []
-      currentTaskIndex.value = 0
-      targetLanguages.value = languages
-      error.value = null
-      isCancelled.value = false // 重置取消标记
-      _progressTotal.value = 0
-      _progressTotalDisplay.value = 0
-      _progressCompleted.value = 0
-      _progressFailed.value = 0
+        projectStore.selectResDir(resPath)
+        currentResDir.value = resPath
 
-      // 创建新的取消 token
-      translator.value?.createCancelToken()
-
-      state.value = TranslationState.TRANSLATING
-      logStore.debug(
-        `Batch translate started, tasks cleared. Initial tasks.length: ${tasks.value.length}`
-      )
-
-      // 获取文件映射（优先使用传入的参数，其次从projectStore获取）
-      const currentFileMap =
-        fileMap || projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
-      if (!currentFileMap) {
-        throw new Error('File map not available')
-      }
-
-      // 预先计算每个语言需要翻译的项目数，避免总量重复计算
-      // 注意：总量应该是条目数量 × 语言数量，但显示用总量是实际需要翻译的条目数
-      const languageTaskCounts: Record<string, number> = {}
-      const languageActualCounts: Record<string, number> = {} // 实际需要翻译的数量
-      for (const targetLang of languages) {
-        let count = 0
-        let actualCount = 0
-        for (const [itemName, item] of items) {
-          if (!item.translatable) continue
-
-          const originalText = item.valueMap.get(LANGUAGE.DEF)
-          if (!originalText) continue
-
-          // 使用统一的未翻译过滤逻辑
-          let shouldSkip = false
-          if (!autoUpdateTranslated) {
-            const langData = currentFileMap.get(targetLang)
-            const langItem = langData?.items.get(itemName)
-            const v = langItem?.valueMap.get(targetLang)
-            const isMissing =
-              typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
-
-            if (!isMissing) {
-              shouldSkip = true
-            }
-          }
-
-          // 注意：即使shouldSkip=true，我们也要计算count，用于总量统计
-          // 但不添加到batchItems中
-          count++
-
-          // 实际需要翻译的数量（不包含跳过的）
-          if (!shouldSkip) {
-            actualCount++
-          }
-        }
-        languageTaskCounts[targetLang] = count
-        languageActualCounts[targetLang] = actualCount
-      }
-
-      // 计算总任务数：所有语言的任务数之和
-      const totalTasks = Object.values(languageTaskCounts).reduce((sum, count) => sum + count, 0)
-      const totalActualTasks = Object.values(languageActualCounts).reduce(
-        (sum, count) => sum + count,
-        0
-      )
-
-      _progressTotal.value = totalTasks
-      _progressTotalDisplay.value = totalActualTasks // 显示用总量是实际需要翻译的数量
-      _progressCompleted.value = 0 // 重置已完成计数
-
-      logStore.info(
-        `Pre-calculated total tasks: ${totalTasks} (entries: ${items.size}, languages: ${languages.length}), actual to translate: ${totalActualTasks}`
-      )
-      logStore.debug(`Per-language task counts:`, languageTaskCounts)
-      logStore.debug(`Per-language actual counts:`, languageActualCounts)
-
-      // 按语言分组翻译
-      let hasAnyBatchItems = false
-      let completedTasks = 0
-
-      for (const targetLang of languages) {
-        // 准备批量翻译请求
-        const batchItems: Array<{
-          key: string
-          text: string | string[]
-          context?: string
-        }> = []
-
-        for (const [itemName, item] of items) {
-          if (!item.translatable) continue
-
-          const originalText = item.valueMap.get(LANGUAGE.DEF)
-          if (!originalText) continue
-
-          // 需要再次检查过滤逻辑，因为总量统计包含了所有条目
-          // 但实际翻译时只翻译未翻译的条目
-          let shouldSkip = false
-          if (!autoUpdateTranslated) {
-            const langData = currentFileMap.get(targetLang)
-            const langItem = langData?.items.get(itemName)
-            const v = langItem?.valueMap.get(targetLang)
-            const isMissing =
-              typeof v === 'string' ? v.length === 0 : Array.isArray(v) ? v.length === 0 : true
-
-            if (!isMissing) {
-              shouldSkip = true
-              logStore.trace(`Skip ${itemName} for ${targetLang} (has existing translation)`)
-            }
-          }
-
-          // 如果应该跳过（已有翻译），则不添加到批次中，也不计入任务项（因为显示用总量不包含跳过项）
-          if (shouldSkip) {
-            logStore.trace(
-              `Skip ${itemName} for ${targetLang} (has existing translation, not counted in display total)`
-            )
-            continue
-          }
-
-          // 实际需要翻译的条目
-          batchItems.push({
-            key: itemName,
-            text: originalText,
-            context: itemName,
-          })
-
-          // 为进度跟踪创建任务项
-          tasks.value.push({
-            id: `${itemName}_${targetLang}`,
-            itemName,
-            originalText,
-            targetLanguage: targetLang,
-            status: 'pending',
-          })
-          logStore.debug(
-            `Added task for translation: ${itemName}->${targetLang}, tasks.length: ${tasks.value.length}, expected display total: ${totalActualTasks}`
-          )
-        }
-
-        if (batchItems.length === 0) {
-          logStore.info(`No items to translate for ${targetLang}`)
-          continue
-        }
-
-        hasAnyBatchItems = true
-
-        logStore.info(
-          `Translating ${batchItems.length} items to ${targetLang} (${languageActualCounts[targetLang]} actual to translate, ${languageTaskCounts[targetLang]} total in this language)...`
-        )
-
-        // 批量翻译
-        if (!translator.value) {
-          throw new Error('Translator not initialized')
-        }
-        const maxItemsPerRequest = configStore.config.maxItemsPerRequest || 20
-        logStore.debug(`Batch size: ${maxItemsPerRequest}`)
-
-        // 分批处理
-        for (let i = 0; i < batchItems.length; i += maxItemsPerRequest) {
-          // 检查是否取消（这里是最关键的：一旦取消，立即停止后续批次）
+        for (const fileName of fileNames) {
           if (isCancelled.value) {
-            logStore.info('Translation cancelled - stopping after current batch')
-            state.value = TranslationState.STOPPING
-            // 不立即返回，让当前批次完成后再处理
-            // 这样用户点击停止后，最多再等一个批次的时间
+            logStore.info('Project translation cancelled before next file')
             break
           }
 
-          const chunk = batchItems.slice(i, i + maxItemsPerRequest)
-          const chunkStartIdx = i
-
+          projectStore.selectXmlFile(fileName)
+          currentFileName.value = fileName
+          currentResDir.value = resPath
           try {
-            // 更新该批次任务状态为翻译中
-            for (let j = 0; j < chunk.length; j++) {
-              const taskIdx = tasks.value.findIndex(
-                t => t.itemName === chunk[j].key && t.targetLanguage === targetLang
-              )
-              if (taskIdx !== -1) {
-                tasks.value[taskIdx].status = 'translating'
-              }
-            }
-
-            // 调用批量翻译
-            const chunkResult = await translator.value.batchTranslateChunked(
-              {
-                items: chunk,
-                targetLanguage: targetLang,
-                sourceLanguage: LANGUAGE.DEF,
-              },
-              chunk.length, // 这个批次的大小
-              (current, _total) => {
-                // 注意：这个回调表示该批次已处理的任务数，不需要额外更新_progressCompleted
-                // _progressCompleted 会在翻译结果应用后更新
-                logStore.debug(
-                  `Batch ${i / maxItemsPerRequest + 1} progress: ${chunkStartIdx + current}/${totalTasks}`
-                )
-              },
-              () => {
-                // 取消检查回调
-                return isCancelled.value
-              }
-            )
-
-            // 应用翻译结果
-            let batchSuccessCount = 0
-            let batchErrorCount = 0
-            for (const [itemName, translatedText] of chunkResult.results) {
-              try {
-                projectStore.selectedXmlData.updateItem(
-                  projectStore.selectedXmlFile!,
-                  itemName,
-                  targetLang,
-                  translatedText as string | string[]
-                )
-
-                // 更新任务状态为已完成
-                const task = tasks.value.find(
-                  t => t.itemName === itemName && t.targetLanguage === targetLang
-                )
-                if (task) {
-                  task.translatedText = translatedText
-                  task.status = 'completed'
-                  batchSuccessCount++
-                }
-              } catch (err: any) {
-                const task = tasks.value.find(
-                  t => t.itemName === itemName && t.targetLanguage === targetLang
-                )
-                if (task) {
-                  task.status = 'error'
-                  task.error = err.message
-                  batchErrorCount++
-                }
-              }
-            }
-
-            // 处理错误（这些错误来自API调用失败，不在chunkResult.results中）
-            for (const [itemName, errorMsg] of chunkResult.errors) {
-              const task = tasks.value.find(
-                t => t.itemName === itemName && t.targetLanguage === targetLang
-              )
-              if (task) {
-                task.status = 'error'
-                task.error = errorMsg
-                batchErrorCount++
-              }
-            }
-
-            // 更新该批次的完成和失败计数（基于显示用总量）
-            _progressCompleted.value += batchSuccessCount
-            _progressFailed.value += batchErrorCount
-            completedTasks += chunk.length
-            logStore.debug(
-              `Batch ${i / maxItemsPerRequest + 1} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${totalActualTasks}, failed: ${_progressFailed.value}`
-            )
-          } catch (err: any) {
-            // 检查是否是取消错误
-            if (err.message === 'Translation cancelled') {
-              logStore.info(`Batch ${i / maxItemsPerRequest + 1} cancelled by user`)
-              // 抛出让外层统一进入 STOPPING 流程，及时退出“正在停止中”状态
-              throw err
-            }
-
-            logStore.error(`Batch ${i / maxItemsPerRequest + 1} failed:`, err)
-
-            // 如果整个批次失败，将该批次所有任务标记为错误
-            for (const item of chunk) {
-              const task = tasks.value.find(
-                t => t.itemName === item.key && t.targetLanguage === targetLang
-              )
-              if (task) {
-                task.status = 'error'
-                task.error = err.message || 'Batch translation failed'
-              }
-            }
-
-            // 更新失败计数（整个批次都算失败）
-            _progressFailed.value += chunk.length
-            completedTasks += chunk.length
-            // 注意：批次失败不算完成，因为没有成功翻译任何内容
-            logStore.debug(
-              `Batch failed, updated progress: ${completedTasks}/${totalActualTasks}, failed: ${_progressFailed.value}`
-            )
+            await projectStore.loadSelectedFile()
+          } catch (e) {
+            logStore.warning(`Skip ${fileName}: failed to load file`, e)
+            _progressFilesCompleted.value += 1
+            currentFileName.value = null
+            continue
           }
+
+          const fileMap = xmlData.getFileData(fileName)
+          const defData = fileMap?.get(LANGUAGE.DEF)
+          if (!defData) {
+            logStore.warning(`Skip ${fileName}: default language not available`)
+            _progressFilesCompleted.value += 1
+            currentFileName.value = null
+            continue
+          }
+
+          const items = new Map<string, ResItem>()
+          for (const [name, item] of defData.items) {
+            if (!item.translatable) continue
+            items.set(name, item)
+          }
+
+          if (items.size === 0) {
+            logStore.info(`Skip ${fileName}: no translatable items`)
+            _progressFilesCompleted.value += 1
+            currentFileName.value = null
+            continue
+          }
+
+          // 预估进度：按条目×语言计算，并根据是否覆盖已翻译过滤显示总量
+          for (const lang of languages) {
+            for (const [name] of items) {
+              const value = fileMap?.get(lang)?.items.get(name)?.valueMap.get(lang)
+              const missing =
+                typeof value === 'string'
+                  ? value.length === 0
+                  : Array.isArray(value)
+                    ? value.length === 0
+                    : true
+              _progressTotal.value += 1
+              if (autoUpdateTranslated || missing) {
+                _progressTotalDisplay.value += 1
+              }
+            }
+          }
+
+          logStore.info(`Translating file ${resPath}/${fileName} ...`)
+          await batchTranslateForFile({
+            xmlData,
+            fileName,
+            items,
+            languages,
+            autoUpdateTranslated,
+            fileMap,
+            resetProgress: false,
+            finalizeState: false,
+            bumpDataVersion: false,
+            reuseCancelToken: true,
+            resPath,
+          })
+
+          translatedFiles++
+          try {
+            projectStore.dataVersion++
+            logStore.debug(`UI refresh after ${fileName} (project-level)`)
+          } catch {}
         }
-
-        // 计算该语言的翻译结果统计
-        const langTasks = tasks.value.filter(t => t.targetLanguage === targetLang)
-        const totalInThisLang = langTasks.length
-        const successCount = langTasks.filter(t => t.status === 'completed').length
-        const errorCount = langTasks.filter(t => t.status === 'error').length
-        const skippedCount = totalInThisLang - batchItems.length // 被跳过的条目数
-
-        logStore.info(
-          `[${targetLang}] Total: ${totalInThisLang}, Should translate (actual): ${languageActualCounts[targetLang]}, Actually translated: ${batchItems.length}, Skipped: ${skippedCount}, Success: ${successCount}, Failed: ${errorCount}`
-        )
       }
 
-      // 如果所有目标语言都没有可翻译项，提示并结束
-      if (!hasAnyBatchItems) {
-        toast.warning('无可翻译的条目')
-        state.value = TranslationState.COMPLETED
-        logStore.info('Batch translation completed (no items)')
-        return
-      }
-
-      // 检查是否在翻译过程中被取消（STOPPING 状态）
       if (isCancelled.value) {
-        logStore.info('Batch translation stopped by user')
         state.value = TranslationState.IDLE
-        // 重置当前任务索引
-        currentTaskIndex.value = 0
+        logStore.info('Project translation stopped by user')
+        currentFileName.value = null
+        currentResDir.value = null
         return
       }
 
+      currentFileName.value = null
+      currentResDir.value = null
       state.value = TranslationState.COMPLETED
       logStore.info(
-        `Batch translation completed. Display progress: ${_progressCompleted.value}/${_progressTotalDisplay.value} (${progress.value.percentage}%), failed: ${_progressFailed.value}. Actual total: ${_progressTotal.value}`
+        `Project translation completed. Files: ${translatedFiles}/${totalFiles}, progress: ${_progressCompleted.value}/${_progressTotalDisplay.value} (failed: ${_progressFailed.value})`
       )
-      // 批量翻译完成后统一刷新表格视图
-      try {
-        projectStore.dataVersion++
-        logStore.debug('UI refresh triggered after batch translation (dataVersion++)')
-      } catch {}
     } catch (err: any) {
-      // 如果处于 STOPPING 状态，不视为错误（用户主动停止）
-      if (state.value === TranslationState.STOPPING || isCancelled.value) {
-        logStore.info('Batch translation stopped by user')
-        state.value = TranslationState.IDLE
-        return
-      }
-
-      logStore.error('Batch translation failed', err)
+      logStore.error('Project translation failed', err)
       error.value = err.message || 'Unknown error'
       state.value = TranslationState.ERROR
       throw err
@@ -860,13 +1048,17 @@ export const useTranslationStore = defineStore('translation', () => {
     hasError,
     isStopping,
     progress,
+    projectProgress,
     currentTask,
+    currentFileName,
+    currentResDir,
 
     // 方法
     initTranslator,
     testConnection,
     startTranslation,
     batchTranslate,
+    translateProject,
     async translateSingle(itemName: string, lang: Language): Promise<void> {
       if (!projectStore.selectedXmlData || !projectStore.selectedXmlFile) {
         throw new Error('No XML data selected')

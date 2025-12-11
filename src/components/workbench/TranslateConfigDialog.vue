@@ -6,10 +6,16 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <el-descriptions :column="1" border v-if="config">
-      <el-descriptions-item label="待翻译项">
-        <span style="color: var(--el-color-danger); font-weight: 500">{{
-          pendingTranslateCount
-        }}</span>
+      <el-descriptions-item :label="pendingLabel">
+        <span style="color: var(--el-color-danger); font-weight: 500">
+          {{ pendingTranslateCount }}
+        </span>
+        <span
+          v-if="config.type === 'project'"
+          style="margin-left: 6px; color: var(--el-text-color-secondary)"
+        >
+          （需加载文件后计算实际未翻译数）
+        </span>
       </el-descriptions-item>
       <template v-if="config.description">
         <el-descriptions-item v-if="config.description.key" :label="config.description.key.label">
@@ -120,7 +126,7 @@ interface Description {
 }
 
 interface DialogConfig {
-  type: 'key' | 'lang-header' | 'cell' | 'batch-toolbar'
+  type: 'key' | 'lang-header' | 'cell' | 'batch-toolbar' | 'project'
   title: string
   confirmText: string
   description: Description
@@ -172,7 +178,14 @@ const selectedScope = ref('')
 const selectedContent = ref('') // 第二层选择
 const selectedLanguages = ref<Language[]>([])
 const expectedItemCount = ref<number>(0) // 内部维护的可翻译项目数
-const pendingTranslateCount = computed(() => expectedItemCount.value ?? 0)
+const pendingTranslateCount = computed(() => {
+  if (props.config?.type === 'project') {
+    // 项目模式：显示按 scope 估算的待处理文件数（radio 切换后 updateExpectedCount 会更新）
+    return expectedItemCount.value ?? 0
+  }
+  return expectedItemCount.value ?? 0
+})
+const pendingLabel = computed(() => (props.config?.type === 'project' ? '待处理文件' : '待翻译项'))
 const languageSelectorTitle = computed(() => {
   const total = allTargetLanguagesComputed.value.length
   const selected = selectedLanguages.value.length
@@ -186,7 +199,7 @@ const isBatchTranslate = computed(() => {
 
 // 是否为工具栏批量翻译
 const isBatchToolbar = computed(() => {
-  return props.config?.type === 'batch-toolbar'
+  return props.config?.type === 'batch-toolbar' || props.config?.type === 'project'
 })
 
 // 是否为Key翻译
@@ -266,6 +279,15 @@ function updateExpectedCount() {
   const cfg = props.config
   if (!cfg) return
 
+  // 项目模式：按选择的 scope 直接显示文件数（不按语言放大）
+  if (cfg.type === 'project') {
+    const currentCount = cfg.scopeOptions.find(o => o.value === 'current')?.count || 0
+    const allCount = cfg.scopeOptions.find(o => o.value === 'all')?.count || 0
+    const usingCurrent = selectedScope.value === 'current'
+    expectedItemCount.value = usingCurrent ? currentCount : allCount
+    return
+  }
+
   if (cfg.type === 'batch-toolbar') {
     const scopeSelected = cfg.scopeOptions.find(o => o.value === 'selected')?.count || 0
     const scopeAll = cfg.scopeOptions.find(o => o.value === 'all')?.count || 0
@@ -342,18 +364,14 @@ watch(
     if (newConfig && newConfig !== oldConfig) {
       // 优先默认到“全部”以避免0条目时误选已选中
       const firstScope = newConfig.scopeOptions[0]?.value || ''
-      const selectedOpt = newConfig.scopeOptions.find(o => o.value === 'selected')
+      const selectedOpt = newConfig.scopeOptions.find(o => o.value === 'selected' || o.value === 'current')
       const allOpt = newConfig.scopeOptions.find(o => o.value === 'all')
-      if (
-        (newConfig.type === 'batch-toolbar' || newConfig.type === 'lang-header') &&
+      const shouldFallbackToAll =
         selectedOpt &&
+        allOpt &&
         selectedOpt.count === 0 &&
-        allOpt
-      ) {
-        selectedScope.value = allOpt.value
-      } else {
-        selectedScope.value = firstScope
-      }
+        (newConfig.type === 'batch-toolbar' || newConfig.type === 'project' || newConfig.type === 'lang-header')
+      selectedScope.value = shouldFallbackToAll ? allOpt.value : firstScope
 
       // Key翻译使用languageOptions，批量翻译使用contentOptions
       if (isKeyTranslate.value) {

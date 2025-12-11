@@ -10,6 +10,14 @@
       批量翻译
     </el-button>
     <el-button
+      type="warning"
+      @click="openProjectTranslateDialog"
+      :disabled="!projectStore.project || translationStore.isTranslating"
+    >
+      <el-icon style="margin-right: 4px"><MessageBox /></el-icon>
+      项目翻译
+    </el-button>
+    <el-button
       type="success"
       @click="saveCurrentFile"
       :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating"
@@ -47,6 +55,11 @@
     :config="batchDialogConfig"
     @confirm="onBatchTranslateConfirm"
   />
+  <TranslateConfigDialog
+    v-model="showProjectDialog"
+    :config="projectDialogConfig"
+    @confirm="onProjectTranslateConfirm"
+  />
 </template>
 
 <script setup lang="ts">
@@ -69,6 +82,8 @@ const configStore = useConfigStore()
 // 批量翻译对话框状态
 const showBatchDialog = ref(false)
 const batchDialogConfig = ref<any>(null)
+const showProjectDialog = ref(false)
+const projectDialogConfig = ref<any>(null)
 
 const allTargetLanguages = computed(() =>
   configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
@@ -189,6 +204,50 @@ function openBatchTranslateDialog() {
   showBatchDialog.value = true
 }
 
+function openProjectTranslateDialog() {
+  if (!projectStore.project) {
+    toast.warning('请先打开项目')
+    return
+  }
+
+  const targetLangs = allTargetLanguages.value
+  const project = projectStore.project
+  const totalFilesAll = project.resDirs.reduce((sum, dir) => {
+    const xmlData = project.xmlDataMap.get(dir.relativePath)
+    return sum + (xmlData ? xmlData.getXmlFileNames().length : 0)
+  }, 0)
+  const totalFilesCurrent = projectStore.selectedResDir
+    ? project.xmlDataMap.get(projectStore.selectedResDir)?.getXmlFileNames().length || 0
+    : 0
+
+  // 无法精确统计未翻译项时，使用“待处理文件数”作提示值
+  projectDialogConfig.value = {
+    type: 'project' as const,
+    title: '项目翻译',
+    confirmText: '开始项目翻译',
+    description: null,
+    scopeOptions: [
+      { value: 'current', label: `当前目录 (${totalFilesCurrent} 文件)`, count: totalFilesCurrent },
+      { value: 'all', label: `全部 (${totalFilesAll} 文件)`, count: totalFilesAll },
+    ],
+    contentOptions: [
+      { value: 'missing', label: '仅未翻译（需加载统计）', count: totalFilesAll },
+      { value: 'all', label: '全部', count: totalFilesAll },
+    ],
+    allTargetLanguages: targetLangs,
+    defaultSelectedLanguages: configStore.config.targetLanguages,
+    showTargetLanguages: true,
+    languageSelectorCollapsed: false,
+    expectedItemCount: totalFilesCurrent || totalFilesAll || 0,
+    context: {
+      missingAllCount: totalFilesAll,
+      allCount: totalFilesAll,
+    },
+  }
+
+  showProjectDialog.value = true
+}
+
 async function onBatchTranslateConfirm(data: {
   scope: string
   languages: Language[]
@@ -239,6 +298,35 @@ async function onBatchTranslateConfirm(data: {
     toast.success(`批量翻译完成`)
   } catch (e: any) {
     toast.fromError(e, '翻译失败')
+  }
+}
+
+async function onProjectTranslateConfirm(data: {
+  scope: string
+  content?: string
+  languages: Language[]
+  autoUpdateTranslated?: boolean
+}) {
+  if (!projectStore.project) {
+    toast.warning('请先打开项目')
+    return
+  }
+  if (!data.languages.length) {
+    toast.warning('请先选择目标语言')
+    return
+  }
+
+  try {
+    showProjectDialog.value = false
+    projectDialogConfig.value = null
+    await translationStore.translateProject({
+      languages: data.languages,
+      autoUpdateTranslated: data.autoUpdateTranslated,
+      scope: data.scope === 'current' ? 'current' : 'all',
+    })
+    toast.success('项目翻译完成')
+  } catch (e: any) {
+    toast.fromError(e, '项目翻译失败')
   }
 }
 </script>
