@@ -364,13 +364,17 @@ watch(
     if (newConfig && newConfig !== oldConfig) {
       // 优先默认到“全部”以避免0条目时误选已选中
       const firstScope = newConfig.scopeOptions[0]?.value || ''
-      const selectedOpt = newConfig.scopeOptions.find(o => o.value === 'selected' || o.value === 'current')
+      const selectedOpt = newConfig.scopeOptions.find(
+        o => o.value === 'selected' || o.value === 'current'
+      )
       const allOpt = newConfig.scopeOptions.find(o => o.value === 'all')
       const shouldFallbackToAll =
         selectedOpt &&
         allOpt &&
         selectedOpt.count === 0 &&
-        (newConfig.type === 'batch-toolbar' || newConfig.type === 'project' || newConfig.type === 'lang-header')
+        (newConfig.type === 'batch-toolbar' ||
+          newConfig.type === 'project' ||
+          newConfig.type === 'lang-header')
       selectedScope.value = shouldFallbackToAll ? allOpt.value : firstScope
 
       // Key翻译使用languageOptions，批量翻译使用contentOptions
