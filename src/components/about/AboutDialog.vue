@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :model-value="visible"
-    title="关于"
+    :title="$t('about.title')"
     width="560px"
     :show-close="!requireAcknowledge"
     :close-on-click-modal="!requireAcknowledge"
@@ -9,39 +9,37 @@
     @close="handleClose"
   >
     <el-tabs v-model="innerTab">
-      <el-tab-pane label="关于" name="info">
+      <el-tab-pane :label="$t('about.tabs.about')" name="info">
         <div class="about">
           <div class="logo-container">
             <img class="logo" src="/favicon.svg" alt="Android Trans Tool Plus" />
           </div>
           <h2 class="app-name">{{ appName }}</h2>
-          <p class="version">版本 {{ version }}</p>
+          <p class="version">{{ $t('about.version', { version }) }}</p>
           <p class="description">{{ description }}</p>
           <el-divider />
           <div class="tech-stack">
-            <p><strong>技术栈</strong></p>
-            <p>Vue 3 + Vite + Pinia + Element Plus + TypeScript</p>
+            <p><strong>{{ $t('about.techStack') }}</strong></p>
+            <p>{{ $t('about.techStackContent') }}</p>
           </div>
           <el-divider />
-          <p class="muted">本工具支持 Chrome/Edge 等浏览器环境</p>
-          <p class="copyright">Copyright © {{ year }}</p>
+          <p class="muted">{{ $t('about.browserSupport') }}</p>
+          <p class="copyright">{{ $t('about.copyright', { year }) }}</p>
         </div>
       </el-tab-pane>
-      <el-tab-pane label="使用须知" name="notice">
+      <el-tab-pane :label="$t('about.tabs.notice')" name="notice">
         <ul class="notice-list">
-          <li>
-            本项目为纯前端应用，除访问您配置的兼容 OpenAI 服务外，不会向其他服务器发送任何数据。
-          </li>
-          <li>使用前请先配置兼容 OpenAI 的 API 地址与 Token，否则无法调用翻译能力。</li>
-          <li>在点击“保存”之前，不会写入任何本地文件。</li>
-          <li>保存操作会直接修改目标文件且不可撤销，请提前备份。</li>
-          <li>风险提示：使用本工具需自行承担全部风险，本项目不对使用后果承担任何责任。</li>
+          <li>{{ $t('about.notice.item1') }}</li>
+          <li>{{ $t('about.notice.item2') }}</li>
+          <li>{{ $t('about.notice.item3') }}</li>
+          <li>{{ $t('about.notice.item4') }}</li>
+          <li>{{ $t('about.notice.item5') }}</li>
         </ul>
       </el-tab-pane>
     </el-tabs>
     <template #footer>
-      <el-button v-if="!requireAcknowledge" @click="emit('update:visible', false)">关闭</el-button>
-      <el-button type="primary" @click="emit('acknowledge')">我已知晓并继续</el-button>
+      <el-button v-if="!requireAcknowledge" @click="emit('update:visible', false)">{{ $t('common.close') }}</el-button>
+      <el-button type="primary" @click="emit('acknowledge')">{{ $t('about.acknowledge') }}</el-button>
     </template>
   </el-dialog>
 </template>

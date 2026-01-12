@@ -1,5 +1,5 @@
 <template>
-  <el-config-provider :locale="zhCn">
+  <el-config-provider :locale="elementLocale">
     <el-container class="app-shell">
       <!-- 顶部栏：标题 + 设置/关于 -->
       <el-header class="app-header">
@@ -41,34 +41,37 @@
   <!-- 项目恢复对话框 -->
   <el-dialog
     v-model="showRestoreDialog"
-    title="恢复项目"
+    :title="$t('project.restoreDialog.title')"
     width="480px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
   >
     <div style="padding: 16px 0">
-      <p style="margin-bottom: 12px">检测到您上次打开的项目，是否要恢复？</p>
+      <p style="margin-bottom: 12px">{{ $t('project.restoreDialog.message') }}</p>
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="注意"
-        description="由于浏览器安全限制，您需要重新选择项目目录，但我们可以自动恢复您上次打开的文件。"
+        :title="$t('project.restoreDialog.notice')"
+        :description="$t('project.restoreDialog.noticeDesc')"
         style="margin-bottom: 12px"
       />
     </div>
     <template #footer>
-      <el-button @click="skipRestore">跳过</el-button>
-      <el-button type="primary" @click="confirmRestore">恢复项目</el-button>
+      <el-button @click="skipRestore">{{ $t('project.restoreDialog.skip') }}</el-button>
+      <el-button type="primary" @click="confirmRestore">{{ $t('project.restoreDialog.restore') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useConfigStore } from '@/stores/config'
 import { useProjectStore } from '@/stores/project'
+import { useI18n } from 'vue-i18n'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import en from 'element-plus/es/locale/lang/en'
+import { setLocale } from '@/locales'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue'
 import OperationsBar from '@/components/workbench/OperationsBar.vue'
@@ -82,6 +85,13 @@ import { getStorageAdapter } from '@/adapters'
 
 const configStore = useConfigStore()
 const projectStore = useProjectStore()
+const { locale } = useI18n()
+
+// Element Plus 语言包映射
+const elementLocale = computed(() => {
+  return configStore.config.locale === 'en' ? en : zhCn
+})
+
 const showSettings = ref(false)
 const showAbout = ref(false)
 const showRestoreDialog = ref(false)
@@ -122,6 +132,15 @@ onMounted(() => {
 watch(
   () => configStore.config.theme,
   val => applyTheme(val)
+)
+
+// 监听语言变化，同步到 i18n
+watch(
+  () => configStore.config.locale,
+  val => {
+    setLocale(val)
+    locale.value = val
+  }
 )
 
 async function confirmRestore() {

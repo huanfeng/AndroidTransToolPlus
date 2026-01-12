@@ -9,6 +9,7 @@ import {
   type CustomLanguage,
 } from '@/models/language'
 import { DEFAULT_AI_MODEL_PRESET } from '@/models/ai'
+import { setLocale, type LocaleType } from '@/locales'
 
 /**
  * 应用配置接口
@@ -25,6 +26,7 @@ export interface AppConfig {
   maxRetries: number
   requestTimeout: number
   theme: 'light' | 'dark'
+  locale: LocaleType
   showLogView: boolean
   aiModelPreset: string
   aiCustomModel: string
@@ -46,6 +48,7 @@ const DEFAULT_CONFIG: AppConfig = {
   maxRetries: 3,
   requestTimeout: 120000,
   theme: 'light',
+  locale: 'zh-CN',
   showLogView: false,
   aiModelPreset: DEFAULT_AI_MODEL_PRESET,
   aiCustomModel: '',
@@ -74,6 +77,9 @@ export const useConfigStore = defineStore('config', () => {
       // 初始化语言管理器中的自定义语言
       const langManager = LanguageManager.getInstance()
       langManager.setCustomLanguages(config.value.customLanguages)
+
+      // 同步 UI 语言到 i18n
+      setLocale(config.value.locale)
 
       loaded.value = true
     } catch (error) {

@@ -9,9 +9,9 @@
     <el-collapse-transition>
       <div v-show="!collapsed" class="content">
         <div class="button-group">
-          <el-button @click="selectAll" size="small">全选</el-button>
-          <el-button @click="clearAll" size="small">全不选</el-button>
-          <el-button @click="invertSelection" size="small">反选</el-button>
+          <el-button @click="selectAll" size="small">{{ $t('common.selectAll') }}</el-button>
+          <el-button @click="clearAll" size="small">{{ $t('common.selectNone') }}</el-button>
+          <el-button @click="invertSelection" size="small">{{ $t('common.invertSelection') }}</el-button>
         </div>
         <el-checkbox-group v-model="selected" class="checkbox-grid">
           <el-checkbox v-for="l in languages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>
@@ -23,8 +23,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { type Language, getLanguageLabel } from '@/models/language'
+
+const { locale } = useI18n()
 
 interface Props {
   modelValue: Language[]
@@ -34,7 +37,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: '选择目标语言',
+  title: '',
   defaultCollapsed: false,
 })
 
@@ -51,7 +54,7 @@ const selected = computed({
   },
 })
 
-const langLabel = (l: Language) => getLanguageLabel(l, 'cn')
+const langLabel = (l: Language) => getLanguageLabel(l, locale.value === 'en' ? 'en' : 'cn')
 
 function selectAll() {
   selected.value = [...props.languages]

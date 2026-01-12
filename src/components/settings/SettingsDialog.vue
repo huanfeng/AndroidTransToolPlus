@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :model-value="visible"
-    title="应用设置"
+    :title="$t('settings.title')"
     width="860px"
     top="50px"
     :close-on-click-modal="false"
@@ -12,9 +12,9 @@
     <template #header>
       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
         <div>
-          <div style="font-size: 16px; font-weight: 600">应用设置</div>
+          <div style="font-size: 16px; font-weight: 600">{{ $t('settings.title') }}</div>
           <div style="font-size: 12px; color: var(--el-text-color-secondary)">
-            配置接口、语言顺序以及 AI 翻译参数
+            {{ $t('settings.description') }}
           </div>
         </div>
         <el-button text circle @click="closeDialog">
@@ -24,36 +24,36 @@
     </template>
 
     <el-tabs v-model="activeTab">
-      <el-tab-pane label="基础" name="general">
+      <el-tab-pane :label="$t('settings.tabs.general')" name="general">
         <el-form
           label-width="140px"
           :model="form"
           style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y"
         >
-          <el-form-item label="每批最大条目">
+          <el-form-item :label="$t('settings.general.maxItemsPerRequest')">
             <el-input-number v-model="form.maxItemsPerRequest" :min="1" :max="100" />
           </el-form-item>
-          <el-form-item label="最大重试次数">
+          <el-form-item :label="$t('settings.general.maxRetries')">
             <el-input-number v-model="form.maxRetries" :min="0" :max="10" />
           </el-form-item>
-          <el-form-item label="请求超时(ms)">
+          <el-form-item :label="$t('settings.general.requestTimeout')">
             <el-input-number v-model="form.requestTimeout" :min="1000" :max="300000" :step="1000" />
           </el-form-item>
-          <el-form-item label="主题">
+          <el-form-item :label="$t('settings.general.theme')">
             <el-radio-group v-model="form.theme">
-              <el-radio-button value="light">浅色</el-radio-button>
-              <el-radio-button value="dark">深色</el-radio-button>
+              <el-radio-button value="light">{{ $t('settings.general.themeLight') }}</el-radio-button>
+              <el-radio-button value="dark">{{ $t('settings.general.themeDark') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="语言" name="language">
+      <el-tab-pane :label="$t('settings.tabs.language')" name="language">
         <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y">
           <el-alert type="info" show-icon :closable="false" style="margin-bottom: 16px">
             <template #title>
-              默认语言：<strong>{{ langLabel(defLang) }}</strong
-              >（始终第一位）
+              {{ $t('settings.language.defaultLang') }}：<strong>{{ langLabel(defLang) }}</strong
+              >{{ $t('settings.language.defaultLangSuffix') }}
             </template>
           </el-alert>
 
@@ -67,10 +67,10 @@
                 align-items: center;
               "
             >
-              <span>已启用语言</span>
+              <span>{{ $t('settings.language.enabledLanguages') }}</span>
               <div style="display: flex; gap: 8px">
                 <el-button size="small" type="primary" plain @click="addAllLanguages">
-                  添加全部 ({{ availableLangInfos.length }})
+                  {{ $t('settings.language.addAll', { count: availableLangInfos.length }) }}
                 </el-button>
                 <el-button
                   size="small"
@@ -79,12 +79,12 @@
                   :disabled="!enabledLangCodes.length"
                   @click="clearAllLanguages"
                 >
-                  清空
+                  {{ $t('settings.language.clear') }}
                 </el-button>
               </div>
             </div>
             <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px">
-              <span>拖拽可调整顺序，点击 × 可移除</span>
+              <span>{{ $t('settings.language.dragHint') }}</span>
             </div>
             <div
               style="
@@ -99,7 +99,7 @@
                 v-if="enabledLangCodes.length === 0"
                 style="color: var(--el-text-color-secondary); text-align: center; padding: 12px"
               >
-                尚未启用其他语言
+                {{ $t('settings.language.noEnabledLanguages') }}
               </div>
               <div v-else style="display: flex; flex-wrap: wrap; gap: 8px">
                 <el-tag
@@ -119,7 +119,7 @@
           </div>
 
           <div>
-            <div style="font-weight: 600; margin-bottom: 8px">可启用的语言</div>
+            <div style="font-weight: 600; margin-bottom: 8px">{{ $t('settings.language.availableLanguages') }}</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px">
               <el-tag
                 v-for="info in availableLangInfos"
@@ -137,40 +137,40 @@
           <!-- 自定义语言管理 -->
           <div style="margin-top: 30px">
             <el-divider content-position="left">
-              <span style="font-weight: 600">自定义语言管理</span>
+              <span style="font-weight: 600">{{ $t('settings.language.customLanguageManagement') }}</span>
             </el-divider>
 
             <el-alert type="info" show-icon :closable="false" style="margin-bottom: 16px">
-              <template #title> 支持添加任意 Android 语言代码（如 th, vi, es 等） </template>
+              <template #title> {{ $t('settings.language.customLanguageHint') }} </template>
             </el-alert>
 
             <!-- 添加自定义语言表单 -->
             <div style="margin-bottom: 20px">
-              <div style="font-weight: 600; margin-bottom: 12px">添加自定义语言</div>
+              <div style="font-weight: 600; margin-bottom: 12px">{{ $t('settings.language.addCustomLanguage') }}</div>
               <el-form
                 label-width="120px"
                 :model="customLangForm"
                 style="background: var(--el-fill-color-lighter); padding: 16px; border-radius: 8px"
               >
-                <el-form-item label="Android 代码">
+                <el-form-item :label="$t('settings.language.androidCode')">
                   <el-input
                     v-model="customLangForm.androidCode"
-                    placeholder="例如：th, vi, es"
+                    :placeholder="$t('settings.language.androidCodePlaceholder')"
                     style="width: 200px"
                     @blur="formatAndroidCode"
                   />
                 </el-form-item>
-                <el-form-item label="中文名称">
+                <el-form-item :label="$t('settings.language.chineseName')">
                   <el-input
                     v-model="customLangForm.nameCn"
-                    placeholder="例如：泰语、越南语"
+                    :placeholder="$t('settings.language.chineseNamePlaceholder')"
                     style="width: 200px"
                   />
                 </el-form-item>
-                <el-form-item label="英文名称">
+                <el-form-item :label="$t('settings.language.englishName')">
                   <el-input
                     v-model="customLangForm.nameEn"
-                    placeholder="例如：Thai, Vietnamese"
+                    :placeholder="$t('settings.language.englishNamePlaceholder')"
                     style="width: 200px"
                   />
                 </el-form-item>
@@ -180,9 +180,9 @@
                     @click="addCustomLanguage"
                     :disabled="!canAddCustomLang"
                   >
-                    添加语言
+                    {{ $t('settings.language.addLanguage') }}
                   </el-button>
-                  <el-button @click="resetCustomLangForm">重置</el-button>
+                  <el-button @click="resetCustomLangForm">{{ $t('common.reset') }}</el-button>
                 </el-form-item>
               </el-form>
             </div>
@@ -190,17 +190,17 @@
             <!-- 自定义语言列表 -->
             <div v-if="customLanguages.length > 0">
               <div style="font-weight: 600; margin-bottom: 12px">
-                已添加的自定义语言 ({{ customLanguages.length }})
+                {{ $t('settings.language.addedCustomLanguages', { count: customLanguages.length }) }}
               </div>
               <el-table :data="customLanguages" style="width: 100%" size="small">
-                <el-table-column prop="androidCode" label="Android 代码" width="120">
+                <el-table-column prop="androidCode" :label="$t('settings.language.androidCode')" width="120">
                   <template #default="{ row }">
                     <el-tag size="small">{{ row.androidCode }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="nameCn" label="中文名称" width="150" />
-                <el-table-column prop="nameEn" label="英文名称" width="150" />
-                <el-table-column prop="valuesDirName" label="Values 目录">
+                <el-table-column prop="nameCn" :label="$t('settings.language.chineseName')" width="150" />
+                <el-table-column prop="nameEn" :label="$t('settings.language.englishName')" width="150" />
+                <el-table-column prop="valuesDirName" :label="$t('settings.language.valuesDir')">
                   <template #default="{ row }">
                     <code
                       style="
@@ -214,7 +214,7 @@
                     </code>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="100" align="center">
+                <el-table-column :label="$t('settings.language.actions')" width="100" align="center">
                   <template #default="{ row }">
                     <el-button
                       type="danger"
@@ -222,7 +222,7 @@
                       text
                       @click="removeCustomLanguage(row.androidCode)"
                     >
-                      删除
+                      {{ $t('common.delete') }}
                     </el-button>
                   </template>
                 </el-table-column>
@@ -233,24 +233,24 @@
               v-else
               style="text-align: center; color: var(--el-text-color-secondary); padding: 20px"
             >
-              暂无自定义语言
+              {{ $t('settings.language.noCustomLanguages') }}
             </div>
           </div>
         </div>
       </el-tab-pane>
 
-      <el-tab-pane label="AI" name="ai">
+      <el-tab-pane :label="$t('settings.tabs.ai')" name="ai">
         <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y">
           <div style="margin-bottom: 20px">
-            <div style="font-weight: 600; margin-bottom: 12px">API 配置</div>
+            <div style="font-weight: 600; margin-bottom: 12px">{{ $t('settings.ai.apiConfig') }}</div>
             <el-form label-width="140px" :model="form">
-              <el-form-item label="API URL">
-                <el-input v-model="form.apiUrl" placeholder="https://api.openai.com/v1" />
+              <el-form-item :label="$t('settings.ai.apiUrl')">
+                <el-input v-model="form.apiUrl" :placeholder="$t('settings.ai.apiUrlPlaceholder')" />
               </el-form-item>
-              <el-form-item label="API Key">
+              <el-form-item :label="$t('settings.ai.apiKey')">
                 <el-input v-model="form.apiKey" type="password" show-password />
               </el-form-item>
-              <el-form-item label="HTTP 代理">
+              <el-form-item :label="$t('settings.ai.httpProxy')">
                 <el-input v-model="form.httpProxy" placeholder="" disabled />
                 <div
                   style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
@@ -258,41 +258,45 @@
                   <el-icon style="vertical-align: middle; margin-right: 4px"
                     ><InfoFilled
                   /></el-icon>
-                  <span>浏览器环境下代理功能已禁用，请使用浏览器的代理功能或扩展</span>
+                  <span>{{ $t('settings.ai.proxyDisabledHint') }}</span>
                 </div>
               </el-form-item>
             </el-form>
           </div>
 
           <div style="margin-bottom: 20px">
-            <div style="font-weight: 600; margin-bottom: 12px">模型配置</div>
+            <div style="font-weight: 600; margin-bottom: 12px">{{ $t('settings.ai.modelConfig') }}</div>
             <el-form label-width="100px" :model="form">
-              <el-form-item label="模型名称">
-                <el-select v-model="form.aiModelPreset" style="width: 100%">
+              <el-form-item :label="$t('settings.ai.modelName')">
+                <el-select
+                  v-model="form.aiModelPreset"
+                  style="width: 100%"
+                  popper-class="model-select-popper"
+                >
                   <el-option
                     v-for="preset in modelPresets"
                     :key="preset.model"
-                    :label="getModelLabel(preset.model)"
+                    :label="preset.model"
                     :value="preset.model"
                   >
-                    <div style="display: flex; flex-direction: column">
-                      <span style="font-weight: 500">{{ getModelLabel(preset.model) }}</span>
-                      <small style="color: var(--el-text-color-secondary)">{{
-                        preset.description
-                      }}</small>
+                    <div class="model-option">
+                      <span class="model-name">{{ preset.model }}</span>
+                      <span v-if="preset.descKey" class="model-desc">
+                        {{ getModelDescription(preset.descKey) }}
+                      </span>
                     </div>
                   </el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item v-if="isCustomModel" label="自定义名称">
+              <el-form-item v-if="isCustomModel" :label="$t('settings.ai.customModelName')">
                 <el-input
                   v-model="form.aiCustomModel"
-                  placeholder="gpt-4-turbo / claude-3-opus ..."
+                  :placeholder="$t('settings.ai.customModelPlaceholder')"
                 />
               </el-form-item>
               <el-form-item>
                 <el-button @click="onTest" :loading="testLoading">
-                  测试连接
+                  {{ $t('settings.ai.testConnection') }}
                   <template v-if="testStatus">
                     <span style="margin-left: 8px">{{ testStatus }}</span>
                   </template>
@@ -302,14 +306,14 @@
           </div>
 
           <div>
-            <div style="font-weight: 600; margin-bottom: 12px">提示词配置</div>
+            <div style="font-weight: 600; margin-bottom: 12px">{{ $t('settings.ai.promptConfig') }}</div>
             <el-form label-width="100px" :model="form">
-              <el-form-item label="补充提示词">
+              <el-form-item :label="$t('settings.ai.extraPrompt')">
                 <el-input
                   v-model="form.aiPromptExtra"
                   type="textarea"
                   :rows="4"
-                  placeholder="例如：这些文案用于电商 App，请使用贴合购物场景的表达。"
+                  :placeholder="$t('settings.ai.extraPromptPlaceholder')"
                 />
               </el-form-item>
             </el-form>
@@ -324,8 +328,8 @@
                   align-items: center;
                 "
               >
-                <span>单条翻译提示预览</span>
-                <el-tag size="small" type="info">系统自动生成</el-tag>
+                <span>{{ $t('settings.ai.singlePromptPreview') }}</span>
+                <el-tag size="small" type="info">{{ $t('settings.ai.autoGenerated') }}</el-tag>
               </div>
               <pre
                 style="
@@ -357,8 +361,8 @@
                   align-items: center;
                 "
               >
-                <span>批量翻译提示预览</span>
-                <el-tag size="small" type="info">系统自动生成</el-tag>
+                <span>{{ $t('settings.ai.batchPromptPreview') }}</span>
+                <el-tag size="small" type="info">{{ $t('settings.ai.autoGenerated') }}</el-tag>
               </div>
               <pre
                 style="
@@ -387,11 +391,11 @@
     <template #footer>
       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
         <span style="font-size: 12px; color: var(--el-text-color-secondary)"
-          >保存后立即生效，并写入本地配置</span
+          >{{ $t('settings.footer.hint') }}</span
         >
         <div>
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button type="primary" @click="onSave">保存</el-button>
+          <el-button @click="closeDialog">{{ $t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="onSave">{{ $t('common.save') }}</el-button>
         </div>
       </div>
     </template>
@@ -400,18 +404,20 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Close, InfoFilled } from '@element-plus/icons-vue'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
 import { LANGUAGE, type Language, getLanguageLabel, type CustomLanguage } from '@/models/language'
 import {
   AI_MODEL_PRESETS,
-  getModelLabel,
   BATCH_PROMPT_TEMPLATE,
   SINGLE_PROMPT_TEMPLATE,
   renderPromptTemplate,
 } from '@/models/ai'
 import toast from '@/utils/toast'
+
+const { t, locale } = useI18n()
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ (e: 'update:visible', v: boolean): void }>()
@@ -428,7 +434,7 @@ const activeTab = ref('general')
 const defLang = LANGUAGE.DEF
 
 const langLabel = (lang: Language) => {
-  return getLanguageLabel(lang, 'cn')
+  return getLanguageLabel(lang, locale.value === 'en' ? 'en' : 'cn')
 }
 
 // Language management
@@ -486,22 +492,29 @@ watch(
 )
 
 const modelPresets = computed(() => {
-  return Object.entries(AI_MODEL_PRESETS).map(([model, description]) => ({
+  return Object.entries(AI_MODEL_PRESETS).map(([model, descKey]) => ({
     model,
-    description,
+    descKey,
   }))
 })
 const isCustomModel = computed(() => form.value.aiModelPreset === 'custom')
 
+// 获取模型描述
+function getModelDescription(descKey: string): string {
+  if (!descKey) return ''
+  const key = `settings.ai.modelDesc.${descKey}`
+  return t(key)
+}
+
 const singlePromptPreview = computed(() => {
   const extra = form.value.aiPromptExtra?.trim()
     ? `- Additional context: ${form.value.aiPromptExtra.trim()}\n`
-    : '{{可选补充提示}}\n'
+    : `${t('settings.ai.placeholder.optionalPrompt')}\n`
   return renderPromptTemplate(SINGLE_PROMPT_TEMPLATE, {
-    sourceLanguage: '{{源语言}}',
-    targetLanguage: '{{目标语言}}',
-    contextBlock: 'Context: This is an Android string resource named "{{资源 ID}}".\n\n',
-    text: '{{原文}}',
+    sourceLanguage: t('settings.ai.placeholder.sourceLanguage'),
+    targetLanguage: t('settings.ai.placeholder.targetLanguage'),
+    contextBlock: `Context: This is an Android string resource named "${t('settings.ai.placeholder.resourceId')}".\n\n`,
+    text: t('settings.ai.placeholder.originalText'),
     extraPromptBlock: extra,
   })
 })
@@ -509,14 +522,14 @@ const singlePromptPreview = computed(() => {
 const batchPromptPreview = computed(() => {
   const extra = form.value.aiPromptExtra?.trim()
     ? `- Additional context: ${form.value.aiPromptExtra.trim()}\n`
-    : '{{可选补充提示}}\n'
+    : `${t('settings.ai.placeholder.optionalPrompt')}\n`
   return renderPromptTemplate(BATCH_PROMPT_TEMPLATE, {
-    sourceLanguage: '{{源语言}}',
-    targetLanguage: '{{目标语言}}',
+    sourceLanguage: t('settings.ai.placeholder.sourceLanguage'),
+    targetLanguage: t('settings.ai.placeholder.targetLanguage'),
     textsJson: JSON.stringify(
       {
-        title: '{{原文 1}}',
-        description: '{{原文 2}}',
+        title: `${t('settings.ai.placeholder.originalText')} 1`,
+        description: `${t('settings.ai.placeholder.originalText')} 2`,
       },
       null,
       2
@@ -532,14 +545,14 @@ const testStatus = ref('')
 
 async function onTest() {
   testLoading.value = true
-  testStatus.value = '正在请求...'
+  testStatus.value = t('settings.ai.testing')
 
   try {
     const ok = await translationStore.testConnection()
-    testStatus.value = ok ? '连接成功' : '连接失败'
+    testStatus.value = ok ? t('settings.ai.connectionSuccess') : t('settings.ai.connectionFailed')
   } catch (error: any) {
-    testStatus.value = '连接失败'
-    toast.fromError(error, '测试失败')
+    testStatus.value = t('settings.ai.connectionFailed')
+    toast.fromError(error, t('settings.ai.connectionFailed'))
   } finally {
     testLoading.value = false
   }
@@ -563,10 +576,10 @@ async function onSave() {
     const langs: Language[] = [LANGUAGE.DEF, ...enabledLangCodes.value]
     configStore.update('enabledLanguages', langs)
     await configStore.save()
-    toast.success('设置已保存')
+    toast.success(t('settings.toast.saved'))
     closeDialog()
   } catch (error: any) {
-    toast.fromError(error, '保存失败')
+    toast.fromError(error, t('settings.toast.saveFailed'))
   }
 }
 
@@ -608,7 +621,7 @@ function resetCustomLangForm() {
 
 function addCustomLanguage() {
   if (!canAddCustomLang.value) {
-    toast.warning('请填写完整信息')
+    toast.warning(t('settings.toast.fillComplete'))
     return
   }
 
@@ -631,10 +644,10 @@ function addCustomLanguage() {
         valuesDirName: l.valuesDirName,
       }))
 
-    toast.success('自定义语言添加成功')
+    toast.success(t('settings.toast.customLanguageAdded'))
     resetCustomLangForm()
   } catch (error: any) {
-    toast.error(error.message || '添加自定义语言失败')
+    toast.error(error.message || t('settings.toast.customLanguageAddFailed'))
   }
 }
 
@@ -642,9 +655,9 @@ function removeCustomLanguage(androidCode: string) {
   try {
     configStore.removeCustomLanguage(androidCode)
     customLanguages.value = customLanguages.value.filter(l => l.androidCode !== androidCode)
-    toast.success('自定义语言删除成功')
+    toast.success(t('settings.toast.customLanguageDeleted'))
   } catch (error: any) {
-    toast.error(error.message || '删除自定义语言失败')
+    toast.error(error.message || t('settings.toast.customLanguageDeleteFailed'))
   }
 }
 
@@ -673,3 +686,28 @@ watch(
   }
 )
 </script>
+
+<style>
+/* 全局样式：模型选择器下拉框（popper 挂载在 body 下，需要全局样式） */
+.model-select-popper .el-select-dropdown__item {
+  height: auto !important;
+  padding: 8px 12px !important;
+  line-height: 1.4 !important;
+}
+
+.model-select-popper .el-select-dropdown__item .model-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-select-popper .el-select-dropdown__item .model-name {
+  font-weight: 500;
+}
+
+.model-select-popper .el-select-dropdown__item .model-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-weight: normal;
+}
+</style>

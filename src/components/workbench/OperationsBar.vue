@@ -3,11 +3,11 @@
     <el-button
       @click="reloadFile"
       :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating"
-      >重新加载文件</el-button
+      >{{ $t('workbench.operations.reloadFile') }}</el-button
     >
     <el-button type="primary" @click="openBatchTranslateDialog" :disabled="!canTranslate">
       <el-icon style="margin-right: 4px"><MessageBox /></el-icon>
-      批量翻译
+      {{ $t('workbench.operations.batchTranslate') }}
     </el-button>
     <el-button
       type="warning"
@@ -15,20 +15,20 @@
       :disabled="!projectStore.project || translationStore.isTranslating"
     >
       <el-icon style="margin-right: 4px"><MessageBox /></el-icon>
-      项目翻译
+      {{ $t('workbench.operations.projectTranslate') }}
     </el-button>
     <el-button
       type="success"
       @click="saveCurrentFile"
       :disabled="!projectStore.selectedXmlFile || translationStore.isTranslating"
-      >保存当前文件</el-button
+      >{{ $t('workbench.operations.saveCurrentFile') }}</el-button
     >
     <el-divider direction="vertical" />
     <!-- 搜索 / 筛选 放到与操作同一行 -->
     <el-input
       v-model="projectStore.tableFilterText"
       clearable
-      placeholder="搜索 Key / 默认文本"
+      :placeholder="$t('workbench.operations.searchPlaceholder')"
       style="max-width: 320px"
     >
       <template #prefix>
@@ -36,16 +36,16 @@
       </template>
     </el-input>
     <el-radio-group v-model="projectStore.tableFilterCurrent" style="margin-left: 8px">
-      <el-radio-button value="">全部</el-radio-button>
-      <el-radio-button value="incomplete">未完成</el-radio-button>
-      <el-radio-button value="untranslatable">不可翻译</el-radio-button>
-      <el-radio-button value="edited">已编辑</el-radio-button>
+      <el-radio-button value="">{{ $t('workbench.operations.filterAll') }}</el-radio-button>
+      <el-radio-button value="incomplete">{{ $t('workbench.operations.filterIncomplete') }}</el-radio-button>
+      <el-radio-button value="untranslatable">{{ $t('workbench.operations.filterUntranslatable') }}</el-radio-button>
+      <el-radio-button value="edited">{{ $t('workbench.operations.filterEdited') }}</el-radio-button>
     </el-radio-group>
     <div class="toolbar-spacer"></div>
     <!-- 统计标签移至同一行显示 -->
-    <el-tag type="info">筛选: {{ projectStore.tableFilteredCount }}</el-tag>
+    <el-tag type="info">{{ $t('workbench.operations.filtered', { count: projectStore.tableFilteredCount }) }}</el-tag>
     <el-tag type="success" style="margin-left: 6px"
-      >选中: {{ projectStore.tableSelectionCount }}</el-tag
+      >{{ $t('workbench.operations.selected', { count: projectStore.tableSelectionCount }) }}</el-tag
     >
   </div>
 
@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElLoading } from 'element-plus'
 import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
@@ -75,6 +76,7 @@ import type { ResItem } from '@/models/resource'
 import { checkAndPromptUnsavedChanges } from '@/utils/beforeUnload'
 import TranslateConfigDialog from './TranslateConfigDialog.vue'
 
+const { t } = useI18n()
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const configStore = useConfigStore()
@@ -100,14 +102,14 @@ async function reloadFile() {
     // 检查是否有未保存的修改
     await checkAndPromptUnsavedChanges()
 
-    const loading = ElLoading.service({ lock: true, text: '重载中...' })
+    const loading = ElLoading.service({ lock: true, text: t('workbench.toast.reloading') })
     await projectStore.reloadSelectedFile()
     loading.close()
-    toast.success('文件已重新加载')
+    toast.success(t('workbench.toast.fileReloaded'))
   } catch (e: any) {
     // 用户取消时不显示错误
     if (e.message !== 'User cancelled') {
-      toast.fromError(e, '重载失败')
+      toast.fromError(e, t('workbench.toast.reloadFailed'))
     }
   }
 }
@@ -115,12 +117,12 @@ async function reloadFile() {
 async function saveCurrentFile() {
   if (!projectStore.selectedXmlFile) return
   try {
-    const loading = ElLoading.service({ lock: true, text: '保存中...' })
+    const loading = ElLoading.service({ lock: true, text: t('common.saving') })
     await projectStore.saveSelectedFile()
     loading.close()
-    toast.success('已保存当前文件')
+    toast.success(t('workbench.toast.fileSaved'))
   } catch (e: any) {
-    toast.fromError(e, '保存失败')
+    toast.fromError(e, t('project.saveFailed'))
   }
 }
 
@@ -173,16 +175,16 @@ function openBatchTranslateDialog() {
   // 准备对话框配置
   batchDialogConfig.value = {
     type: 'batch-toolbar' as const,
-    title: '批量翻译',
-    confirmText: '开始翻译',
+    title: t('workbench.operations.batchTranslate'),
+    confirmText: t('translateConfig.startTranslate'),
     description: null, // 工具栏对话框不需要显示基本信息
     scopeOptions: [
-      { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
-      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount },
+      { value: 'selected', label: t('translateConfig.selectedRows', { count: selectedCount }), count: selectedCount },
+      { value: 'all', label: t('translateConfig.allRows', { count: allCount }), count: allCount },
     ],
     contentOptions: [
-      { value: 'missing', label: '未翻译', count: missingAllCount },
-      { value: 'all', label: '全部', count: allCount },
+      { value: 'missing', label: t('translateConfig.untranslated'), count: missingAllCount },
+      { value: 'all', label: t('common.all'), count: allCount },
     ],
     allTargetLanguages: allTargetLanguages.value,
     defaultSelectedLanguages: configStore.config.targetLanguages,
@@ -206,7 +208,7 @@ function openBatchTranslateDialog() {
 
 function openProjectTranslateDialog() {
   if (!projectStore.project) {
-    toast.warning('请先打开项目')
+    toast.warning(t('workbench.toast.openProjectFirst'))
     return
   }
 
@@ -220,19 +222,19 @@ function openProjectTranslateDialog() {
     ? project.xmlDataMap.get(projectStore.selectedResDir)?.getXmlFileNames().length || 0
     : 0
 
-  // 无法精确统计未翻译项时，使用“待处理文件数”作提示值
+  // 无法精确统计未翻译项时，使用"待处理文件数"作提示值
   projectDialogConfig.value = {
     type: 'project' as const,
-    title: '项目翻译',
-    confirmText: '开始项目翻译',
+    title: t('workbench.operations.projectTranslate'),
+    confirmText: t('translateConfig.startTranslate'),
     description: null,
     scopeOptions: [
-      { value: 'current', label: `当前目录 (${totalFilesCurrent} 文件)`, count: totalFilesCurrent },
-      { value: 'all', label: `全部 (${totalFilesAll} 文件)`, count: totalFilesAll },
+      { value: 'current', label: t('translateConfig.currentDir', { count: totalFilesCurrent }), count: totalFilesCurrent },
+      { value: 'all', label: t('translateConfig.allDirs', { count: totalFilesAll }), count: totalFilesAll },
     ],
     contentOptions: [
-      { value: 'missing', label: '仅未翻译（需加载统计）', count: totalFilesAll },
-      { value: 'all', label: '全部', count: totalFilesAll },
+      { value: 'missing', label: t('translateConfig.untranslatedNeedLoad'), count: totalFilesAll },
+      { value: 'all', label: t('common.all'), count: totalFilesAll },
     ],
     allTargetLanguages: targetLangs,
     defaultSelectedLanguages: configStore.config.targetLanguages,
@@ -257,7 +259,7 @@ async function onBatchTranslateConfirm(data: {
 
   // 检查是否选择了目标语言
   if (data.languages.length === 0) {
-    toast.warning('请先选择目标语言')
+    toast.warning(t('workbench.toast.selectTargetLanguage'))
     return
   }
 
@@ -284,7 +286,7 @@ async function onBatchTranslateConfirm(data: {
 
     // 检查实际可翻译数量
     if (items.size === 0) {
-      toast.warning('没有可翻译的条目')
+      toast.warning(t('workbench.toast.noTranslatableItems'))
       return
     }
 
@@ -295,9 +297,9 @@ async function onBatchTranslateConfirm(data: {
     // 传递文件映射数据，用于统一的未翻译过滤逻辑
     await translationStore.batchTranslate(items, data.languages, data.autoUpdateTranslated, fileMap)
 
-    toast.success(`批量翻译完成`)
+    toast.success(t('workbench.toast.batchTranslateComplete'))
   } catch (e: any) {
-    toast.fromError(e, '翻译失败')
+    toast.fromError(e, t('workbench.toast.translateFailed'))
   }
 }
 
@@ -308,11 +310,11 @@ async function onProjectTranslateConfirm(data: {
   autoUpdateTranslated?: boolean
 }) {
   if (!projectStore.project) {
-    toast.warning('请先打开项目')
+    toast.warning(t('workbench.toast.openProjectFirst'))
     return
   }
   if (!data.languages.length) {
-    toast.warning('请先选择目标语言')
+    toast.warning(t('workbench.toast.selectTargetLanguage'))
     return
   }
 
@@ -324,9 +326,9 @@ async function onProjectTranslateConfirm(data: {
       autoUpdateTranslated: data.autoUpdateTranslated,
       scope: data.scope === 'current' ? 'current' : 'all',
     })
-    toast.success('项目翻译完成')
+    toast.success(t('workbench.toast.projectTranslateComplete'))
   } catch (e: any) {
-    toast.fromError(e, '项目翻译失败')
+    toast.fromError(e, t('workbench.toast.projectTranslateFailed'))
   }
 }
 </script>

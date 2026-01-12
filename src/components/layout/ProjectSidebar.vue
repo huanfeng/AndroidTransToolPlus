@@ -15,16 +15,16 @@
       <div class="project-info">
         <el-icon><Folder /></el-icon>
         <el-tag v-if="projectName" type="info" effect="light" round>{{ projectName }}</el-tag>
-        <el-tag v-else type="info" effect="light" round>未打开项目</el-tag>
+        <el-tag v-else type="info" effect="light" round>{{ $t('sidebar.noProject') }}</el-tag>
       </div>
     </div>
     <ResourceTree class="tree" />
     <div class="status">
-      <span>目录: {{ dirCount }}</span>
+      <span>{{ $t('sidebar.directories') }}: {{ dirCount }}</span>
       <el-divider direction="vertical" />
-      <span>资源文件: {{ fileCount }}</span>
+      <span>{{ $t('sidebar.resourceFiles') }}: {{ fileCount }}</span>
       <div class="toolbar-spacer" />
-      <el-button type="" :underline="true" @click="toggleLog">日志</el-button>
+      <el-button type="" :underline="true" @click="toggleLog">{{ $t('sidebar.logs') }}</el-button>
     </div>
   </div>
 </template>

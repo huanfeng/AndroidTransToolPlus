@@ -6,24 +6,31 @@
     </div>
     <div class="progress-row" v-if="isTranslating">
       <el-progress :percentage="progress.percentage" :stroke-width="6" style="width: 200px" />
-      <span class="progress-text"
-        >条目 {{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}；文件
-        {{ projectProgress.filesCompleted }}/{{ projectProgress.filesTotal }}</span
-      >
-      <el-button size="small" @click="showStatus = true" type="info" plain>翻译状态</el-button>
+      <span class="progress-text">{{
+        $t('header.progress.items', {
+          completed: progress.completed,
+          total: progress.total,
+          failed: progress.failed,
+          filesCompleted: projectProgress.filesCompleted,
+          filesTotal: projectProgress.filesTotal,
+        })
+      }}</span>
+      <el-button size="small" @click="showStatus = true" type="info" plain>{{
+        $t('header.translationStatus')
+      }}</el-button>
       <el-button
         type="danger"
         @click="confirmStopTranslation"
         :disabled="isStopping"
         style="margin-left: 12px"
       >
-        <span v-if="!isStopping">停止翻译</span>
-        <span v-else>正在停止中...</span>
+        <span v-if="!isStopping">{{ $t('header.stopTranslation') }}</span>
+        <span v-else>{{ $t('header.stopping') }}</span>
       </el-button>
     </div>
-    <el-dialog v-model="showStatus" title="翻译状态" width="520px">
+    <el-dialog v-model="showStatus" :title="$t('header.translationStatus')" width="520px">
       <el-descriptions :column="1" border class="status-desc">
-        <el-descriptions-item label="文件进度">
+        <el-descriptions-item :label="$t('header.progress.files')">
           {{ projectProgress.filesCompleted }}/{{ projectProgress.filesTotal }}
           <el-progress
             :percentage="fileProgressPercent"
@@ -32,8 +39,8 @@
             style="margin-top: 4px"
           />
         </el-descriptions-item>
-        <el-descriptions-item label="条目进度">
-          {{ progress.completed }}/{{ progress.total }}，失败 {{ progress.failed }}
+        <el-descriptions-item :label="$t('header.progress.entries')">
+          {{ progress.completed }}/{{ progress.total }}
           <el-progress
             :percentage="progress.percentage"
             :stroke-width="6"
@@ -41,21 +48,22 @@
             style="margin-top: 4px"
           />
         </el-descriptions-item>
-        <el-descriptions-item label="当前文件" v-if="currentFileName">
-          {{ currentResDir || '（未知目录）' }}/{{ currentFileName }}
+        <el-descriptions-item :label="$t('header.progress.currentFile')" v-if="currentFileName">
+          {{ currentResDir || $t('header.progress.unknownDir') }}/{{ currentFileName }}
         </el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <span v-if="isStopping">正在停止...</span>
-          <span v-else>翻译中</span>
+        <el-descriptions-item :label="$t('header.progress.status')">
+          <span v-if="isStopping">{{ $t('header.stopping') }}</span>
+          <span v-else>{{ $t('header.translating') }}</span>
         </el-descriptions-item>
       </el-descriptions>
       <template #footer>
-        <el-button @click="showStatus = false">关闭</el-button>
+        <el-button @click="showStatus = false">{{ $t('common.close') }}</el-button>
       </template>
     </el-dialog>
     <div class="btn-row">
-      <el-button :icon="Setting" @click="$emit('open-settings')">设置</el-button>
-      <el-button :icon="InfoFilled" @click="$emit('open-about')">关于</el-button>
+      <LanguageSwitcher />
+      <el-button :icon="Setting" @click="$emit('open-settings')">{{ $t('header.settings') }}</el-button>
+      <el-button :icon="InfoFilled" @click="$emit('open-about')">{{ $t('header.about') }}</el-button>
     </div>
   </div>
 </template>
@@ -64,6 +72,7 @@
 import { Setting, InfoFilled } from '@element-plus/icons-vue'
 import { computed, ref } from 'vue'
 import { useTranslationStore } from '@/stores/translation'
+import LanguageSwitcher from './LanguageSwitcher.vue'
 
 const translationStore = useTranslationStore()
 const isTranslating = computed(() => translationStore.isTranslating)

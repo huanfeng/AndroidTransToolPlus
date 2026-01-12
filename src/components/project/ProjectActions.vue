@@ -7,14 +7,14 @@
       :loading="projectStore.isScanning || projectStore.isLoading"
       :disabled="translationStore.isTranslating"
     >
-      打开
+      {{ $t('project.open') }}
     </el-button>
     <el-button
       :icon="CloseBold"
       @click="onClose"
       :disabled="!projectStore.hasProject || translationStore.isTranslating"
     >
-      关闭
+      {{ $t('project.close') }}
     </el-button>
     <el-button
       :icon="Document"
@@ -22,12 +22,13 @@
       @click="onSave"
       :disabled="!projectStore.isLoaded || translationStore.isTranslating"
     >
-      保存
+      {{ $t('project.save') }}
     </el-button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ElLoading } from 'element-plus'
 import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
@@ -35,6 +36,7 @@ import { useTranslationStore } from '@/stores/translation'
 import { checkAndPromptUnsavedChanges } from '@/utils/beforeUnload'
 import { FolderOpened, CloseBold, Document } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 
@@ -46,12 +48,12 @@ async function onOpen() {
     const ok = await projectStore.openProject()
     if (ok) {
       // 懒加载模式：扫描完目录即可使用
-      toast.success('项目已打开')
+      toast.success(t('project.opened'))
     }
   } catch (e: any) {
     // 用户取消时不显示错误
     if (e.message !== 'User cancelled') {
-      toast.fromError(e, '打开项目失败')
+      toast.fromError(e, t('project.openFailed'))
     }
   }
 }
@@ -65,19 +67,19 @@ async function onClose() {
   } catch (e: any) {
     // 用户取消时不显示错误
     if (e.message !== 'User cancelled') {
-      toast.fromError(e, '关闭项目失败')
+      toast.fromError(e, t('project.closeFailed'))
     }
   }
 }
 
 async function onSave() {
   try {
-    const loading = ElLoading.service({ lock: true, text: '保存中...' })
+    const loading = ElLoading.service({ lock: true, text: t('common.saving') })
     await projectStore.saveProject()
     loading.close()
-    toast.success('保存成功')
+    toast.success(t('project.saved'))
   } catch (e: any) {
-    toast.fromError(e, '保存失败')
+    toast.fromError(e, t('project.saveFailed'))
   }
 }
 </script>

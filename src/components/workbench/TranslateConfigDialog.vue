@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    :title="config?.title || '翻译配置'"
+    :title="config?.title || $t('translateConfig.title')"
     width="520px"
     @update:model-value="$emit('update:modelValue', $event)"
   >
@@ -14,7 +14,7 @@
           v-if="config.type === 'project'"
           style="margin-left: 6px; color: var(--el-text-color-secondary)"
         >
-          （需加载文件后计算实际未翻译数）
+          {{ $t('translateConfig.needLoadFile') }}
         </span>
       </el-descriptions-item>
       <template v-if="config.description">
@@ -67,7 +67,7 @@
     <!-- 翻译语言筛选（Key对话框专用） -->
     <div v-if="isKeyTranslate" style="margin-top: 16px">
       <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--el-text-color-primary)">
-        过滤语言
+        {{ $t('translateConfig.filterLanguage') }}
       </h4>
       <el-radio-group v-model="selectedContent">
         <el-radio v-for="lang in languageFilterOptions" :key="lang.value" :value="lang.value">
@@ -87,9 +87,9 @@
     </div>
 
     <template #footer>
-      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
+      <el-button @click="$emit('update:modelValue', false)">{{ $t('common.cancel') }}</el-button>
       <el-button type="primary" @click="confirmTranslate" :disabled="!canConfirm">
-        {{ config?.confirmText || '开始翻译' }}
+        {{ config?.confirmText || $t('translateConfig.startTranslate') }}
       </el-button>
     </template>
   </el-dialog>
@@ -97,9 +97,12 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '@/stores/config'
 import { LANGUAGE, type Language } from '@/models/language'
 import LanguageSelector from '@/components/common/LanguageSelector.vue'
+
+const { t } = useI18n()
 
 interface ScopeOption {
   value: string
@@ -185,11 +188,13 @@ const pendingTranslateCount = computed(() => {
   }
   return expectedItemCount.value ?? 0
 })
-const pendingLabel = computed(() => (props.config?.type === 'project' ? '待处理文件' : '待翻译项'))
+const pendingLabel = computed(() =>
+  props.config?.type === 'project' ? t('translateConfig.pendingFiles') : t('translateConfig.pendingItems')
+)
 const languageSelectorTitle = computed(() => {
   const total = allTargetLanguagesComputed.value.length
   const selected = selectedLanguages.value.length
-  return `选择目标语言 (${selected}/${total})`
+  return t('translateConfig.selectTargetLanguage', { selected, total })
 })
 
 // 是否为批量翻译（语言标题头）
@@ -219,8 +224,8 @@ const firstLayerScopeOptions = computed(() => {
 
 // 第一层标题
 const firstLayerTitle = computed(() => {
-  if (isBatchTranslate.value || isBatchToolbar.value) return '选择行'
-  return '翻译范围'
+  if (isBatchTranslate.value || isBatchToolbar.value) return t('translateConfig.selectRows')
+  return t('translateConfig.translateScope')
 })
 
 // 第二层：翻译内容选项（仅批量翻译显示）
@@ -230,7 +235,7 @@ const secondLayerContentOptions = computed(() => {
 
 // 第二层标题
 const secondLayerTitle = computed(() => {
-  return '过滤'
+  return t('translateConfig.filter')
 })
 
 // 翻译语言筛选选项（Key对话框专用）

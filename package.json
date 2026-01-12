@@ -23,7 +23,8 @@
     "fast-xml-parser": "^5.3.2",
     "lodash-es": "^4.17.21",
     "pinia": "^3.0.4",
-    "vue": "^3.5.25"
+    "vue": "^3.5.25",
+    "vue-i18n": "^11.2.8"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",

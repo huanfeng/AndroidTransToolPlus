@@ -3,13 +3,17 @@ export interface AiModelPreset {
   description: string
 }
 
+/**
+ * 模型预设列表
+ * value 为翻译 key（在 settings.ai.modelDesc 下），空字符串表示无描述
+ */
 export const AI_MODEL_PRESETS: Record<string, string> = {
-  'gpt-5-mini': '默认推荐, 兼顾速度与质量',
-  'gpt-5': '标准模型, 效果更好',
-  'gpt-5-nano': 'nano模型, 价格便宜',
+  'gpt-5-mini': 'gpt5Mini',
+  'gpt-5': 'gpt5',
+  'gpt-5-nano': 'gpt5Nano',
   'gpt-4.1-mini': '',
   'gpt-4o-mini': '',
-  custom: '手动指定任意模型名称（需支持 JSON 模式）',
+  custom: 'custom',
 }
 
 export const DEFAULT_AI_MODEL_PRESET = 'gpt-5-mini'
@@ -25,11 +29,10 @@ export function resolveAiModel(presetId: string, customModel: string): string {
   return DEFAULT_AI_MODEL_PRESET
 }
 
+/**
+ * 获取模型标签（不含描述）
+ */
 export function getModelLabel(model: string): string {
-  const description = AI_MODEL_PRESETS[model]
-  if (description) {
-    return `${model} (${description})`
-  }
   return model
 }
 

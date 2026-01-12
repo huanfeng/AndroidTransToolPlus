@@ -2,7 +2,7 @@
   <div class="table-wrap">
     <el-empty
       v-if="!projectStore.selectedXmlData || !projectStore.selectedXmlFile"
-      description="请选择左侧 XML 文件"
+      :description="$t('workbench.selectXmlFile')"
     />
     <template v-else>
       <div class="table-inner">
@@ -16,7 +16,7 @@
             @contextmenu.prevent
           >
             <el-table-column type="selection" width="48" fixed />
-            <el-table-column prop="name" label="Key" width="260" fixed>
+            <el-table-column prop="name" :label="$t('workbench.table.key')" width="260" fixed>
               <template #default="{ row }">
                 <div class="cell-with-menu">
                   <span
@@ -35,7 +35,7 @@
                 </el-button>
               </template>
             </el-table-column>
-            <el-table-column label="可翻译" width="90">
+            <el-table-column :label="$t('workbench.table.translatable')" width="90">
               <template #default="{ row }">
                 <div
                   :class="[
@@ -48,8 +48,8 @@
                     :model-value="row.translatable"
                     size="small"
                     inline-prompt
-                    active-text="是"
-                    inactive-text="否"
+                    :active-text="$t('common.yes')"
+                    :inactive-text="$t('common.no')"
                     :disabled="translationStore.isTranslating"
                     @change="(val: boolean) => onToggleTranslatable(row.name, val)"
                   />
@@ -189,9 +189,9 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate">翻译此条目...</el-dropdown-item>
+            <el-dropdown-item command="translate">{{ $t('workbench.menu.translateItem') }}</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided
-              >还原此条目</el-dropdown-item
+              >{{ $t('workbench.menu.restoreItem') }}</el-dropdown-item
             >
           </el-dropdown-menu>
         </template>
@@ -207,9 +207,9 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate">翻译此语言...</el-dropdown-item>
+            <el-dropdown-item command="translate">{{ $t('workbench.menu.translateLanguage') }}</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided
-              >还原此语言</el-dropdown-item
+              >{{ $t('workbench.menu.restoreLanguage') }}</el-dropdown-item
             >
           </el-dropdown-menu>
         </template>
@@ -225,12 +225,12 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="quick-translate">快速翻译</el-dropdown-item>
-            <el-dropdown-item command="translate-custom">翻译...</el-dropdown-item>
+            <el-dropdown-item command="quick-translate">{{ $t('workbench.menu.quickTranslate') }}</el-dropdown-item>
+            <el-dropdown-item command="translate-custom">{{ $t('workbench.menu.translate') }}</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedCell" command="restore-cell" divided
-              >还原</el-dropdown-item
+              >{{ $t('workbench.menu.restore') }}</el-dropdown-item
             >
-            <el-dropdown-item command="copy" divided>复制内容</el-dropdown-item>
+            <el-dropdown-item command="copy" divided>{{ $t('workbench.menu.copyContent') }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -253,6 +253,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
@@ -262,6 +263,8 @@ import { MoreFilled } from '@element-plus/icons-vue'
 import toast from '@/utils/toast'
 import ArrayEditDialog from './ArrayEditDialog.vue'
 import TranslateConfigDialog from './TranslateConfigDialog.vue'
+
+const { t, locale } = useI18n()
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
@@ -340,10 +343,10 @@ const targetLangs = computed<Language[]>(() =>
 )
 
 function langName(l: Language) {
-  return getLanguageLabel(l, 'cn')
+  return getLanguageLabel(l, locale.value === 'en' ? 'en' : 'cn')
 }
 function langHeader(l: Language) {
-  return getLanguageLabel(l, 'cn')
+  return getLanguageLabel(l, locale.value === 'en' ? 'en' : 'cn')
 }
 
 function getCellValue(row: ResItem, lang: Language): string {
@@ -489,18 +492,18 @@ async function executeTranslation(
   autoUpdateTranslated = false
 ) {
   if (items.size === 0) {
-    toast.warning('没有需要翻译的条目')
+    toast.warning(t('workbench.toast.noItemsToTranslate'))
     return
   }
   if (languages.length === 0) {
-    toast.warning('没有选择目标语言')
+    toast.warning(t('workbench.toast.selectTargetLanguage'))
     return
   }
   // 获取文件映射数据，用于统一的未翻译过滤逻辑
   const fileMap = projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
   await translationStore.batchTranslate(items, languages, autoUpdateTranslated, fileMap)
   // batchTranslate 内部已经完成，直接提示成功
-  toast.success(`批量翻译完成`)
+  toast.success(t('workbench.toast.batchTranslateComplete'))
 }
 
 /**
@@ -609,9 +612,9 @@ async function restoreCell(_itemName: string, _lang: Language) {
   if (!projectStore.selectedXmlFile) return
   try {
     await projectStore.reloadSelectedFile()
-    toast.success('已还原')
+    toast.success(t('common.restored'))
   } catch (e: any) {
-    toast.fromError(e, '还原失败')
+    toast.fromError(e, t('workbench.toast.restoreFailed'))
   }
 }
 
@@ -622,9 +625,9 @@ async function restoreRow(_itemName: string) {
   if (!projectStore.selectedXmlFile) return
   try {
     await projectStore.reloadSelectedFile()
-    toast.success('已还原')
+    toast.success(t('common.restored'))
   } catch (e: any) {
-    toast.fromError(e, '还原失败')
+    toast.fromError(e, t('workbench.toast.restoreFailed'))
   }
 }
 
@@ -635,9 +638,9 @@ async function restoreLanguage(_lang: Language) {
   if (!projectStore.selectedXmlFile) return
   try {
     await projectStore.reloadSelectedFile()
-    toast.success('已还原')
+    toast.success(t('common.restored'))
   } catch (e: any) {
-    toast.fromError(e, '还原失败')
+    toast.fromError(e, t('workbench.toast.restoreFailed'))
   }
 }
 
@@ -743,16 +746,16 @@ function onKeyMenuCommand(cmd: string) {
     // 准备对话框配置
     const dialogConfig = {
       type: 'key' as const,
-      title: '翻译条目',
-      confirmText: '开始翻译',
+      title: t('translateConfig.translateItem'),
+      confirmText: t('translateConfig.startTranslate'),
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: '默认文本', value: getCellValue(row, LANGUAGE.DEF) },
+        defaultText: { label: t('workbench.table.defaultText'), value: getCellValue(row, LANGUAGE.DEF) },
       },
       scopeOptions: [], // Key翻译不使用scopeOptions，但TypeScript要求必须有
       languageOptions: [
-        { value: 'missing', label: '未翻译', count: missingLangs.length },
-        { value: 'all', label: '全部', count: allLangs.length },
+        { value: 'missing', label: t('translateConfig.untranslated'), count: missingLangs.length },
+        { value: 'all', label: t('common.all'), count: allLangs.length },
       ],
       allTargetLanguages: allLangs,
       defaultSelectedLanguages: allLangs, // Key翻译不需要选择语言，通过languageFilter确定
@@ -791,20 +794,20 @@ function onLangHeaderMenuCommand(cmd: string) {
 
     // 第一层：翻译范围选项（始终显示两个选项，即使selectedCount为0）
     const scopeOptions = [
-      { value: 'selected', label: `已选中 (${selectedCount} 行)`, count: selectedCount },
-      { value: 'all', label: `全部 (${allCount} 行)`, count: allCount },
+      { value: 'selected', label: t('translateConfig.selectedRows', { count: selectedCount }), count: selectedCount },
+      { value: 'all', label: t('translateConfig.allRows', { count: allCount }), count: allCount },
     ]
 
     if (scopeOptions.length === 0) {
-      toast.info('没有需要翻译的条目')
+      toast.info(t('workbench.toast.noItemsToTranslate'))
       currentLang.value = null
       return
     }
 
     // 第二层：翻译内容选项（仅显示有数据的选项）
     const contentOptions = [
-      { value: 'missing', label: '未翻译', count: missingAllCount },
-      { value: 'all', label: '全部', count: allCount },
+      { value: 'missing', label: t('translateConfig.untranslated'), count: missingAllCount },
+      { value: 'all', label: t('common.all'), count: allCount },
     ]
 
     // 先关闭菜单
@@ -813,12 +816,12 @@ function onLangHeaderMenuCommand(cmd: string) {
     // 准备对话框配置
     const dialogConfig = {
       type: 'lang-header' as const,
-      title: '批量翻译',
-      confirmText: '开始翻译',
+      title: t('workbench.operations.batchTranslate'),
+      confirmText: t('translateConfig.startTranslate'),
       description: {
         language: {
-          label: '目标语言',
-          value: getLanguageLabel(lang, 'cn'),
+          label: t('translateConfig.targetLanguage'),
+          value: langName(lang),
         },
       },
       scopeOptions,
@@ -868,14 +871,14 @@ function onCellMenuCommand(cmd: string) {
     // 准备对话框配置
     const dialogConfig = {
       type: 'cell' as const,
-      title: '翻译单元格',
-      confirmText: '开始翻译',
+      title: t('translateConfig.translateCell'),
+      confirmText: t('translateConfig.startTranslate'),
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: '默认文本', value: getCellValue(row, LANGUAGE.DEF) },
+        defaultText: { label: t('workbench.table.defaultText'), value: getCellValue(row, LANGUAGE.DEF) },
         language: {
-          label: '目标语言',
-          value: getLanguageLabel(lang, 'cn'),
+          label: t('translateConfig.targetLanguage'),
+          value: langName(lang),
         },
       },
       scopeOptions: [], // cell翻译不使用scopeOptions
@@ -902,7 +905,7 @@ function onCellMenuCommand(cmd: string) {
   } else if (cmd === 'copy') {
     const value = getCellValue(row, lang)
     navigator.clipboard.writeText(value || '')
-    toast.success('已复制')
+    toast.success(t('common.copied'))
     currentCellRow.value = null
     currentLang.value = null
   }
@@ -958,7 +961,7 @@ async function onTranslateConfirm(data: {
     // 执行翻译
     await executeTranslation(items, languages, autoUpdateTranslated)
   } catch (e: any) {
-    toast.fromError(e, '翻译失败')
+    toast.fromError(e, t('workbench.toast.translateFailed'))
   }
 }
 

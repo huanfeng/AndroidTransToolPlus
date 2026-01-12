@@ -1,16 +1,16 @@
 <template>
   <div class="resource-tree">
-    <el-empty description="未打开项目" v-if="!projectStore.hasProject" />
+    <el-empty :description="$t('resourceTree.noProject')" v-if="!projectStore.hasProject" />
 
     <template v-else>
       <div class="tree-toolbar compact">
-        <el-tooltip content="展开所有" placement="top">
+        <el-tooltip :content="$t('resourceTree.expandAll')" placement="top">
           <el-button size="small" plain class="icon-btn" @click="expandAll">
             <el-icon><Expand /></el-icon>
           </el-button>
         </el-tooltip>
         <el-divider direction="vertical" class="tight-divider" />
-        <el-tooltip content="折叠所有" placement="top">
+        <el-tooltip :content="$t('resourceTree.collapseAll')" placement="top">
           <el-button size="small" plain class="icon-btn" @click="collapseAll">
             <el-icon><Fold /></el-icon>
           </el-button>
@@ -20,7 +20,7 @@
           v-model="filterText"
           size="small"
           clearable
-          placeholder="过滤"
+          :placeholder="$t('resourceTree.filter')"
           style="max-width: 180px"
         >
           <template #prefix>

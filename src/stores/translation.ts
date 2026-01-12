@@ -11,9 +11,12 @@ import type { ResItem } from '@/models/resource'
 import { OpenAITranslator, type OpenAIConfig } from '@/services/translation/openai'
 import type { XmlData } from '@/services/project/xmldata'
 import toast from '@/utils/toast'
+import { i18n } from '@/locales'
 import { useConfigStore } from './config'
 import { useLogStore } from './log'
 import { useProjectStore } from './project'
+
+const t = i18n.global.t
 
 /**
  * 翻译状态
@@ -235,7 +238,7 @@ export const useTranslationStore = defineStore('translation', () => {
       if (tasks.value.length === 0) {
         logStore.warning('No items to translate')
         // Toast to notify when logs panel may be hidden
-        toast.warning('无可翻译的条目')
+        toast.warning(t('workbench.toast.noTranslatableItems'))
         state.value = TranslationState.COMPLETED
         return
       }
@@ -557,7 +560,7 @@ export const useTranslationStore = defineStore('translation', () => {
 
       if (!hasAnyBatchItems) {
         if (finalizeState) {
-          toast.warning('无可翻译的条目')
+          toast.warning(t('workbench.toast.noTranslatableItems'))
           state.value = TranslationState.COMPLETED
           logStore.info('Batch translation completed (no items)')
           _progressFilesCompleted.value += 1

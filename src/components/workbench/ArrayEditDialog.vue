@@ -1,22 +1,22 @@
 <template>
   <el-dialog
     :model-value="visible"
-    title="编辑字符串数组"
+    :title="$t('arrayEdit.title')"
     width="560px"
     @close="emit('update:visible', false)"
   >
     <div class="desc">
-      <p>每行代表一个数组项，保存时会覆盖该语言下的整个数组。</p>
+      <p>{{ $t('arrayEdit.description') }}</p>
     </div>
     <el-input
       v-model="text"
       type="textarea"
       :autosize="{ minRows: 10 }"
-      placeholder="一行一个数组元素"
+      :placeholder="$t('arrayEdit.placeholder')"
     />
     <template #footer>
-      <el-button @click="emit('update:visible', false)">取消</el-button>
-      <el-button type="primary" @click="onSave">保存</el-button>
+      <el-button @click="emit('update:visible', false)">{{ $t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="onSave">{{ $t('common.save') }}</el-button>
     </template>
   </el-dialog>
 </template>
