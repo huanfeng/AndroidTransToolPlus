@@ -59,7 +59,9 @@
     </div>
     <template #footer>
       <el-button @click="skipRestore">{{ $t('project.restoreDialog.skip') }}</el-button>
-      <el-button type="primary" @click="confirmRestore">{{ $t('project.restoreDialog.restore') }}</el-button>
+      <el-button type="primary" @click="confirmRestore">{{
+        $t('project.restoreDialog.restore')
+      }}</el-button>
     </template>
   </el-dialog>
 </template>

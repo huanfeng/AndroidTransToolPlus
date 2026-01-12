@@ -464,7 +464,11 @@ export const useTranslationStore = defineStore('translation', () => {
             }
 
             const chunkResult = await translator.value.batchTranslateChunked(
-              { items: chunk, targetLanguage: targetLang, sourceLanguage: LANGUAGE.DEF },
+              {
+                items: chunk,
+                targetLanguage: targetLang,
+                sourceLanguage: configStore.config.defaultSourceLanguage || LANGUAGE.DEF,
+              },
               chunk.length,
               (current, _total) => {
                 logStore.debug(
@@ -837,7 +841,7 @@ export const useTranslationStore = defineStore('translation', () => {
           const response = await translator.value!.translate({
             text: originalText,
             targetLanguage: task.targetLanguage,
-            sourceLanguage: LANGUAGE.DEF,
+            sourceLanguage: configStore.config.defaultSourceLanguage || LANGUAGE.DEF,
             context: task.itemName,
           })
 
@@ -866,7 +870,7 @@ export const useTranslationStore = defineStore('translation', () => {
               const response = await translator.value!.translate({
                 text: originalText[i],
                 targetLanguage: task.targetLanguage,
-                sourceLanguage: LANGUAGE.DEF,
+                sourceLanguage: configStore.config.defaultSourceLanguage || LANGUAGE.DEF,
                 context: `${task.itemName}[${i}]`,
               })
               translatedArray[i] = response.translatedText
@@ -1083,7 +1087,7 @@ export const useTranslationStore = defineStore('translation', () => {
       const res = await translator.value.translate({
         text: originalText,
         targetLanguage: lang,
-        sourceLanguage: LANGUAGE.DEF,
+        sourceLanguage: configStore.config.defaultSourceLanguage || LANGUAGE.DEF,
         context: itemName,
       })
       xml.updateItem(file, itemName, lang, res.translatedText)

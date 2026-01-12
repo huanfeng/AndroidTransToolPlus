@@ -189,10 +189,12 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate">{{ $t('workbench.menu.translateItem') }}</el-dropdown-item>
-            <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided
-              >{{ $t('workbench.menu.restoreItem') }}</el-dropdown-item
-            >
+            <el-dropdown-item command="translate">{{
+              $t('workbench.menu.translateItem')
+            }}</el-dropdown-item>
+            <el-dropdown-item v-if="hasEditedRow" command="restore-row" divided>{{
+              $t('workbench.menu.restoreItem')
+            }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -207,10 +209,12 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="translate">{{ $t('workbench.menu.translateLanguage') }}</el-dropdown-item>
-            <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided
-              >{{ $t('workbench.menu.restoreLanguage') }}</el-dropdown-item
-            >
+            <el-dropdown-item command="translate">{{
+              $t('workbench.menu.translateLanguage')
+            }}</el-dropdown-item>
+            <el-dropdown-item v-if="hasEditedLang" command="restore-lang" divided>{{
+              $t('workbench.menu.restoreLanguage')
+            }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -225,12 +229,18 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="quick-translate">{{ $t('workbench.menu.quickTranslate') }}</el-dropdown-item>
-            <el-dropdown-item command="translate-custom">{{ $t('workbench.menu.translate') }}</el-dropdown-item>
-            <el-dropdown-item v-if="hasEditedCell" command="restore-cell" divided
-              >{{ $t('workbench.menu.restore') }}</el-dropdown-item
-            >
-            <el-dropdown-item command="copy" divided>{{ $t('workbench.menu.copyContent') }}</el-dropdown-item>
+            <el-dropdown-item command="quick-translate">{{
+              $t('workbench.menu.quickTranslate')
+            }}</el-dropdown-item>
+            <el-dropdown-item command="translate-custom">{{
+              $t('workbench.menu.translate')
+            }}</el-dropdown-item>
+            <el-dropdown-item v-if="hasEditedCell" command="restore-cell" divided>{{
+              $t('workbench.menu.restore')
+            }}</el-dropdown-item>
+            <el-dropdown-item command="copy" divided>{{
+              $t('workbench.menu.copyContent')
+            }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -750,7 +760,10 @@ function onKeyMenuCommand(cmd: string) {
       confirmText: t('translateConfig.startTranslate'),
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: t('workbench.table.defaultText'), value: getCellValue(row, LANGUAGE.DEF) },
+        defaultText: {
+          label: t('workbench.table.defaultText'),
+          value: getCellValue(row, LANGUAGE.DEF),
+        },
       },
       scopeOptions: [], // Key翻译不使用scopeOptions，但TypeScript要求必须有
       languageOptions: [
@@ -794,7 +807,11 @@ function onLangHeaderMenuCommand(cmd: string) {
 
     // 第一层：翻译范围选项（始终显示两个选项，即使selectedCount为0）
     const scopeOptions = [
-      { value: 'selected', label: t('translateConfig.selectedRows', { count: selectedCount }), count: selectedCount },
+      {
+        value: 'selected',
+        label: t('translateConfig.selectedRows', { count: selectedCount }),
+        count: selectedCount,
+      },
       { value: 'all', label: t('translateConfig.allRows', { count: allCount }), count: allCount },
     ]
 
@@ -875,7 +892,10 @@ function onCellMenuCommand(cmd: string) {
       confirmText: t('translateConfig.startTranslate'),
       description: {
         key: { label: 'Key', value: row.name },
-        defaultText: { label: t('workbench.table.defaultText'), value: getCellValue(row, LANGUAGE.DEF) },
+        defaultText: {
+          label: t('workbench.table.defaultText'),
+          value: getCellValue(row, LANGUAGE.DEF),
+        },
         language: {
           label: t('translateConfig.targetLanguage'),
           value: langName(lang),

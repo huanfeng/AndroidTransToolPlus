@@ -189,7 +189,9 @@ const pendingTranslateCount = computed(() => {
   return expectedItemCount.value ?? 0
 })
 const pendingLabel = computed(() =>
-  props.config?.type === 'project' ? t('translateConfig.pendingFiles') : t('translateConfig.pendingItems')
+  props.config?.type === 'project'
+    ? t('translateConfig.pendingFiles')
+    : t('translateConfig.pendingItems')
 )
 const languageSelectorTitle = computed(() => {
   const total = allTargetLanguagesComputed.value.length

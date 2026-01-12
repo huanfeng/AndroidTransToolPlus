@@ -11,7 +11,9 @@
         <div class="button-group">
           <el-button @click="selectAll" size="small">{{ $t('common.selectAll') }}</el-button>
           <el-button @click="clearAll" size="small">{{ $t('common.selectNone') }}</el-button>
-          <el-button @click="invertSelection" size="small">{{ $t('common.invertSelection') }}</el-button>
+          <el-button @click="invertSelection" size="small">{{
+            $t('common.invertSelection')
+          }}</el-button>
         </div>
         <el-checkbox-group v-model="selected" class="checkbox-grid">
           <el-checkbox v-for="l in languages" :key="l" :value="l">{{ langLabel(l) }}</el-checkbox>

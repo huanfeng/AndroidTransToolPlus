@@ -37,16 +37,24 @@
     </el-input>
     <el-radio-group v-model="projectStore.tableFilterCurrent" style="margin-left: 8px">
       <el-radio-button value="">{{ $t('workbench.operations.filterAll') }}</el-radio-button>
-      <el-radio-button value="incomplete">{{ $t('workbench.operations.filterIncomplete') }}</el-radio-button>
-      <el-radio-button value="untranslatable">{{ $t('workbench.operations.filterUntranslatable') }}</el-radio-button>
-      <el-radio-button value="edited">{{ $t('workbench.operations.filterEdited') }}</el-radio-button>
+      <el-radio-button value="incomplete">{{
+        $t('workbench.operations.filterIncomplete')
+      }}</el-radio-button>
+      <el-radio-button value="untranslatable">{{
+        $t('workbench.operations.filterUntranslatable')
+      }}</el-radio-button>
+      <el-radio-button value="edited">{{
+        $t('workbench.operations.filterEdited')
+      }}</el-radio-button>
     </el-radio-group>
     <div class="toolbar-spacer"></div>
     <!-- 统计标签移至同一行显示 -->
-    <el-tag type="info">{{ $t('workbench.operations.filtered', { count: projectStore.tableFilteredCount }) }}</el-tag>
-    <el-tag type="success" style="margin-left: 6px"
-      >{{ $t('workbench.operations.selected', { count: projectStore.tableSelectionCount }) }}</el-tag
-    >
+    <el-tag type="info">{{
+      $t('workbench.operations.filtered', { count: projectStore.tableFilteredCount })
+    }}</el-tag>
+    <el-tag type="success" style="margin-left: 6px">{{
+      $t('workbench.operations.selected', { count: projectStore.tableSelectionCount })
+    }}</el-tag>
   </div>
 
   <!-- 统一的翻译配置对话框 -->
@@ -179,7 +187,11 @@ function openBatchTranslateDialog() {
     confirmText: t('translateConfig.startTranslate'),
     description: null, // 工具栏对话框不需要显示基本信息
     scopeOptions: [
-      { value: 'selected', label: t('translateConfig.selectedRows', { count: selectedCount }), count: selectedCount },
+      {
+        value: 'selected',
+        label: t('translateConfig.selectedRows', { count: selectedCount }),
+        count: selectedCount,
+      },
       { value: 'all', label: t('translateConfig.allRows', { count: allCount }), count: allCount },
     ],
     contentOptions: [
@@ -229,8 +241,16 @@ function openProjectTranslateDialog() {
     confirmText: t('translateConfig.startTranslate'),
     description: null,
     scopeOptions: [
-      { value: 'current', label: t('translateConfig.currentDir', { count: totalFilesCurrent }), count: totalFilesCurrent },
-      { value: 'all', label: t('translateConfig.allDirs', { count: totalFilesAll }), count: totalFilesAll },
+      {
+        value: 'current',
+        label: t('translateConfig.currentDir', { count: totalFilesCurrent }),
+        count: totalFilesCurrent,
+      },
+      {
+        value: 'all',
+        label: t('translateConfig.allDirs', { count: totalFilesAll }),
+        count: totalFilesAll,
+      },
     ],
     contentOptions: [
       { value: 'missing', label: t('translateConfig.untranslatedNeedLoad'), count: totalFilesAll },
@@ -262,6 +282,9 @@ async function onBatchTranslateConfirm(data: {
     toast.warning(t('workbench.toast.selectTargetLanguage'))
     return
   }
+
+  // 记忆选择的目标语言
+  configStore.update('targetLanguages', data.languages)
 
   try {
     // 获取要翻译的条目
@@ -317,6 +340,9 @@ async function onProjectTranslateConfirm(data: {
     toast.warning(t('workbench.toast.selectTargetLanguage'))
     return
   }
+
+  // 记忆选择的目标语言
+  configStore.update('targetLanguages', data.languages)
 
   try {
     showProjectDialog.value = false

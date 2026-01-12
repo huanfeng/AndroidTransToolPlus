@@ -19,8 +19,12 @@
         <el-select v-model="minLevel" size="small" class="w-full">
           <el-option v-for="lvl in levels" :key="lvl.value" :label="lvl.label" :value="lvl.value" />
         </el-select>
-        <el-button size="small" @click="onExport" class="full-btn">{{ $t('logs.export') }}</el-button>
-        <el-button size="small" @click="logStore.clear" class="full-btn">{{ $t('logs.clear') }}</el-button>
+        <el-button size="small" @click="onExport" class="full-btn">{{
+          $t('logs.export')
+        }}</el-button>
+        <el-button size="small" @click="logStore.clear" class="full-btn">{{
+          $t('logs.clear')
+        }}</el-button>
       </div>
     </div>
   </div>

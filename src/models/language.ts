@@ -286,6 +286,37 @@ export function getLanguageLabel(code: Language, locale: 'cn' | 'en' = 'cn'): st
 }
 
 /**
+ * 获取源语言显示名称（用于 values 目录）
+ * @param sourceLanguage 配置的源语言代码
+ * @param locale 显示语言
+ */
+export function getSourceLanguageLabel(
+  sourceLanguage: Language,
+  locale: 'cn' | 'en' = 'cn'
+): string {
+  if (sourceLanguage === LANGUAGE.DEF) {
+    // 默认保持原来的显示
+    return locale === 'cn' ? '默认(英文)' : 'Default(English)'
+  }
+  const info = getFullLanguageInfo(sourceLanguage)
+  if (!info) return String(sourceLanguage)
+  const name = locale === 'cn' ? info.nameCn : info.nameEn
+  return `${name} (values)`
+}
+
+/**
+ * 获取源语言的英文名称（用于 AI 翻译 prompt）
+ * @param sourceLanguage 配置的源语言代码
+ */
+export function getSourceLanguageNameEn(sourceLanguage: Language): string {
+  if (sourceLanguage === LANGUAGE.DEF) {
+    return 'English'
+  }
+  const info = getFullLanguageInfo(sourceLanguage)
+  return info?.nameEn || 'English'
+}
+
+/**
  * 语言管理类：维护自定义语言并提供统一查询
  */
 export class LanguageManager {
@@ -338,6 +369,25 @@ export class LanguageManager {
       return true
     }
     return false
+  }
+
+  updateCustomLanguage(
+    androidCode: string,
+    updates: Partial<Omit<CustomLanguage, 'androidCode'>>
+  ): boolean {
+    const index = this.customLanguages.findIndex(l => l.androidCode === androidCode)
+    if (index < 0) {
+      return false
+    }
+
+    const existing = this.customLanguages[index]
+    this.customLanguages[index] = {
+      ...existing,
+      nameCn: updates.nameCn ?? existing.nameCn,
+      nameEn: updates.nameEn ?? existing.nameEn,
+      valuesDirName: updates.valuesDirName ?? existing.valuesDirName,
+    }
+    return true
   }
 
   isValidAndroidCode(code: string): boolean {

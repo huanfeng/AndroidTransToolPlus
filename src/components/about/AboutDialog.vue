@@ -19,7 +19,9 @@
           <p class="description">{{ description }}</p>
           <el-divider />
           <div class="tech-stack">
-            <p><strong>{{ $t('about.techStack') }}</strong></p>
+            <p>
+              <strong>{{ $t('about.techStack') }}</strong>
+            </p>
             <p>{{ $t('about.techStackContent') }}</p>
           </div>
           <el-divider />
@@ -38,8 +40,12 @@
       </el-tab-pane>
     </el-tabs>
     <template #footer>
-      <el-button v-if="!requireAcknowledge" @click="emit('update:visible', false)">{{ $t('common.close') }}</el-button>
-      <el-button type="primary" @click="emit('acknowledge')">{{ $t('about.acknowledge') }}</el-button>
+      <el-button v-if="!requireAcknowledge" @click="emit('update:visible', false)">{{
+        $t('common.close')
+      }}</el-button>
+      <el-button type="primary" @click="emit('acknowledge')">{{
+        $t('about.acknowledge')
+      }}</el-button>
     </template>
   </el-dialog>
 </template>

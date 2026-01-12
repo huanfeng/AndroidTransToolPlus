@@ -18,6 +18,7 @@ export interface AppConfig {
   apiUrl: string
   apiKey: string
   httpProxy: string
+  defaultSourceLanguage: Language // values 目录对应的源语言
   enabledLanguages: Language[]
   targetLanguages: Language[]
   customLanguages: CustomLanguage[]
@@ -40,6 +41,7 @@ const DEFAULT_CONFIG: AppConfig = {
   apiUrl: '',
   apiKey: '',
   httpProxy: '',
+  defaultSourceLanguage: LANGUAGE.DEF, // 默认为内置的 'def' (英文)
   enabledLanguages: getBuiltinLanguages(),
   targetLanguages: [],
   customLanguages: [],
@@ -151,6 +153,19 @@ export const useConfigStore = defineStore('config', () => {
     return success
   }
 
+  // 更新自定义语言
+  function updateCustomLanguage(
+    androidCode: string,
+    updates: { nameCn?: string; nameEn?: string; valuesDirName?: string }
+  ): boolean {
+    const langManager = LanguageManager.getInstance()
+    const success = langManager.updateCustomLanguage(androidCode, updates)
+    if (success) {
+      config.value.customLanguages = langManager.getCustomLanguages()
+    }
+    return success
+  }
+
   // 获取所有语言（默认 + 自定义）
   function getAllAvailableLanguages() {
     const langManager = LanguageManager.getInstance()
@@ -197,6 +212,7 @@ export const useConfigStore = defineStore('config', () => {
     validate,
     addCustomLanguage,
     removeCustomLanguage,
+    updateCustomLanguage,
     getAllAvailableLanguages,
   }
 })

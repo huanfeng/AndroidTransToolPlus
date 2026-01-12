@@ -62,8 +62,12 @@
     </el-dialog>
     <div class="btn-row">
       <LanguageSwitcher />
-      <el-button :icon="Setting" @click="$emit('open-settings')">{{ $t('header.settings') }}</el-button>
-      <el-button :icon="InfoFilled" @click="$emit('open-about')">{{ $t('header.about') }}</el-button>
+      <el-button :icon="Setting" @click="$emit('open-settings')">{{
+        $t('header.settings')
+      }}</el-button>
+      <el-button :icon="InfoFilled" @click="$emit('open-about')">{{
+        $t('header.about')
+      }}</el-button>
     </div>
   </div>
 </template>
