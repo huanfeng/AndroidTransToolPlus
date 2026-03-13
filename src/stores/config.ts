@@ -4,7 +4,7 @@ import { getStorageAdapter } from '@/adapters'
 import {
   LANGUAGE,
   type Language,
-  getBuiltinLanguages,
+  getDefaultEnabledBuiltinLanguages,
   LanguageManager,
   type CustomLanguage,
 } from '@/models/language'
@@ -42,7 +42,7 @@ const DEFAULT_CONFIG: AppConfig = {
   apiKey: '',
   httpProxy: '',
   defaultSourceLanguage: LANGUAGE.DEF, // 默认为内置的 'def' (英文)
-  enabledLanguages: getBuiltinLanguages(),
+  enabledLanguages: getDefaultEnabledBuiltinLanguages(),
   targetLanguages: [],
   customLanguages: [],
   maxItemsPerRequest: 20,

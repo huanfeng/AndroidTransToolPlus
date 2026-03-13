@@ -107,6 +107,7 @@ export default {
       dragHint: '拖拽可调整顺序，点击 × 可移除',
       noEnabledLanguages: '尚未启用其他语言',
       availableLanguages: '可启用的语言',
+      addDefault: '添加默认',
       addAll: '添加全部 ({count})',
       clear: '清空',
       customLanguageManagement: '自定义语言管理',

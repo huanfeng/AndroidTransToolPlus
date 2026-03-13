@@ -6,7 +6,12 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { initAdapters } from '@/adapters'
 import { useConfigStore } from '@/stores/config'
-import { LanguageManager } from '@/models/language'
+import {
+  getBuiltinLanguages,
+  getDefaultEnabledBuiltinLanguages,
+  getLanguageByAndroidCode,
+  LanguageManager,
+} from '@/models/language'
 
 describe('config store - 自定义语言', () => {
   beforeAll(async () => {
@@ -24,20 +29,20 @@ describe('config store - 自定义语言', () => {
     await store.load()
 
     store.addCustomLanguage({
-      androidCode: 'th',
-      nameCn: '泰语',
-      nameEn: 'Thai',
+      androidCode: 'sw',
+      nameCn: '斯瓦希里语',
+      nameEn: 'Swahili',
     })
 
-    expect(store.config.enabledLanguages).toContain('th')
+    expect(store.config.enabledLanguages).toContain('sw')
 
-    const thai = store.getAllAvailableLanguages().find(lang => lang.code === 'th')
-    expect(thai).toMatchObject({
-      code: 'th',
-      androidCode: 'th',
-      nameCn: '泰语',
-      nameEn: 'Thai',
-      valuesDirName: 'values-th',
+    const swahili = store.getAllAvailableLanguages().find(lang => lang.code === 'sw')
+    expect(swahili).toMatchObject({
+      code: 'sw',
+      androidCode: 'sw',
+      nameCn: '斯瓦希里语',
+      nameEn: 'Swahili',
+      valuesDirName: 'values-sw',
       isDefault: false,
     })
   })
@@ -47,18 +52,37 @@ describe('config store - 自定义语言', () => {
     await store.load()
 
     store.addCustomLanguage({
-      androidCode: 'vi',
-      nameCn: '越南语',
-      nameEn: 'Vietnamese',
+      androidCode: 'am',
+      nameCn: '阿姆哈拉语',
+      nameEn: 'Amharic',
     })
-    store.update('targetLanguages', ['vi'])
+    store.update('targetLanguages', ['am'])
 
-    expect(store.config.enabledLanguages).toContain('vi')
-    expect(store.config.targetLanguages).toContain('vi')
+    expect(store.config.enabledLanguages).toContain('am')
+    expect(store.config.targetLanguages).toContain('am')
 
-    expect(store.removeCustomLanguage('vi')).toBe(true)
-    expect(store.config.enabledLanguages).not.toContain('vi')
-    expect(store.config.targetLanguages).not.toContain('vi')
-    expect(store.getAllAvailableLanguages().find(lang => lang.code === 'vi')).toBeUndefined()
+    expect(store.removeCustomLanguage('am')).toBe(true)
+    expect(store.config.enabledLanguages).not.toContain('am')
+    expect(store.config.targetLanguages).not.toContain('am')
+    expect(store.getAllAvailableLanguages().find(lang => lang.code === 'am')).toBeUndefined()
+  })
+
+  it('应提供更多内置安卓语言，但默认启用列表保持不变', async () => {
+    const store = useConfigStore()
+    await store.load()
+
+    const builtinLanguages = getBuiltinLanguages()
+    const defaultEnabled = getDefaultEnabledBuiltinLanguages()
+
+    expect(builtinLanguages).toContain('th')
+    expect(builtinLanguages).toContain('vi')
+    expect(builtinLanguages).toContain('id')
+    expect(builtinLanguages).toContain('nl')
+    expect(getLanguageByAndroidCode('th')).toBe('th')
+    expect(getLanguageByAndroidCode('vi')).toBe('vi')
+
+    expect(defaultEnabled).not.toContain('th')
+    expect(defaultEnabled).not.toContain('vi')
+    expect(store.config.enabledLanguages).toEqual(defaultEnabled)
   })
 })

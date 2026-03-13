@@ -108,6 +108,7 @@ export default {
       dragHint: 'Drag to reorder, click × to remove',
       noEnabledLanguages: 'No other languages enabled',
       availableLanguages: 'Available languages',
+      addDefault: 'Add default',
       addAll: 'Add all ({count})',
       clear: 'Clear',
       customLanguageManagement: 'Custom Language Management',

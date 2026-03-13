@@ -91,6 +91,9 @@
             >
               <span>{{ $t('settings.language.enabledLanguages') }}</span>
               <div style="display: flex; gap: 8px">
+                <el-button size="small" plain @click="addDefaultLanguages">
+                  {{ $t('settings.language.addDefault') }}
+                </el-button>
                 <el-button size="small" type="primary" plain @click="addAllLanguages">
                   {{ $t('settings.language.addAll', { count: availableLangInfos.length }) }}
                 </el-button>
@@ -165,86 +168,39 @@
                 $t('settings.language.customLanguageManagement')
               }}</span>
             </el-divider>
-
-            <el-alert type="info" show-icon :closable="false" style="margin-bottom: 16px">
-              <template #title> {{ $t('settings.language.customLanguageHint') }} </template>
-            </el-alert>
-
-            <!-- 添加/编辑自定义语言表单 -->
-            <div style="margin-bottom: 20px">
-              <div style="font-weight: 600; margin-bottom: 12px">
-                {{
-                  isEditingCustomLang
-                    ? $t('settings.language.editCustomLanguage')
-                    : $t('settings.language.addCustomLanguage')
-                }}
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 12px;
+                padding: 10px 12px;
+                border: 1px solid var(--el-border-color-light);
+                border-radius: 8px;
+                background: var(--el-fill-color-lighter);
+              "
+            >
+              <div style="min-width: 0">
+                <div style="font-size: 13px; color: var(--el-text-color-regular)">
+                  {{ $t('settings.language.customLanguageHint') }}
+                </div>
+                <div
+                  style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px"
+                >
+                  {{
+                    $t('settings.language.addedCustomLanguages', { count: customLanguages.length })
+                  }}
+                </div>
               </div>
-              <el-form
-                label-width="120px"
-                :model="customLangForm"
-                style="background: var(--el-fill-color-lighter); padding: 16px; border-radius: 8px"
-              >
-                <el-form-item :label="$t('settings.language.androidCode')">
-                  <el-input
-                    v-model="customLangForm.androidCode"
-                    :placeholder="$t('settings.language.androidCodePlaceholder')"
-                    style="width: 200px"
-                    :disabled="isEditingCustomLang"
-                    @blur="formatAndroidCode"
-                  />
-                  <span
-                    v-if="isEditingCustomLang"
-                    style="margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
-                  >
-                    {{ $t('settings.language.androidCodeReadonly') }}
-                  </span>
-                </el-form-item>
-                <el-form-item :label="$t('settings.language.chineseName')">
-                  <el-input
-                    v-model="customLangForm.nameCn"
-                    :placeholder="$t('settings.language.chineseNamePlaceholder')"
-                    style="width: 200px"
-                  />
-                </el-form-item>
-                <el-form-item :label="$t('settings.language.englishName')">
-                  <el-input
-                    v-model="customLangForm.nameEn"
-                    :placeholder="$t('settings.language.englishNamePlaceholder')"
-                    style="width: 200px"
-                  />
-                </el-form-item>
-                <el-form-item>
-                  <el-button
-                    v-if="!isEditingCustomLang"
-                    type="primary"
-                    @click="addCustomLanguage"
-                    :disabled="!canAddCustomLang"
-                  >
-                    {{ $t('settings.language.addLanguage') }}
-                  </el-button>
-                  <el-button
-                    v-else
-                    type="primary"
-                    @click="saveEditCustomLanguage"
-                    :disabled="!canSaveCustomLang"
-                  >
-                    {{ $t('common.save') }}
-                  </el-button>
-                  <el-button @click="resetCustomLangForm">
-                    {{ isEditingCustomLang ? $t('common.cancel') : $t('common.reset') }}
-                  </el-button>
-                </el-form-item>
-              </el-form>
+              <el-button type="primary" size="small" @click="openCreateCustomLanguageDialog">
+                {{ $t('settings.language.addCustomLanguage') }}
+              </el-button>
             </div>
 
             <!-- 自定义语言列表 -->
             <div v-if="customLanguages.length > 0">
-              <div style="font-weight: 600; margin-bottom: 12px">
-                {{
-                  $t('settings.language.addedCustomLanguages', { count: customLanguages.length })
-                }}
-              </div>
-              <el-table :data="customLanguages" style="width: 100%" size="small">
+              <el-table :data="customLanguages" style="width: 100%" size="small" max-height="220">
                 <el-table-column
                   prop="androidCode"
                   :label="$t('settings.language.androidCode')"
@@ -485,6 +441,52 @@
       </div>
     </template>
   </el-dialog>
+
+  <el-dialog
+    :model-value="customLangDialogVisible"
+    :title="
+      isEditingCustomLang
+        ? $t('settings.language.editCustomLanguage')
+        : $t('settings.language.addCustomLanguage')
+    "
+    width="420px"
+    @close="closeCustomLangDialog"
+  >
+    <el-form label-width="96px" :model="customLangForm">
+      <el-form-item :label="$t('settings.language.androidCode')">
+        <el-input
+          v-model="customLangForm.androidCode"
+          :placeholder="$t('settings.language.androidCodePlaceholder')"
+          :disabled="isEditingCustomLang"
+          @blur="formatAndroidCode"
+        />
+        <div
+          v-if="isEditingCustomLang"
+          style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px"
+        >
+          {{ $t('settings.language.androidCodeReadonly') }}
+        </div>
+      </el-form-item>
+      <el-form-item :label="$t('settings.language.chineseName')">
+        <el-input
+          v-model="customLangForm.nameCn"
+          :placeholder="$t('settings.language.chineseNamePlaceholder')"
+        />
+      </el-form-item>
+      <el-form-item :label="$t('settings.language.englishName')">
+        <el-input
+          v-model="customLangForm.nameEn"
+          :placeholder="$t('settings.language.englishNamePlaceholder')"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="closeCustomLangDialog">{{ $t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="submitCustomLanguage" :disabled="customLangSubmitDisabled">
+        {{ isEditingCustomLang ? $t('common.save') : $t('common.add') }}
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -496,6 +498,7 @@ import { useTranslationStore } from '@/stores/translation'
 import {
   LANGUAGE,
   type Language,
+  getDefaultEnabledBuiltinLanguages,
   getLanguageLabel,
   getSourceLanguageLabel,
   type CustomLanguage,
@@ -591,6 +594,14 @@ function removeLanguage(code: Language) {
 
 function addAllLanguages() {
   enabledLangCodes.value = allLangInfos.value.filter(l => l.code !== defLang).map(l => l.code)
+}
+
+function addDefaultLanguages() {
+  const merged = new Set([
+    ...enabledLangCodes.value,
+    ...getDefaultEnabledBuiltinLanguages().filter(code => code !== defLang),
+  ])
+  enabledLangCodes.value = Array.from(merged)
 }
 
 function clearAllLanguages() {
@@ -725,12 +736,12 @@ function closeDialog() {
 
 // ========== 自定义语言管理 ==========
 const customLanguages = ref<CustomLanguage[]>([])
+const customLangDialogVisible = ref(false)
 
 const customLangForm = ref<CustomLanguage>({
   androidCode: '',
   nameCn: '',
   nameEn: '',
-  valuesDirName: '',
 })
 
 // 是否正在编辑自定义语言
@@ -749,6 +760,10 @@ const canSaveCustomLang = computed(() => {
   return customLangForm.value.nameCn.trim() && customLangForm.value.nameEn.trim()
 })
 
+const customLangSubmitDisabled = computed(() => {
+  return isEditingCustomLang.value ? !canSaveCustomLang.value : !canAddCustomLang.value
+})
+
 function formatAndroidCode() {
   // 自动转换为小写
   customLangForm.value.androidCode = customLangForm.value.androidCode.toLowerCase()
@@ -759,10 +774,14 @@ function resetCustomLangForm() {
     androidCode: '',
     nameCn: '',
     nameEn: '',
-    valuesDirName: '',
   }
   isEditingCustomLang.value = false
   editingAndroidCode.value = null
+}
+
+function openCreateCustomLanguageDialog() {
+  resetCustomLangForm()
+  customLangDialogVisible.value = true
 }
 
 function startEditCustomLanguage(row: CustomLanguage) {
@@ -770,10 +789,15 @@ function startEditCustomLanguage(row: CustomLanguage) {
     androidCode: row.androidCode,
     nameCn: row.nameCn,
     nameEn: row.nameEn,
-    valuesDirName: row.valuesDirName || '',
   }
   isEditingCustomLang.value = true
   editingAndroidCode.value = row.androidCode
+  customLangDialogVisible.value = true
+}
+
+function closeCustomLangDialog() {
+  customLangDialogVisible.value = false
+  resetCustomLangForm()
 }
 
 function saveEditCustomLanguage() {
@@ -786,7 +810,6 @@ function saveEditCustomLanguage() {
     configStore.updateCustomLanguage(editingAndroidCode.value, {
       nameCn: customLangForm.value.nameCn.trim(),
       nameEn: customLangForm.value.nameEn.trim(),
-      valuesDirName: customLangForm.value.valuesDirName?.trim() || undefined,
     })
 
     // 刷新自定义语言列表
@@ -801,7 +824,7 @@ function saveEditCustomLanguage() {
       }))
 
     toast.success(t('settings.toast.customLanguageUpdated'))
-    resetCustomLangForm()
+    closeCustomLangDialog()
   } catch (error: any) {
     toast.error(error.message || t('settings.toast.customLanguageUpdateFailed'))
   }
@@ -818,7 +841,6 @@ function addCustomLanguage() {
       androidCode: customLangForm.value.androidCode.trim(),
       nameCn: customLangForm.value.nameCn.trim(),
       nameEn: customLangForm.value.nameEn.trim(),
-      valuesDirName: customLangForm.value.valuesDirName?.trim() || undefined,
     }
 
     configStore.addCustomLanguage(langData)
@@ -836,10 +858,18 @@ function addCustomLanguage() {
       }))
 
     toast.success(t('settings.toast.customLanguageAdded'))
-    resetCustomLangForm()
+    closeCustomLangDialog()
   } catch (error: any) {
     toast.error(error.message || t('settings.toast.customLanguageAddFailed'))
   }
+}
+
+function submitCustomLanguage() {
+  if (isEditingCustomLang.value) {
+    saveEditCustomLanguage()
+    return
+  }
+  addCustomLanguage()
 }
 
 function removeCustomLanguage(androidCode: string) {

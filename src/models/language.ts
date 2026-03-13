@@ -13,17 +13,37 @@ export const LANGUAGE = {
   CN_HK: 'cnHk',
   CN_TW: 'cnTw',
   AR: 'ar',
+  BN: 'bn',
+  CS: 'cs',
+  DA: 'da',
   DE: 'de',
+  EL: 'el',
   ES: 'es',
+  FA: 'fa',
+  FI: 'fi',
   FR: 'fr',
   HI: 'hi',
+  HU: 'hu',
+  ID: 'id',
   IT: 'it',
   IW: 'iw',
   JA: 'ja',
   KO: 'ko',
+  MS: 'ms',
+  NL: 'nl',
+  NO: 'no',
+  PL: 'pl',
   PT: 'pt',
+  RO: 'ro',
   RU: 'ru',
+  SV: 'sv',
+  TA: 'ta',
+  TH: 'th',
+  TL: 'tl',
+  TR: 'tr',
   UK: 'uk',
+  UR: 'ur',
+  VI: 'vi',
 } as const
 
 export const DEFAULT_LANGUAGE = LANGUAGE.DEF
@@ -78,6 +98,27 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Arabic',
     valuesDirName: 'values-ar',
   },
+  [LANGUAGE.BN]: {
+    code: LANGUAGE.BN,
+    androidCode: 'bn',
+    nameCn: '孟加拉语',
+    nameEn: 'Bengali',
+    valuesDirName: 'values-bn',
+  },
+  [LANGUAGE.CS]: {
+    code: LANGUAGE.CS,
+    androidCode: 'cs',
+    nameCn: '捷克语',
+    nameEn: 'Czech',
+    valuesDirName: 'values-cs',
+  },
+  [LANGUAGE.DA]: {
+    code: LANGUAGE.DA,
+    androidCode: 'da',
+    nameCn: '丹麦语',
+    nameEn: 'Danish',
+    valuesDirName: 'values-da',
+  },
   [LANGUAGE.DE]: {
     code: LANGUAGE.DE,
     androidCode: 'de',
@@ -85,12 +126,33 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'German',
     valuesDirName: 'values-de',
   },
+  [LANGUAGE.EL]: {
+    code: LANGUAGE.EL,
+    androidCode: 'el',
+    nameCn: '希腊语',
+    nameEn: 'Greek',
+    valuesDirName: 'values-el',
+  },
   [LANGUAGE.ES]: {
     code: LANGUAGE.ES,
     androidCode: 'es',
     nameCn: '西班牙语',
     nameEn: 'Spanish',
     valuesDirName: 'values-es',
+  },
+  [LANGUAGE.FA]: {
+    code: LANGUAGE.FA,
+    androidCode: 'fa',
+    nameCn: '波斯语',
+    nameEn: 'Persian',
+    valuesDirName: 'values-fa',
+  },
+  [LANGUAGE.FI]: {
+    code: LANGUAGE.FI,
+    androidCode: 'fi',
+    nameCn: '芬兰语',
+    nameEn: 'Finnish',
+    valuesDirName: 'values-fi',
   },
   [LANGUAGE.FR]: {
     code: LANGUAGE.FR,
@@ -105,6 +167,20 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameCn: '印地语',
     nameEn: 'Hindi',
     valuesDirName: 'values-hi',
+  },
+  [LANGUAGE.HU]: {
+    code: LANGUAGE.HU,
+    androidCode: 'hu',
+    nameCn: '匈牙利语',
+    nameEn: 'Hungarian',
+    valuesDirName: 'values-hu',
+  },
+  [LANGUAGE.ID]: {
+    code: LANGUAGE.ID,
+    androidCode: 'id',
+    nameCn: '印度尼西亚语',
+    nameEn: 'Indonesian',
+    valuesDirName: 'values-id',
   },
   [LANGUAGE.IT]: {
     code: LANGUAGE.IT,
@@ -134,12 +210,47 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Korean',
     valuesDirName: 'values-ko',
   },
+  [LANGUAGE.MS]: {
+    code: LANGUAGE.MS,
+    androidCode: 'ms',
+    nameCn: '马来语',
+    nameEn: 'Malay',
+    valuesDirName: 'values-ms',
+  },
+  [LANGUAGE.NL]: {
+    code: LANGUAGE.NL,
+    androidCode: 'nl',
+    nameCn: '荷兰语',
+    nameEn: 'Dutch',
+    valuesDirName: 'values-nl',
+  },
+  [LANGUAGE.NO]: {
+    code: LANGUAGE.NO,
+    androidCode: 'no',
+    nameCn: '挪威语',
+    nameEn: 'Norwegian',
+    valuesDirName: 'values-no',
+  },
+  [LANGUAGE.PL]: {
+    code: LANGUAGE.PL,
+    androidCode: 'pl',
+    nameCn: '波兰语',
+    nameEn: 'Polish',
+    valuesDirName: 'values-pl',
+  },
   [LANGUAGE.PT]: {
     code: LANGUAGE.PT,
     androidCode: 'pt',
     nameCn: '葡萄牙语',
     nameEn: 'Portuguese',
     valuesDirName: 'values-pt',
+  },
+  [LANGUAGE.RO]: {
+    code: LANGUAGE.RO,
+    androidCode: 'ro',
+    nameCn: '罗马尼亚语',
+    nameEn: 'Romanian',
+    valuesDirName: 'values-ro',
   },
   [LANGUAGE.RU]: {
     code: LANGUAGE.RU,
@@ -148,6 +259,41 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Russian',
     valuesDirName: 'values-ru',
   },
+  [LANGUAGE.SV]: {
+    code: LANGUAGE.SV,
+    androidCode: 'sv',
+    nameCn: '瑞典语',
+    nameEn: 'Swedish',
+    valuesDirName: 'values-sv',
+  },
+  [LANGUAGE.TA]: {
+    code: LANGUAGE.TA,
+    androidCode: 'ta',
+    nameCn: '泰米尔语',
+    nameEn: 'Tamil',
+    valuesDirName: 'values-ta',
+  },
+  [LANGUAGE.TH]: {
+    code: LANGUAGE.TH,
+    androidCode: 'th',
+    nameCn: '泰语',
+    nameEn: 'Thai',
+    valuesDirName: 'values-th',
+  },
+  [LANGUAGE.TL]: {
+    code: LANGUAGE.TL,
+    androidCode: 'tl',
+    nameCn: '菲律宾语',
+    nameEn: 'Filipino',
+    valuesDirName: 'values-tl',
+  },
+  [LANGUAGE.TR]: {
+    code: LANGUAGE.TR,
+    androidCode: 'tr',
+    nameCn: '土耳其语',
+    nameEn: 'Turkish',
+    valuesDirName: 'values-tr',
+  },
   [LANGUAGE.UK]: {
     code: LANGUAGE.UK,
     androidCode: 'uk',
@@ -155,7 +301,40 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Ukrainian',
     valuesDirName: 'values-uk',
   },
+  [LANGUAGE.UR]: {
+    code: LANGUAGE.UR,
+    androidCode: 'ur',
+    nameCn: '乌尔都语',
+    nameEn: 'Urdu',
+    valuesDirName: 'values-ur',
+  },
+  [LANGUAGE.VI]: {
+    code: LANGUAGE.VI,
+    androidCode: 'vi',
+    nameCn: '越南语',
+    nameEn: 'Vietnamese',
+    valuesDirName: 'values-vi',
+  },
 }
+
+export const DEFAULT_ENABLED_BUILTIN_LANGUAGES: Language[] = [
+  LANGUAGE.DEF,
+  LANGUAGE.CN,
+  LANGUAGE.CN_HK,
+  LANGUAGE.CN_TW,
+  LANGUAGE.AR,
+  LANGUAGE.DE,
+  LANGUAGE.ES,
+  LANGUAGE.FR,
+  LANGUAGE.HI,
+  LANGUAGE.IT,
+  LANGUAGE.IW,
+  LANGUAGE.JA,
+  LANGUAGE.KO,
+  LANGUAGE.PT,
+  LANGUAGE.RU,
+  LANGUAGE.UK,
+]
 
 /**
  * 自定义语言配置
@@ -184,6 +363,13 @@ export interface FullLanguageInfo {
  */
 export function getBuiltinLanguages(): Language[] {
   return Object.values(LANGUAGE)
+}
+
+/**
+ * 获取默认启用的内置语言列表
+ */
+export function getDefaultEnabledBuiltinLanguages(): Language[] {
+  return [...DEFAULT_ENABLED_BUILTIN_LANGUAGES]
 }
 
 /**
