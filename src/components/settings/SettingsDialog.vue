@@ -528,7 +528,9 @@ const defLang = LANGUAGE.DEF
 // 默认源语言选择
 const selectedSourceLanguage = ref<Language>(LANGUAGE.DEF)
 
-// 源语言选项：内置的 'def' (英文) + 所有已启用的非默认语言
+const allLangInfos = computed(() => configStore.getAllAvailableLanguages())
+
+// 源语言选项：内置的 'def' (英文) + 所有可用的非默认语言
 const sourceLanguageOptions = computed(() => {
   const options: FullLanguageInfo[] = []
   // 添加默认选项（英文）
@@ -540,9 +542,8 @@ const sourceLanguageOptions = computed(() => {
     valuesDirName: 'values',
     isDefault: true,
   })
-  // 添加所有已启用的语言（排除 DEF）
-  const allLangs = configStore.getAllAvailableLanguages()
-  for (const info of allLangs) {
+  // 添加所有可用语言（排除 DEF）
+  for (const info of allLangInfos.value) {
     if (info.code !== LANGUAGE.DEF) {
       options.push(info)
     }
@@ -573,8 +574,6 @@ const langLabel = (lang: Language) => {
 // Language management
 const enabledLangCodes = ref<Language[]>([])
 const dragIndex = ref<number | null>(null)
-
-const allLangInfos = computed(() => configStore.getAllAvailableLanguages())
 
 const availableLangInfos = computed(() => {
   return allLangInfos.value.filter(
@@ -823,6 +822,9 @@ function addCustomLanguage() {
     }
 
     configStore.addCustomLanguage(langData)
+    if (!enabledLangCodes.value.includes(langData.androidCode)) {
+      enabledLangCodes.value = [...enabledLangCodes.value, langData.androidCode]
+    }
     customLanguages.value = configStore
       .getAllAvailableLanguages()
       .filter(l => !l.isDefault)
@@ -843,6 +845,7 @@ function addCustomLanguage() {
 function removeCustomLanguage(androidCode: string) {
   try {
     configStore.removeCustomLanguage(androidCode)
+    enabledLangCodes.value = enabledLangCodes.value.filter(code => code !== androidCode)
     customLanguages.value = customLanguages.value.filter(l => l.androidCode !== androidCode)
     toast.success(t('settings.toast.customLanguageDeleted'))
   } catch (error: any) {

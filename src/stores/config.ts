@@ -66,6 +66,12 @@ export const useConfigStore = defineStore('config', () => {
   const loaded = ref(false)
   const loading = ref(false)
 
+  function syncLanguageManager(): LanguageManager {
+    const langManager = LanguageManager.getInstance()
+    langManager.setCustomLanguages(config.value.customLanguages)
+    return langManager
+  }
+
   // 加载配置
   async function load(): Promise<void> {
     loading.value = true
@@ -77,8 +83,7 @@ export const useConfigStore = defineStore('config', () => {
       }
 
       // 初始化语言管理器中的自定义语言
-      const langManager = LanguageManager.getInstance()
-      langManager.setCustomLanguages(config.value.customLanguages)
+      syncLanguageManager()
 
       // 同步 UI 语言到 i18n
       setLocale(config.value.locale)
@@ -127,20 +132,22 @@ export const useConfigStore = defineStore('config', () => {
   function reset(): void {
     config.value = { ...DEFAULT_CONFIG }
     // 同时清空语言管理器的自定义语言
-    const langManager = LanguageManager.getInstance()
-    langManager.setCustomLanguages([])
+    syncLanguageManager()
   }
 
   // 添加自定义语言
   function addCustomLanguage(lang: CustomLanguage): void {
-    const langManager = LanguageManager.getInstance()
+    const langManager = syncLanguageManager()
     langManager.addCustomLanguage(lang)
     config.value.customLanguages = langManager.getCustomLanguages()
+    if (!config.value.enabledLanguages.includes(lang.androidCode)) {
+      config.value.enabledLanguages = [...config.value.enabledLanguages, lang.androidCode]
+    }
   }
 
   // 删除自定义语言
   function removeCustomLanguage(androidCode: string): boolean {
-    const langManager = LanguageManager.getInstance()
+    const langManager = syncLanguageManager()
     const success = langManager.removeCustomLanguage(androidCode)
     if (success) {
       config.value.customLanguages = langManager.getCustomLanguages()
@@ -158,7 +165,7 @@ export const useConfigStore = defineStore('config', () => {
     androidCode: string,
     updates: { nameCn?: string; nameEn?: string; valuesDirName?: string }
   ): boolean {
-    const langManager = LanguageManager.getInstance()
+    const langManager = syncLanguageManager()
     const success = langManager.updateCustomLanguage(androidCode, updates)
     if (success) {
       config.value.customLanguages = langManager.getCustomLanguages()
@@ -168,7 +175,7 @@ export const useConfigStore = defineStore('config', () => {
 
   // 获取所有语言（默认 + 自定义）
   function getAllAvailableLanguages() {
-    const langManager = LanguageManager.getInstance()
+    const langManager = syncLanguageManager()
     return langManager.getAllLanguages()
   }
 
