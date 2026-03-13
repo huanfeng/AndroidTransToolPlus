@@ -1,6 +1,6 @@
 {
   "name": "android-trans-tool-plus",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Android translation tool with AI",
   "type": "module",
   "scripts": {
