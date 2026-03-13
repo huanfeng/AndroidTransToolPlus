@@ -1,268 +1,228 @@
-# 语言系统优化说明
+# 语言系统说明
 
 ## 概述
 
-本次更新对 Android 翻译工具的语言系统进行了全面优化，解决了代码不统一和语言扩展性问题。新增了用户自定义语言功能，支持更灵活的 Android 多语言项目。
+当前语言系统由三部分组成：
 
-## 主要变更
+- 内置语言：项目预置的常见 Android 语言，开箱可用。
+- 默认启用语言：新配置默认勾选的一组常用语言，保持历史行为不变。
+- 自定义语言：只在内置语言未覆盖时再补充，适合少数特殊语种或地区变体。
 
-### 0. 扩充内置语言库
+这套设计的目标是减少手工维护自定义语言的频率，同时不改变现有项目默认的翻译目标集合。
 
-- 预置语言已扩展，覆盖更多 Android 常见语言，如 `th`、`vi`、`id`、`ms`、`nl`、`pl`、`tr`、`sv`、`da`、`fi`、`cs`、`hu`、`ro`、`el`、`fa`、`ur`、`bn`、`ta` 等。
-- 这些语言会直接出现在“可用语言”列表里，优先减少用户手动维护自定义语言的场景。
-- 默认启用语言列表保持现状不变，新增预置语言不会自动进入当前项目的默认翻译目标集合。
+## 当前行为
 
-### 1. 统一语言代码格式
+### 1. 内置语言已扩展
 
-**问题**：之前内部使用短代码（如 `cn`, `de`），而 Android 使用完整代码（如 `zh-rCN`, `de`），导致不一致。
+除原有的中文、阿拉伯语、德语、法语、日语、韩语、俄语等语言外，系统已新增更多常见 Android 语言预置，例如：
 
-**解决方案**：
-- 保留原有的 `Language` 枚举以保证向后兼容
-- 内部使用 `LanguageManager` 统一管理所有语言
-- Android 代码作为主要标识符
+- 亚洲：`th`、`vi`、`id`、`ms`、`tl`、`bn`、`ta`
+- 欧洲：`nl`、`pl`、`tr`、`sv`、`da`、`fi`、`cs`、`hu`、`ro`、`el`
+- 中东：`fa`、`ur`
 
-### 2. 新增 `LanguageManager` 类
+这些语言会直接出现在设置页的“可启用的语言”区域，无需再先添加自定义语言。
 
-负责统一管理所有语言（默认 + 自定义）：
+### 2. 默认启用列表保持不变
 
-```typescript
-class LanguageManager {
-  // 获取所有语言（默认 + 自定义）
-  getAllLanguages(): FullLanguageInfo[]
+虽然内置语言变多了，但默认启用列表没有自动扩容。
 
-  // 添加自定义语言
-  addCustomLanguage(lang: CustomLanguage): void
+默认仍然是这一组语言：
 
-  // 删除自定义语言
-  removeCustomLanguage(androidCode: string): boolean
+```ts
+[
+  'def',
+  'cn',
+  'cnHk',
+  'cnTw',
+  'ar',
+  'de',
+  'es',
+  'fr',
+  'hi',
+  'it',
+  'iw',
+  'ja',
+  'ko',
+  'pt',
+  'ru',
+  'uk',
+]
+```
 
-  // 根据代码查找语言
-  getLanguageInfoByCode(code: string): FullLanguageInfo | null
-  getLanguageInfoByAndroidCode(androidCode: string): FullLanguageInfo | null
-  getLanguageInfoByValuesDir(dirName: string): FullLanguageInfo | null
+这样可以避免老用户在升级后突然看到更多默认翻译列。
+
+### 3. 设置页支持三种快速操作
+
+在“已启用语言”区域，当前有三个按钮：
+
+- `添加默认`：补回系统默认那一组语言
+- `添加全部`：把当前所有内置和自定义可用语言全部加入启用列表
+- `清空`：清空除源语言外的启用语言
+
+### 4. 自定义语言改为小弹窗维护
+
+设置页不再常驻显示大块表单，自定义语言现在采用更紧凑的方式：
+
+- 列表区只展示说明、数量和已添加语言表格
+- 点击“添加自定义语言”后，使用小弹窗录入
+- 编辑也复用同一个小弹窗
+
+这样可以减少语言设置页的纵向空间占用。
+
+## 核心数据结构
+
+### 内置语言
+
+```ts
+type Language = string
+
+interface LanguageInfo {
+  code: Language
+  androidCode: string
+  nameCn: string
+  nameEn: string
+  valuesDirName: string
 }
 ```
 
-### 3. 自定义语言配置
+### 自定义语言
 
-用户可添加任意 Android 支持的语言：
-
-```typescript
+```ts
 interface CustomLanguage {
-  androidCode: string // Android 语言代码（必填）
-  nameCn: string // 中文显示名称（必填）
-  nameEn: string // 英文名称，用于AI翻译（必填）
-  valuesDirName?: string // values 目录名（可选，自动生成）
+  androidCode: string
+  nameCn: string
+  nameEn: string
+  valuesDirName?: string
 }
 ```
 
-**支持的 Android 语言代码格式**：
-- 简单语言代码：`ar`, `de`, `fr`, `es` 等
-- 带地区的代码：`zh-rCN`, `zh-rHK`, `zh-rTW` 等
+说明：
 
-### 4. 配置管理增强
+- `androidCode` 是核心标识，例如 `km`、`lo`、`my`
+- `valuesDirName` 在代码层仍然支持，但当前设置页 UI 不再单独暴露，默认自动生成
 
-在 `AppConfig` 中新增 `customLanguages` 字段：
+## 关键接口
 
-```typescript
-interface AppConfig {
-  // ... 其他配置
-  customLanguages: CustomLanguage[] // 自定义语言列表
+语言模型主要由 `src/models/language.ts` 提供：
+
+```ts
+getBuiltinLanguages()
+getDefaultEnabledBuiltinLanguages()
+getLanguageByAndroidCode(code)
+getLanguageByValuesDirName(dirName)
+getLanguageLabel(code, locale)
+```
+
+语言查询和自定义扩展由 `LanguageManager` 提供：
+
+```ts
+class LanguageManager {
+  getAllLanguages(): FullLanguageInfo[]
+  getAllLanguageCodes(): string[]
+  addCustomLanguage(lang: CustomLanguage): void
+  removeCustomLanguage(androidCode: string): boolean
+  updateCustomLanguage(androidCode: string, updates): boolean
 }
 ```
 
-配置会自动持久化存储，重启后保持自定义语言设置。
+## 使用建议
 
-### 5. 向后兼容
+### 优先使用内置语言
 
-- 保留所有现有 `Language` 枚举值
-- 现有项目的语言配置不会丢失
-- 新功能不影响原有翻译功能
+如果你需要的是这些常见语言，直接在设置页启用即可，不需要再走自定义：
 
-## 使用方法
+- `th` 泰语
+- `vi` 越南语
+- `id` 印度尼西亚语
+- `ms` 马来语
+- `nl` 荷兰语
+- `pl` 波兰语
+- `tr` 土耳其语
+- `sv` 瑞典语
 
-### 1. 查看所有可用语言
+### 只有在内置未覆盖时再使用自定义语言
 
-```typescript
-import { LanguageManager } from '@/models/language'
+适合使用自定义语言的例子：
 
-const langManager = LanguageManager.getInstance()
-const allLanguages = langManager.getAllLanguages()
+- `km` 高棉语
+- `lo` 老挝语
+- `my` 缅甸语
+- `sw` 斯瓦希里语
+- `am` 阿姆哈拉语
+- 特定地区变体，如 `pt-rBR`、`es-rMX`
 
-allLanguages.forEach(lang => {
-  console.log(`代码: ${lang.code}`)
-  console.log(`Android代码: ${lang.androidCode}`)
-  console.log(`中文名: ${lang.nameCn}`)
-  console.log(`英文名: ${lang.nameEn}`)
-  console.log(`Values目录: ${lang.valuesDirName}`)
-  console.log(`是否为默认: ${lang.isDefault}`)
-  console.log('---')
-})
-```
+## 设置页操作流程
 
-### 2. 添加自定义语言
+### 场景 1：恢复旧的默认语言集合
 
-```typescript
-import { useConfigStore } from '@/stores/config'
+1. 打开设置页
+2. 进入“语言”
+3. 点击 `添加默认`
+4. 保存设置
 
-const configStore = useConfigStore()
+### 场景 2：启用全部预置语言
 
-// 添加泰语
-configStore.addCustomLanguage({
-  androidCode: 'th',
-  nameCn: '泰语',
-  nameEn: 'Thai'
-})
+1. 打开设置页
+2. 进入“语言”
+3. 点击 `添加全部`
+4. 保存设置
 
-// 添加印尼语
-configStore.addCustomLanguage({
-  androidCode: 'id',
-  nameCn: '印尼语',
-  nameEn: 'Indonesian'
-})
-```
+### 场景 3：补充一个未预置的 Android 语言
 
-### 3. 删除自定义语言
+1. 打开设置页
+2. 进入“语言”
+3. 在“自定义语言管理”区域点击 `添加自定义语言`
+4. 在小弹窗中填写：
+   - Android 代码
+   - 中文名称
+   - 英文名称
+5. 保存后，该语言会自动加入已启用语言列表
 
-```typescript
-// 删除泰语
-configStore.removeCustomLanguage('th')
-```
+## 校验规则
 
-### 4. 获取语言信息
+添加自定义语言时会执行以下校验：
 
-```typescript
-// 根据 Android 代码查找
-const langInfo = langManager.getLanguageInfoByAndroidCode('th')
-if (langInfo) {
-  console.log(langInfo.nameCn) // '泰语'
-}
+1. 代码格式必须符合 Android 语言目录命名约束
+2. 不能与现有内置语言重复
+3. 不能与已有自定义语言重复
+4. `valuesDirName` 未提供时自动生成为 `values-<androidCode>`
 
-// 根据 values 目录名查找
-const dirInfo = langManager.getLanguageInfoByValuesDir('values-th')
-```
+当前支持的代码模式示例：
 
-## 常见语言代码参考
-
-### 亚洲语言
-- `zh-rCN` - 简体中文（中国）
-- `zh-rHK` - 繁体中文（香港）
-- `zh-rTW` - 繁体中文（台湾）
-- `ja` - 日语
-- `ko` - 韩语
-- `th` - 泰语
-- `vi` - 越南语
-- `id` - 印尼语
-- `ms` - 马来语
-- `tl` - 菲律宾语
-
-### 欧洲语言
-- `de` - 德语
-- `fr` - 法语
-- `es` - 西班牙语
-- `it` - 意大利语
-- `pt` - 葡萄牙语
-- `ru` - 俄语
-- `nl` - 荷兰语
-- `pl` - 波兰语
-- `tr` - 土耳其语
-- `sv` - 瑞典语
-- `da` - 丹麦语
-- `no` - 挪威语
-- `fi` - 芬兰语
-- `cs` - 捷克语
-- `hu` - 匈牙利语
-- `ro` - 罗马尼亚语
-- `el` - 希腊语
-
-### 中东和非洲语言
-- `ar` - 阿拉伯语
-- `iw` - 希伯来语
-- `fa` - 波斯语
-- `ur` - 乌尔都语
-- `sw` - 斯瓦希里语
-- `am` - 阿姆哈拉语
-
-### 其他语言
-- `hi` - 印地语
-- `bn` - 孟加拉语
-- `gu` - 古吉拉特语
-- `ta` - 泰米尔语
-- `te` - 泰卢固语
-- `mr` - 马拉地语
-- `ur` - 乌尔都语
-
-## 验证规则
-
-添加自定义语言时会自动验证：
-
-1. **代码格式验证**：
-   - 必须以字母开头
-   - 长度为 2-3 个字符
-   - 可选包含 `-r` 后缀（如 `zh-rCN`）
-
-2. **重复检查**：
-   - 不能与现有默认语言重复
-   - 不能与其他自定义语言重复
-
-3. **自动生成 values 目录名**：
-   - 自动转换为 `values-<androidCode>` 格式
-   - 如：`th` → `values-th`，`zh-rCN` → `values-zh-rCN`
+- 简单语言：`km`、`lo`、`sw`
+- 地区变体：`zh-rCN`、`pt-rBR`、`es-rMX`
 
 ## 配置存储
 
-自定义语言配置保存在应用配置中：
-- 浏览器：localStorage
+应用配置保存在本地存储中，相关字段包括：
 
-格式：
 ```json
 {
+  "enabledLanguages": ["def", "cn", "ja"],
+  "targetLanguages": ["ja"],
   "customLanguages": [
     {
-      "androidCode": "th",
-      "nameCn": "泰语",
-      "nameEn": "Thai",
-      "valuesDirName": "values-th"
+      "androidCode": "km",
+      "nameCn": "高棉语",
+      "nameEn": "Khmer",
+      "valuesDirName": "values-km"
     }
   ]
 }
 ```
 
-## 注意事项
+说明：
 
-1. **语言代码大小写**：
-   - Android 语言代码通常使用小写
-   - 地区代码部分使用大写（如 `rCN`, `rHK`）
-
-2. **翻译质量**：
-   - 自定义语言的翻译质量取决于 AI 模型支持
-   - 建议使用英文名称以获得更好效果
-
-3. **性能考虑**：
-   - 自定义语言数量不影响性能
-   - 建议不要超过 100 种语言
-
-4. **文件管理**：
-   - 自定义语言对应的 `values-<code>` 目录会自动创建
-   - 支持所有语言变体
+- `enabledLanguages` 决定设置页已启用语言、工作台显示列和批量翻译可选目标语言
+- `targetLanguages` 用于记忆最近一次批量翻译选择
+- `customLanguages` 用于补充内置语言未覆盖的语种
 
 ## 兼容性
 
-- ✅ 完全向后兼容现有项目
-- ✅ 保留所有默认语言
-- ✅ 现有翻译功能不受影响
-- ✅ 支持旧代码和新代码混合使用
-
-## 后续扩展
-
-未来可以增加的功能：
-1. 语言导入/导出
-2. 语言包管理
-3. 语言优先级设置
-4. 自动检测项目语言
-5. 语言使用统计
+- 保留原有 `Language` 字符串代码体系
+- 老配置不会因为新增内置语言而自动改动默认启用项
+- 现有翻译、项目扫描、XML 保存逻辑不受影响
 
 ---
 
-**更新日期**: 2025-11-19
-**版本**: v2.0.0
+更新日期：2026-03-13

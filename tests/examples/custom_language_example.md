@@ -1,37 +1,45 @@
 # 自定义语言使用示例
 
-## 示例 1：添加泰语
+## 说明
 
-```typescript
+现在很多常见 Android 语言已经内置，例如 `th`、`vi`、`id`、`ms`、`nl`、`pl`、`tr`、`sv` 等。
+
+只有在以下场景才建议使用自定义语言：
+
+- 目标语言尚未内置
+- 需要补充特定地区变体
+- 项目要求使用少见语种
+
+下面的示例统一使用当前尚未内置的语言代码。
+
+## 示例 1：添加一个未内置语言
+
+```ts
 import { useConfigStore } from '@/stores/config'
 
 const configStore = useConfigStore()
 
-// 添加泰语支持
 configStore.addCustomLanguage({
-  androidCode: 'th',
-  nameCn: '泰语',
-  nameEn: 'Thai'
+  androidCode: 'km',
+  nameCn: '高棉语',
+  nameEn: 'Khmer',
 })
 
-console.log('已添加泰语支持')
+console.log('已添加高棉语')
 ```
 
-## 示例 2：批量添加东南亚语言
+## 示例 2：批量添加少见语言
 
-```typescript
-const东南亚语言 = [
-  { androidCode: 'th', nameCn: '泰语', nameEn: 'Thai' },
-  { androidCode: 'vi', nameCn: '越南语', nameEn: 'Vietnamese' },
-  { androidCode: 'id', nameCn: '印尼语', nameEn: 'Indonesian' },
-  { androidCode: 'ms', nameCn: '马来语', nameEn: 'Malay' },
-  { androidCode: 'tl', nameCn: '菲律宾语', nameEn: 'Filipino' },
+```ts
+const extraLanguages = [
   { androidCode: 'km', nameCn: '高棉语', nameEn: 'Khmer' },
   { androidCode: 'lo', nameCn: '老挝语', nameEn: 'Lao' },
   { androidCode: 'my', nameCn: '缅甸语', nameEn: 'Burmese' },
+  { androidCode: 'sw', nameCn: '斯瓦希里语', nameEn: 'Swahili' },
+  { androidCode: 'am', nameCn: '阿姆哈拉语', nameEn: 'Amharic' },
 ]
 
-东南亚语言.forEach(lang => {
+extraLanguages.forEach(lang => {
   try {
     configStore.addCustomLanguage(lang)
     console.log(`✓ 成功添加: ${lang.nameCn} (${lang.androidCode})`)
@@ -41,139 +49,95 @@ const东南亚语言 = [
 })
 ```
 
-## 示例 3：查看所有可用语言
+## 示例 3：查看所有语言
 
-```typescript
+```ts
 import { LanguageManager } from '@/models/language'
 
 const langManager = LanguageManager.getInstance()
+const allLanguages = langManager.getAllLanguages()
 
-// 获取所有语言
-const所有语言 = langManager.getAllLanguages()
-
-console.log('默认语言:')
-所有语言.filter(l => l.isDefault).forEach(l => {
-  console.log(`  ${l.nameCn} (${l.androidCode})`)
-})
+console.log('内置语言:')
+allLanguages
+  .filter(lang => lang.isDefault)
+  .forEach(lang => console.log(`  ${lang.nameCn} (${lang.androidCode || 'values'})`))
 
 console.log('\n自定义语言:')
-所有语言.filter(l => !l.isDefault).forEach(l => {
-  console.log(`  ${l.nameCn} (${l.androidCode})`)
-})
+allLanguages
+  .filter(lang => !lang.isDefault)
+  .forEach(lang => console.log(`  ${lang.nameCn} (${lang.androidCode})`))
 ```
 
-## 示例 4：根据条件查找语言
+## 示例 4：恢复默认启用语言
 
-```typescript
-// 查找所有中文变体
-const中文变体 = langManager.getAllLanguages().filter(
-  l => l.androidCode.startsWith('zh')
-)
-console.log('中文变体:', 中文变体.map(l => l.nameCn))
+```ts
+import { getDefaultEnabledBuiltinLanguages } from '@/models/language'
+import { useConfigStore } from '@/stores/config'
 
-// 查找所有欧洲语言
-const欧洲语言 = langManager.getAllLanguages().filter(
-  l => ['de', 'fr', 'es', 'it', 'pt', 'ru', 'nl', 'pl'].includes(l.androidCode)
-)
-console.log('欧洲语言:', 欧洲语言.map(l => l.nameCn))
+const configStore = useConfigStore()
+
+configStore.update('enabledLanguages', getDefaultEnabledBuiltinLanguages())
+
+console.log('已恢复默认启用语言列表')
 ```
 
 ## 示例 5：删除自定义语言
 
-```typescript
-// 删除泰语
-const success = configStore.removeCustomLanguage('th')
+```ts
+const success = configStore.removeCustomLanguage('km')
+
 if (success) {
-  console.log('已删除泰语')
+  console.log('已删除高棉语')
 } else {
-  console.log('删除失败：泰语不存在')
+  console.log('删除失败：高棉语不存在')
 }
 ```
 
-## 示例 6：完整的语言管理流程
+## 示例 6：添加地区变体
 
-```typescript
-import { useConfigStore } from '@/stores/config'
-
-class LanguageManager {
-  static async setupCustomLanguages() {
-    const configStore = useConfigStore()
-
-    // 检查是否已加载配置
-    if (!configStore.loaded) {
-      await configStore.load()
-    }
-
-    // 添加需要的语言
-    const需要语言 = [
-      { androidCode: 'th', nameCn: '泰语', nameEn: 'Thai' },
-      { androidCode: 'vi', nameCn: '越南语', nameEn: 'Vietnamese' },
-      { androidCode: 'es', nameCn: '西班牙语', nameEn: 'Spanish' },
-    ]
-
-    for (const lang of 需要语言) {
-      try {
-        configStore.addCustomLanguage(lang)
-        console.log(`✓ ${lang.nameCn} 已添加`)
-      } catch (error) {
-        // 语言可能已存在，忽略错误
-        console.log(`- ${lang.nameCn} 已存在`)
-      }
-    }
-
-    // 获取所有语言
-    const所有语言 = configStore.getAllAvailableLanguages()
-    console.log(`当前共有 ${所有语言.length} 种语言`)
-
-    return 所有语言
-  }
-}
-
-// 使用示例
-LanguageManager.setupCustomLanguages()
+```ts
+configStore.addCustomLanguage({
+  androidCode: 'pt-rBR',
+  nameCn: '葡萄牙语（巴西）',
+  nameEn: 'Portuguese (Brazil)',
+})
 ```
 
-## 验证示例
+## 有效代码示例
 
-### 有效的语言代码
-
-```typescript
-// 简单语言代码
-'th', 'vi', 'id', 'ms', 'tl', 'ar', 'de', 'fr', 'es'
-
-// 带地区的语言代码
-'zh-rCN', 'zh-rHK', 'zh-rTW', 'pt-rBR', 'es-rMX'
+```ts
+'km'
+'lo'
+'my'
+'sw'
+'am'
+'pt-rBR'
+'es-rMX'
 ```
 
-### 无效的语言代码
+## 不建议再作为自定义语言添加的代码
 
-```typescript
-// ❌ 错误：包含数字
-'th1', 'vi2'
+这些语言现在已经有内置支持，应直接在设置页启用：
 
-// ❌ 错误：特殊字符
-'th-TH', 'vi_VN'
-
-// ❌ 错误：过长
-'thai-language'
-
-// ❌ 错误：与默认语言重复
-'cn', 'ja', 'ko' // 这些已存在
+```ts
+'th'
+'vi'
+'id'
+'ms'
+'nl'
+'pl'
+'tr'
+'sv'
 ```
 
 ## 最佳实践
 
-1. **使用标准 Android 语言代码**：参考 [Android 语言代码列表](https://developer.android.com/reference/java/util/Locale)
-
-2. **中文名称要准确**：确保显示名称是用户友好的
-
-3. **英文名称使用标准名称**：有助于 AI 翻译模型识别
-
-4. **谨慎删除语言**：删除前确认项目中没有使用该语言的资源
-
-5. **定期备份配置**：自定义语言会保存在应用配置中
+1. 先检查设置页“可启用的语言”里是否已经有目标语言。
+2. 只有内置未覆盖时，再使用自定义语言。
+3. 英文名称尽量使用标准语言名，便于 AI 模型识别。
+4. 删除自定义语言前，确认项目中没有依赖该语言目录。
+5. 如果只是想恢复旧默认集合，优先使用设置页里的“添加默认”。
 
 ---
 
-**示例版本**: v1.0.0
-**更新时间**: 2025-11-19
+更新时间：2026-03-13
