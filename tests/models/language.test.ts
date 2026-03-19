@@ -146,43 +146,43 @@ describe('语言模型', () => {
     describe('addCustomLanguage', () => {
       it('应该成功添加自定义语言', () => {
         const customLang: CustomLanguage = {
-          androidCode: 'es',
-          nameCn: '西班牙语',
-          nameEn: 'Spanish',
+          androidCode: 'af',
+          nameCn: '南非荷兰语',
+          nameEn: 'Afrikaans',
         }
         manager.addCustomLanguage(customLang)
         expect(manager.getCustomLanguages()).toHaveLength(1)
-        expect(manager.getCustomLanguages()[0]).toEqual(customLang)
+        expect(manager.getCustomLanguages()[0]).toMatchObject(customLang)
       })
 
       it('应该自动生成 values 目录名', () => {
         const customLang: CustomLanguage = {
-          androidCode: 'es',
-          nameCn: '西班牙语',
-          nameEn: 'Spanish',
+          androidCode: 'af',
+          nameCn: '南非荷兰语',
+          nameEn: 'Afrikaans',
         }
         manager.addCustomLanguage(customLang)
         const customLangs = manager.getCustomLanguages()
-        expect(customLangs[0].valuesDirName).toBe('values-es')
+        expect(customLangs[0].valuesDirName).toBe('values-af')
       })
 
       it('应该使用提供的 values 目录名', () => {
         const customLang: CustomLanguage = {
-          androidCode: 'pt',
-          nameCn: '葡萄牙语',
-          nameEn: 'Portuguese',
-          valuesDirName: 'values-pt-rBR',
+          androidCode: 'sq',
+          nameCn: '阿尔巴尼亚语',
+          nameEn: 'Albanian',
+          valuesDirName: 'values-sq-rAL',
         }
         manager.addCustomLanguage(customLang)
         const customLangs = manager.getCustomLanguages()
-        expect(customLangs[0].valuesDirName).toBe('values-pt-rBR')
+        expect(customLangs[0].valuesDirName).toBe('values-sq-rAL')
       })
 
       it('应该在添加重复语言时抛出错误', () => {
         const customLang: CustomLanguage = {
-          androidCode: 'es',
-          nameCn: '西班牙语',
-          nameEn: 'Spanish',
+          androidCode: 'af',
+          nameCn: '南非荷兰语',
+          nameEn: 'Afrikaans',
         }
         manager.addCustomLanguage(customLang)
         expect(() => {
@@ -207,20 +207,20 @@ describe('语言模型', () => {
             nameCn: '德语',
             nameEn: 'German',
           })
-        }).toThrow('already exists in default languages')
+        }).toThrow('already exists in builtin languages')
       })
     })
 
     describe('removeCustomLanguage', () => {
       it('应该成功删除自定义语言', () => {
         manager.addCustomLanguage({
-          androidCode: 'es',
-          nameCn: '西班牙语',
-          nameEn: 'Spanish',
+          androidCode: 'af',
+          nameCn: '南非荷兰语',
+          nameEn: 'Afrikaans',
         })
         expect(manager.getCustomLanguages()).toHaveLength(1)
 
-        const removed = manager.removeCustomLanguage('es')
+        const removed = manager.removeCustomLanguage('af')
         expect(removed).toBe(true)
         expect(manager.getCustomLanguages()).toHaveLength(0)
       })
@@ -234,14 +234,14 @@ describe('语言模型', () => {
     describe('getAllLanguages', () => {
       it('应该返回所有语言包括默认和自定义', () => {
         manager.addCustomLanguage({
-          androidCode: 'es',
-          nameCn: '西班牙语',
-          nameEn: 'Spanish',
+          androidCode: 'af',
+          nameCn: '南非荷兰语',
+          nameEn: 'Afrikaans',
         })
         manager.addCustomLanguage({
-          androidCode: 'pt',
-          nameCn: '葡萄牙语',
-          nameEn: 'Portuguese',
+          androidCode: 'sq',
+          nameCn: '阿尔巴尼亚语',
+          nameEn: 'Albanian',
         })
 
         const allLangs = manager.getAllLanguages()
@@ -253,7 +253,7 @@ describe('语言模型', () => {
         expect(defLang?.isDefault).toBe(true)
 
         // 检查自定义语言
-        const customLang = allLangs.find(l => l.androidCode === 'es')
+        const customLang = allLangs.find(l => l.androidCode === 'af')
         expect(customLang).toBeTruthy()
         expect(customLang?.isDefault).toBe(false)
       })
@@ -261,14 +261,14 @@ describe('语言模型', () => {
       it('应该按代码排序', () => {
         manager.setCustomLanguages([
           {
-            androidCode: 'es',
-            nameCn: '西班牙语',
-            nameEn: 'Spanish',
+            androidCode: 'af',
+            nameCn: '南非荷兰语',
+            nameEn: 'Afrikaans',
           },
           {
-            androidCode: 'pt',
-            nameCn: '葡萄牙语',
-            nameEn: 'Portuguese',
+            androidCode: 'sq',
+            nameCn: '阿尔巴尼亚语',
+            nameEn: 'Albanian',
           },
         ])
 
@@ -333,7 +333,7 @@ describe('语言模型', () => {
 
     describe('isValidAndroidCode', () => {
       it('应该验证有效的 Android 代码', () => {
-        const validCodes = ['es', 'pt', 'nl', 'sv', 'pl']
+        const validCodes = ['af', 'sq', 'am', 'az', 'ka']
         for (const code of validCodes) {
           // 通过尝试添加来测试
           expect(() => {

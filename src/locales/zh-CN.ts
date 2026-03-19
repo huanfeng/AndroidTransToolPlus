@@ -102,8 +102,16 @@ export default {
     language: {
       sourceLanguage: '源语言设置',
       sourceLanguageHint: '设置 values 目录对应的语言，翻译时将作为源语言',
-      defaultLang: '当前源语言',
+      secondarySourceLanguage: '第二源语言',
+      secondarySourceLanguageHint:
+        '可选的辅助源语言。当主源语言文本缺失时，将使用第二源语言作为翻译源',
+      noSecondarySource: '不设置第二源语言',
+      enableDualSourceTranslation: '启用双源参考翻译',
+      enableDualSourceTranslationHint:
+        '开启后，当两种源语言的文本都存在时，将同时提供两种源语言给 AI 参考，以获得更精准的翻译结果。此功能使用独立的翻译流程，不影响原有流程',
+      defaultLang: '主源语言',
       defaultLangSuffix: '（始终第一位）',
+      secondaryLang: '第二源语言',
       enabledLanguages: '已启用语言',
       dragHint: '拖拽可调整顺序，点击 × 可移除',
       noEnabledLanguages: '尚未启用其他语言',

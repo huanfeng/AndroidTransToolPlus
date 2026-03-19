@@ -6,7 +6,13 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios'
 import { LANGUAGE, type Language, getFullLanguageInfo } from '@/models/language'
-import { BATCH_PROMPT_TEMPLATE, SINGLE_PROMPT_TEMPLATE, renderPromptTemplate } from '@/models/ai'
+import {
+  BATCH_PROMPT_TEMPLATE,
+  SINGLE_PROMPT_TEMPLATE,
+  DUAL_SOURCE_SINGLE_PROMPT_TEMPLATE,
+  DUAL_SOURCE_BATCH_PROMPT_TEMPLATE,
+  renderPromptTemplate,
+} from '@/models/ai'
 
 /**
  * 翻译请求
@@ -38,6 +44,33 @@ export interface BatchTranslateRequest {
   }>
   targetLanguage: Language // 目标语言
   sourceLanguage?: Language // 源语言
+}
+
+/**
+ * 双源翻译请求（单条）
+ */
+export interface DualSourceTranslateRequest {
+  primaryText: string // 主源语言文本
+  secondaryText: string // 第二源语言文本
+  targetLanguage: Language // 目标语言
+  primarySourceLanguage: Language // 主源语言
+  secondarySourceLanguage: Language // 第二源语言
+  context?: string // 上下文信息
+}
+
+/**
+ * 双源批量翻译请求
+ */
+export interface DualSourceBatchTranslateRequest {
+  items: Array<{
+    key: string
+    primaryText: string | string[] // 主源语言文本
+    secondaryText: string | string[] // 第二源语言文本
+    context?: string
+  }>
+  targetLanguage: Language
+  primarySourceLanguage: Language
+  secondarySourceLanguage: Language
 }
 
 /**
@@ -626,6 +659,194 @@ export class OpenAITranslator {
     }
 
     return results
+  }
+
+  // ========== 双源翻译流程（独立于原有流程） ==========
+
+  /**
+   * 双源翻译：单条文本
+   */
+  async dualSourceTranslate(request: DualSourceTranslateRequest): Promise<TranslateResponse> {
+    const {
+      primaryText,
+      secondaryText,
+      targetLanguage,
+      primarySourceLanguage,
+      secondarySourceLanguage,
+      context,
+    } = request
+
+    const targetLangInfo = getFullLanguageInfo(targetLanguage)
+    const primaryLangInfo = getFullLanguageInfo(primarySourceLanguage)
+    const secondaryLangInfo = getFullLanguageInfo(secondarySourceLanguage)
+
+    if (!targetLangInfo) {
+      throw new Error(`Unsupported target language: ${targetLanguage}`)
+    }
+
+    const contextBlock = context
+      ? `Context: This is an Android string resource named "${context}".\n\n`
+      : ''
+    const extraPromptBlock = this.config.promptExtra
+      ? `- Additional context: ${this.config.promptExtra}\n`
+      : ''
+
+    const prompt = renderPromptTemplate(DUAL_SOURCE_SINGLE_PROMPT_TEMPLATE, {
+      targetLanguage: targetLangInfo.nameEn,
+      primarySourceLanguage: primaryLangInfo?.nameEn || 'English',
+      secondarySourceLanguage: secondaryLangInfo?.nameEn || 'Chinese',
+      primaryText,
+      secondaryText,
+      contextBlock,
+      extraPromptBlock,
+    })
+
+    const translatedText = await this.callOpenAI(prompt)
+
+    return {
+      originalText: primaryText,
+      translatedText,
+      targetLanguage,
+    }
+  }
+
+  /**
+   * 双源翻译：批量分块
+   */
+  async dualSourceBatchTranslateChunked(
+    request: DualSourceBatchTranslateRequest,
+    chunkSize: number = 20,
+    onProgress?: ProgressCallback,
+    checkCancellation?: CancellationCallback
+  ): Promise<BatchTranslateResponse> {
+    const { items, targetLanguage, primarySourceLanguage, secondarySourceLanguage } = request
+    const results = new Map<string, string | string[]>()
+    const errors = new Map<string, string>()
+
+    const total = items.length
+    let processed = 0
+
+    for (let i = 0; i < items.length; i += chunkSize) {
+      if (checkCancellation && checkCancellation()) {
+        throw new Error('Translation cancelled')
+      }
+
+      const chunk = items.slice(i, i + chunkSize)
+
+      try {
+        const chunkResults = await this.dualSourceTranslateChunk(
+          chunk,
+          targetLanguage,
+          primarySourceLanguage,
+          secondarySourceLanguage
+        )
+
+        for (const [key, value] of chunkResults.entries()) {
+          results.set(key, value)
+        }
+      } catch (error: any) {
+        // 批量失败时逐个翻译
+        for (const item of chunk) {
+          if (checkCancellation && checkCancellation()) {
+            throw new Error('Translation cancelled')
+          }
+
+          try {
+            if (typeof item.primaryText === 'string' && typeof item.secondaryText === 'string') {
+              const response = await this.dualSourceTranslate({
+                primaryText: item.primaryText,
+                secondaryText: item.secondaryText,
+                targetLanguage,
+                primarySourceLanguage,
+                secondarySourceLanguage,
+                context: item.context,
+              })
+              results.set(item.key, response.translatedText)
+            } else {
+              // 数组类型：逐元素翻译
+              const primaryArr = Array.isArray(item.primaryText)
+                ? item.primaryText
+                : [item.primaryText]
+              const secondaryArr = Array.isArray(item.secondaryText)
+                ? item.secondaryText
+                : [item.secondaryText]
+              const translatedArr: string[] = []
+              for (let j = 0; j < primaryArr.length; j++) {
+                const resp = await this.dualSourceTranslate({
+                  primaryText: primaryArr[j],
+                  secondaryText: secondaryArr[j] || primaryArr[j],
+                  targetLanguage,
+                  primarySourceLanguage,
+                  secondarySourceLanguage,
+                  context: `${item.key}[${j}]`,
+                })
+                translatedArr.push(resp.translatedText)
+              }
+              results.set(item.key, translatedArr)
+            }
+          } catch (err: any) {
+            errors.set(item.key, err.message || 'Translation failed')
+          }
+        }
+      }
+
+      processed += chunk.length
+      if (onProgress) {
+        onProgress(processed, total)
+      }
+    }
+
+    return { results, errors }
+  }
+
+  /**
+   * 双源翻译：翻译一个批次
+   */
+  private async dualSourceTranslateChunk(
+    items: Array<{
+      key: string
+      primaryText: string | string[]
+      secondaryText: string | string[]
+      context?: string
+    }>,
+    targetLanguage: Language,
+    primarySourceLanguage: Language,
+    secondarySourceLanguage: Language
+  ): Promise<Map<string, string | string[]>> {
+    const targetLangInfo = getFullLanguageInfo(targetLanguage)
+    const primaryLangInfo = getFullLanguageInfo(primarySourceLanguage)
+    const secondaryLangInfo = getFullLanguageInfo(secondarySourceLanguage)
+
+    if (!targetLangInfo) {
+      throw new Error(`Unsupported target language: ${targetLanguage}`)
+    }
+
+    const textsObj: Record<string, any> = {}
+    for (const item of items) {
+      textsObj[item.key] = {
+        primary: item.primaryText,
+        secondary: item.secondaryText,
+        context: item.context || item.key,
+      }
+    }
+
+    const extraPromptBlock = this.config.promptExtra
+      ? `- Additional context: ${this.config.promptExtra}\n`
+      : ''
+
+    const prompt = renderPromptTemplate(DUAL_SOURCE_BATCH_PROMPT_TEMPLATE, {
+      targetLanguage: targetLangInfo.nameEn,
+      primarySourceLanguage: primaryLangInfo?.nameEn || 'English',
+      secondarySourceLanguage: secondaryLangInfo?.nameEn || 'Chinese',
+      textsJson: JSON.stringify(textsObj, null, 2),
+      extraPromptBlock,
+    })
+
+    const response = await this.callOpenAI(prompt, true)
+    return this.parseBatchResponse(
+      response,
+      items.map(i => ({ key: i.key, text: i.primaryText }))
+    )
   }
 
   /**

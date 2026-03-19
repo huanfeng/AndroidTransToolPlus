@@ -20,6 +20,8 @@ export interface AppConfig {
   apiKey: string
   httpProxy: string
   defaultSourceLanguage: Language // values 目录对应的源语言
+  secondarySourceLanguage: Language | null // 第二源语言（如中文），用于辅助翻译
+  enableDualSourceTranslation: boolean // 是否启用双源翻译（同时提供主/副源语言参考）
   enabledLanguages: Language[]
   targetLanguages: Language[]
   customLanguages: CustomLanguage[]
@@ -45,6 +47,8 @@ const DEFAULT_CONFIG: AppConfig = {
   apiKey: '',
   httpProxy: '',
   defaultSourceLanguage: LANGUAGE.DEF, // 默认为内置的 'def' (英文)
+  secondarySourceLanguage: null, // 默认无第二源语言
+  enableDualSourceTranslation: false, // 默认不启用双源翻译
   enabledLanguages: getDefaultEnabledBuiltinLanguages(),
   targetLanguages: [],
   customLanguages: [],

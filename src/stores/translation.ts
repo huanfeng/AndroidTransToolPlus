@@ -341,6 +341,9 @@ export const useTranslationStore = defineStore('translation', () => {
         throw new Error('File map not available')
       }
 
+      // 预先获取第二源语言配置，用于预计算和翻译流程
+      const preSecondarySourceLang = configStore.config.secondarySourceLanguage
+
       const languageTaskCounts: Record<string, number> = {}
       const languageActualCounts: Record<string, number> = {}
       for (const targetLang of languages) {
@@ -348,8 +351,16 @@ export const useTranslationStore = defineStore('translation', () => {
         let actualCount = 0
         for (const [itemName, item] of items) {
           if (!item.translatable) continue
-          const originalText = item.valueMap.get(LANGUAGE.DEF)
-          if (!originalText) continue
+          const primaryText = item.valueMap.get(LANGUAGE.DEF)
+          // 回退：主源无文本时检查第二源语言
+          let hasText = !!primaryText
+          if (!hasText && preSecondarySourceLang) {
+            const secLangData = currentFileMap.get(preSecondarySourceLang)
+            const secItem = secLangData?.items.get(itemName)
+            const secText = secItem?.valueMap.get(preSecondarySourceLang)
+            hasText = !!secText
+          }
+          if (!hasText) continue
 
           let shouldSkip = false
           if (!autoUpdateTranslated) {
@@ -388,16 +399,41 @@ export const useTranslationStore = defineStore('translation', () => {
       logStore.debug(`Per-language task counts:`, languageTaskCounts)
       logStore.debug(`Per-language actual counts:`, languageActualCounts)
 
+      // 获取双源翻译配置
+      const primarySourceLang = configStore.config.defaultSourceLanguage || LANGUAGE.DEF
+      const secondarySourceLang = configStore.config.secondarySourceLanguage
+      const useDualSource = configStore.config.enableDualSourceTranslation && secondarySourceLang
+
       let hasAnyBatchItems = false
       let completedTasks = 0
 
       for (const targetLang of languages) {
         const batchItems: Array<{ key: string; text: string | string[]; context?: string }> = []
+        // 双源翻译时收集的条目（独立流程）
+        const dualSourceItems: Array<{
+          key: string
+          primaryText: string | string[]
+          secondaryText: string | string[]
+          context?: string
+        }> = []
 
         for (const [itemName, item] of items) {
           if (!item.translatable) continue
-          const originalText = item.valueMap.get(LANGUAGE.DEF)
-          if (!originalText) continue
+
+          // 获取主源语言文本
+          const primaryText = item.valueMap.get(LANGUAGE.DEF)
+
+          // 获取第二源语言文本（如果配置了）
+          let secondaryText: string | string[] | undefined
+          if (secondarySourceLang) {
+            const secLangData = currentFileMap.get(secondarySourceLang)
+            const secItem = secLangData?.items.get(itemName)
+            secondaryText = secItem?.valueMap.get(secondarySourceLang)
+          }
+
+          // 回退逻辑：主源语言无文本但第二源语言有文本时，用第二源语言作为源
+          const effectiveText = primaryText || secondaryText
+          if (!effectiveText) continue
 
           let shouldSkip = false
           if (!autoUpdateTranslated) {
@@ -419,30 +455,120 @@ export const useTranslationStore = defineStore('translation', () => {
             continue
           }
 
-          batchItems.push({ key: itemName, text: originalText, context: itemName })
+          // 双源翻译独立流程：主源和第二源文本都有时使用双源
+          if (useDualSource && primaryText && secondaryText) {
+            dualSourceItems.push({
+              key: itemName,
+              primaryText,
+              secondaryText,
+              context: itemName,
+            })
+          } else {
+            // 标准翻译流程（含回退场景）
+            batchItems.push({ key: itemName, text: effectiveText, context: itemName })
+          }
+
           tasks.value.push({
             id: `${itemName}_${targetLang}_${fileName}`,
             itemName,
-            originalText,
+            originalText: effectiveText,
             targetLanguage: targetLang,
             status: 'pending',
           })
         }
 
-        if (batchItems.length === 0) {
+        const totalItemsForLang = batchItems.length + dualSourceItems.length
+        if (totalItemsForLang === 0) {
           logStore.info(`No items to translate for ${targetLang}`)
           continue
         }
 
         hasAnyBatchItems = true
         logStore.info(
-          `Translating ${batchItems.length} items to ${targetLang} (${languageActualCounts[targetLang]} actual to translate, ${languageTaskCounts[targetLang]} total in this language)...`
+          `Translating ${totalItemsForLang} items to ${targetLang} (standard: ${batchItems.length}, dual-source: ${dualSourceItems.length})...`
         )
 
         if (!translator.value) throw new Error('Translator not initialized')
         const maxItemsPerRequest = configStore.config.maxItemsPerRequest || 20
         logStore.debug(`Batch size: ${maxItemsPerRequest}`)
 
+        // 辅助：处理翻译结果并更新状态
+        const applyChunkResult = (
+          chunkResult: { results: Map<string, string | string[]>; errors: Map<string, string> },
+          chunkLen: number,
+          batchIdx: number
+        ) => {
+          let batchSuccessCount = 0
+          let batchErrorCount = 0
+          for (const [itemName, translatedText] of chunkResult.results) {
+            try {
+              xmlData.updateItem(fileName, itemName, targetLang, translatedText as string | string[])
+              const task = tasks.value.find(
+                t => t.itemName === itemName && t.targetLanguage === targetLang
+              )
+              if (task) {
+                task.translatedText = translatedText
+                task.status = 'completed'
+                batchSuccessCount++
+              }
+            } catch (err: any) {
+              const task = tasks.value.find(
+                t => t.itemName === itemName && t.targetLanguage === targetLang
+              )
+              if (task) {
+                task.status = 'error'
+                task.error = err.message
+                batchErrorCount++
+              }
+            }
+          }
+
+          for (const [itemName, errorMsg] of chunkResult.errors) {
+            const task = tasks.value.find(
+              t => t.itemName === itemName && t.targetLanguage === targetLang
+            )
+            if (task) {
+              task.status = 'error'
+              task.error = errorMsg
+              batchErrorCount++
+            }
+          }
+
+          _progressCompleted.value += batchSuccessCount
+          _progressFailed.value += batchErrorCount
+          completedTasks += chunkLen
+          logStore.debug(
+            `Batch ${batchIdx} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${_progressTotalDisplay.value || totalActualTasks}, failed: ${_progressFailed.value}`
+          )
+        }
+
+        const handleChunkError = (
+          err: any,
+          chunkItems: Array<{ key: string }>,
+          batchIdx: number
+        ) => {
+          if (err.message === 'Translation cancelled') {
+            logStore.info(`Batch ${batchIdx} cancelled by user`)
+            throw err
+          }
+
+          logStore.error(`Batch ${batchIdx} failed:`, err)
+
+          for (const item of chunkItems) {
+            const task = tasks.value.find(
+              t => t.itemName === item.key && t.targetLanguage === targetLang
+            )
+            if (task) {
+              task.status = 'error'
+              task.error = err.message || 'Batch translation failed'
+            }
+          }
+
+          _progressFailed.value += chunkItems.length
+          completedTasks += chunkItems.length
+        }
+
+        // === 标准翻译流程 ===
         for (let i = 0; i < batchItems.length; i += maxItemsPerRequest) {
           if (isCancelled.value) {
             logStore.info('Translation cancelled - stopping after current batch')
@@ -451,103 +577,83 @@ export const useTranslationStore = defineStore('translation', () => {
           }
 
           const chunk = batchItems.slice(i, i + maxItemsPerRequest)
-          const chunkStartIdx = i
+          const batchIdx = i / maxItemsPerRequest + 1
+
+          // 确定实际源语言：对于回退场景，用第二源语言
+          // 判断逻辑：如果某条目在主源缺失但第二源存在，使用第二源语言
+          const effectiveSourceLang = primarySourceLang
 
           try {
-            for (let j = 0; j < chunk.length; j++) {
+            for (const c of chunk) {
               const taskIdx = tasks.value.findIndex(
-                t => t.itemName === chunk[j].key && t.targetLanguage === targetLang
+                t => t.itemName === c.key && t.targetLanguage === targetLang
               )
-              if (taskIdx !== -1) {
-                tasks.value[taskIdx].status = 'translating'
-              }
+              if (taskIdx !== -1) tasks.value[taskIdx].status = 'translating'
             }
 
             const chunkResult = await translator.value.batchTranslateChunked(
               {
                 items: chunk,
                 targetLanguage: targetLang,
-                sourceLanguage: configStore.config.defaultSourceLanguage || LANGUAGE.DEF,
+                sourceLanguage: effectiveSourceLang,
               },
               chunk.length,
               (current, _total) => {
-                logStore.debug(
-                  `Batch ${i / maxItemsPerRequest + 1} progress: ${chunkStartIdx + current}/${totalTasks}`
-                )
+                logStore.debug(`Standard batch ${batchIdx} progress: ${current}/${chunk.length}`)
               },
               () => isCancelled.value
             )
 
-            let batchSuccessCount = 0
-            let batchErrorCount = 0
-            for (const [itemName, translatedText] of chunkResult.results) {
-              try {
-                xmlData.updateItem(
-                  fileName,
-                  itemName,
-                  targetLang,
-                  translatedText as string | string[]
-                )
-                const task = tasks.value.find(
-                  t => t.itemName === itemName && t.targetLanguage === targetLang
-                )
-                if (task) {
-                  task.translatedText = translatedText
-                  task.status = 'completed'
-                  batchSuccessCount++
-                }
-              } catch (err: any) {
-                const task = tasks.value.find(
-                  t => t.itemName === itemName && t.targetLanguage === targetLang
-                )
-                if (task) {
-                  task.status = 'error'
-                  task.error = err.message
-                  batchErrorCount++
-                }
-              }
-            }
-
-            for (const [itemName, errorMsg] of chunkResult.errors) {
-              const task = tasks.value.find(
-                t => t.itemName === itemName && t.targetLanguage === targetLang
-              )
-              if (task) {
-                task.status = 'error'
-                task.error = errorMsg
-                batchErrorCount++
-              }
-            }
-
-            _progressCompleted.value += batchSuccessCount
-            _progressFailed.value += batchErrorCount
-            completedTasks += chunk.length
-            logStore.debug(
-              `Batch ${i / maxItemsPerRequest + 1} completed: ${batchSuccessCount} succeeded, ${batchErrorCount} failed. Total progress: ${_progressCompleted.value}/${_progressTotalDisplay.value || totalActualTasks}, failed: ${_progressFailed.value}`
-            )
+            applyChunkResult(chunkResult, chunk.length, batchIdx)
           } catch (err: any) {
-            if (err.message === 'Translation cancelled') {
-              logStore.info(`Batch ${i / maxItemsPerRequest + 1} cancelled by user`)
-              throw err
+            handleChunkError(err, chunk, batchIdx)
+          }
+        }
+
+        // === 双源翻译独立流程 ===
+        if (dualSourceItems.length > 0 && !isCancelled.value) {
+          logStore.info(
+            `Starting dual-source translation for ${dualSourceItems.length} items to ${targetLang}...`
+          )
+
+          for (let i = 0; i < dualSourceItems.length; i += maxItemsPerRequest) {
+            if (isCancelled.value) {
+              logStore.info('Dual-source translation cancelled')
+              state.value = TranslationState.STOPPING
+              break
             }
 
-            logStore.error(`Batch ${i / maxItemsPerRequest + 1} failed:`, err)
+            const chunk = dualSourceItems.slice(i, i + maxItemsPerRequest)
+            const batchIdx = i / maxItemsPerRequest + 1
 
-            for (const item of chunk) {
-              const task = tasks.value.find(
-                t => t.itemName === item.key && t.targetLanguage === targetLang
-              )
-              if (task) {
-                task.status = 'error'
-                task.error = err.message || 'Batch translation failed'
+            try {
+              for (const c of chunk) {
+                const taskIdx = tasks.value.findIndex(
+                  t => t.itemName === c.key && t.targetLanguage === targetLang
+                )
+                if (taskIdx !== -1) tasks.value[taskIdx].status = 'translating'
               }
-            }
 
-            _progressFailed.value += chunk.length
-            completedTasks += chunk.length
-            logStore.debug(
-              `Batch failed, updated progress: ${completedTasks}/${_progressTotalDisplay.value || totalActualTasks}, failed: ${_progressFailed.value}`
-            )
+              const chunkResult = await translator.value.dualSourceBatchTranslateChunked(
+                {
+                  items: chunk,
+                  targetLanguage: targetLang,
+                  primarySourceLanguage: primarySourceLang,
+                  secondarySourceLanguage: secondarySourceLang!,
+                },
+                chunk.length,
+                (current, _total) => {
+                  logStore.debug(
+                    `Dual-source batch ${batchIdx} progress: ${current}/${chunk.length}`
+                  )
+                },
+                () => isCancelled.value
+              )
+
+              applyChunkResult(chunkResult, chunk.length, batchIdx)
+            } catch (err: any) {
+              handleChunkError(err, chunk, batchIdx)
+            }
           }
         }
 
@@ -555,10 +661,10 @@ export const useTranslationStore = defineStore('translation', () => {
         const totalInThisLang = langTasks.length
         const successCount = langTasks.filter(t => t.status === 'completed').length
         const errorCount = langTasks.filter(t => t.status === 'error').length
-        const skippedCount = totalInThisLang - batchItems.length
+        const skippedCount = totalInThisLang - totalItemsForLang
 
         logStore.info(
-          `[${targetLang}] Total: ${totalInThisLang}, Should translate (actual): ${languageActualCounts[targetLang]}, Actually translated: ${batchItems.length}, Skipped: ${skippedCount}, Success: ${successCount}, Failed: ${errorCount}`
+          `[${targetLang}] Total: ${totalInThisLang}, Actually translated: ${totalItemsForLang}, Skipped: ${skippedCount}, Success: ${successCount}, Failed: ${errorCount}`
         )
       }
 

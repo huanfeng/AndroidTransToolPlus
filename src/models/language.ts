@@ -9,6 +9,7 @@ export type Language = string
  */
 export const LANGUAGE = {
   DEF: 'def',
+  EN: 'en',
   CN: 'cn',
   CN_HK: 'cnHk',
   CN_TW: 'cnTw',
@@ -36,11 +37,18 @@ export const LANGUAGE = {
   PT: 'pt',
   RO: 'ro',
   RU: 'ru',
+  BG: 'bg',
+  LA: 'la',
+  LT: 'lt',
+  MY: 'my',
+  PT_BR: 'ptBr',
+  SR: 'sr',
   SV: 'sv',
   TA: 'ta',
   TH: 'th',
   TL: 'tl',
   TR: 'tr',
+  UG: 'ug',
   UK: 'uk',
   UR: 'ur',
   VI: 'vi',
@@ -70,6 +78,13 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Default(English)',
     valuesDirName: 'values',
   },
+  [LANGUAGE.EN]: {
+    code: LANGUAGE.EN,
+    androidCode: 'en',
+    nameCn: '英语',
+    nameEn: 'English',
+    valuesDirName: 'values-en',
+  },
   [LANGUAGE.CN]: {
     code: LANGUAGE.CN,
     androidCode: 'zh-rCN',
@@ -97,6 +112,13 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameCn: '阿拉伯语',
     nameEn: 'Arabic',
     valuesDirName: 'values-ar',
+  },
+  [LANGUAGE.BG]: {
+    code: LANGUAGE.BG,
+    androidCode: 'bg',
+    nameCn: '保加利亚语',
+    nameEn: 'Bulgarian',
+    valuesDirName: 'values-bg',
   },
   [LANGUAGE.BN]: {
     code: LANGUAGE.BN,
@@ -210,12 +232,33 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Korean',
     valuesDirName: 'values-ko',
   },
+  [LANGUAGE.LA]: {
+    code: LANGUAGE.LA,
+    androidCode: 'la',
+    nameCn: '拉丁语',
+    nameEn: 'Latin',
+    valuesDirName: 'values-la',
+  },
+  [LANGUAGE.LT]: {
+    code: LANGUAGE.LT,
+    androidCode: 'lt',
+    nameCn: '立陶宛语',
+    nameEn: 'Lithuanian',
+    valuesDirName: 'values-lt',
+  },
   [LANGUAGE.MS]: {
     code: LANGUAGE.MS,
     androidCode: 'ms',
     nameCn: '马来语',
     nameEn: 'Malay',
     valuesDirName: 'values-ms',
+  },
+  [LANGUAGE.MY]: {
+    code: LANGUAGE.MY,
+    androidCode: 'my',
+    nameCn: '缅甸语',
+    nameEn: 'Burmese',
+    valuesDirName: 'values-my',
   },
   [LANGUAGE.NL]: {
     code: LANGUAGE.NL,
@@ -245,6 +288,13 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Portuguese',
     valuesDirName: 'values-pt',
   },
+  [LANGUAGE.PT_BR]: {
+    code: LANGUAGE.PT_BR,
+    androidCode: 'pt-rBR',
+    nameCn: '巴西葡萄牙语',
+    nameEn: 'Brazilian Portuguese',
+    valuesDirName: 'values-pt-rBR',
+  },
   [LANGUAGE.RO]: {
     code: LANGUAGE.RO,
     androidCode: 'ro',
@@ -258,6 +308,13 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameCn: '俄语',
     nameEn: 'Russian',
     valuesDirName: 'values-ru',
+  },
+  [LANGUAGE.SR]: {
+    code: LANGUAGE.SR,
+    androidCode: 'sr',
+    nameCn: '塞尔维亚语',
+    nameEn: 'Serbian',
+    valuesDirName: 'values-sr',
   },
   [LANGUAGE.SV]: {
     code: LANGUAGE.SV,
@@ -294,6 +351,13 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
     nameEn: 'Turkish',
     valuesDirName: 'values-tr',
   },
+  [LANGUAGE.UG]: {
+    code: LANGUAGE.UG,
+    androidCode: 'ug',
+    nameCn: '维吾尔语',
+    nameEn: 'Uyghur',
+    valuesDirName: 'values-ug',
+  },
   [LANGUAGE.UK]: {
     code: LANGUAGE.UK,
     androidCode: 'uk',
@@ -319,10 +383,11 @@ export const BUILTIN_LANGUAGES: Record<string, LanguageInfo> = {
 
 export const DEFAULT_ENABLED_BUILTIN_LANGUAGES: Language[] = [
   LANGUAGE.DEF,
+  LANGUAGE.EN,
   LANGUAGE.CN,
+  LANGUAGE.AR,
   LANGUAGE.CN_HK,
   LANGUAGE.CN_TW,
-  LANGUAGE.AR,
   LANGUAGE.DE,
   LANGUAGE.ES,
   LANGUAGE.FR,

@@ -72,12 +72,53 @@
             </el-select>
           </div>
 
+          <!-- 第二源语言设置 -->
+          <div style="margin-bottom: 20px; margin-top: 16px">
+            <div style="font-weight: 600; margin-bottom: 8px">
+              {{ $t('settings.language.secondarySourceLanguage') }}
+            </div>
+            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px">
+              {{ $t('settings.language.secondarySourceLanguageHint') }}
+            </div>
+            <el-select
+              v-model="selectedSecondarySourceLanguage"
+              style="width: 300px"
+              clearable
+              :placeholder="$t('settings.language.noSecondarySource')"
+            >
+              <el-option
+                v-for="info in secondarySourceLanguageOptions"
+                :key="info.code"
+                :label="sourceLangOptionLabel(info)"
+                :value="info.code"
+              />
+            </el-select>
+          </div>
+
+          <!-- 双源翻译选项 -->
+          <div
+            v-if="selectedSecondarySourceLanguage"
+            style="margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--el-border-color-light); border-radius: 8px; background: var(--el-fill-color-lighter)"
+          >
+            <el-checkbox v-model="enableDualSourceTranslation">
+              {{ $t('settings.language.enableDualSourceTranslation') }}
+            </el-checkbox>
+            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; padding-left: 24px">
+              {{ $t('settings.language.enableDualSourceTranslationHint') }}
+            </div>
+          </div>
+
           <el-alert type="info" show-icon :closable="false" style="margin-bottom: 16px">
             <template #title>
               {{ $t('settings.language.defaultLang') }}：<strong>{{
                 sourceLanguageDisplayLabel
               }}</strong
               >{{ $t('settings.language.defaultLangSuffix') }}
+              <template v-if="selectedSecondarySourceLanguage">
+                &nbsp;|&nbsp;{{ $t('settings.language.secondaryLang') }}：<strong>{{
+                  secondarySourceLanguageDisplayLabel
+                }}</strong>
+              </template>
             </template>
           </el-alert>
 
@@ -474,6 +515,10 @@ const defLang = LANGUAGE.DEF
 
 // 默认源语言选择
 const selectedSourceLanguage = ref<Language>(LANGUAGE.DEF)
+// 第二源语言选择
+const selectedSecondarySourceLanguage = ref<Language | null>(null)
+// 双源翻译开关
+const enableDualSourceTranslation = ref(false)
 
 const allLangInfos = computed(() => configStore.getAllAvailableLanguages())
 
@@ -507,6 +552,20 @@ const sourceLangOptionLabel = (info: FullLanguageInfo) => {
   }
   return `${name} (${info.androidCode || info.valuesDirName})`
 }
+
+// 第二源语言选项：排除主源语言和 DEF
+const secondarySourceLanguageOptions = computed(() => {
+  return allLangInfos.value.filter(
+    info => info.code !== LANGUAGE.DEF && info.code !== selectedSourceLanguage.value
+  )
+})
+
+// 第二源语言显示标签
+const secondarySourceLanguageDisplayLabel = computed(() => {
+  if (!selectedSecondarySourceLanguage.value) return ''
+  const localeType = locale.value === 'en' ? 'en' : 'cn'
+  return getLanguageLabel(selectedSecondarySourceLanguage.value, localeType)
+})
 
 // 当前选择的源语言显示标签
 const sourceLanguageDisplayLabel = computed(() => {
@@ -580,6 +639,8 @@ watch(
       const current = presetStore.effectiveEnabledLanguages
       enabledLangCodes.value = current.filter(l => l !== LANGUAGE.DEF)
       selectedSourceLanguage.value = form.value.defaultSourceLanguage || LANGUAGE.DEF
+      selectedSecondarySourceLanguage.value = form.value.secondarySourceLanguage || null
+      enableDualSourceTranslation.value = form.value.enableDualSourceTranslation || false
       loadCustomLanguages()
     }
   }
@@ -681,6 +742,11 @@ async function onSave() {
     // 始终同步到 config（默认方案兜底）
     configStore.update('enabledLanguages', langs)
     configStore.update('defaultSourceLanguage', selectedSourceLanguage.value)
+    configStore.update('secondarySourceLanguage', selectedSecondarySourceLanguage.value)
+    configStore.update(
+      'enableDualSourceTranslation',
+      selectedSecondarySourceLanguage.value ? enableDualSourceTranslation.value : false
+    )
     await configStore.save()
     toast.success(t('settings.toast.saved'))
     closeDialog()

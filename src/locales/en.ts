@@ -103,8 +103,16 @@ export default {
       sourceLanguage: 'Source Language',
       sourceLanguageHint:
         'Set the language for values directory, used as source language for translation',
-      defaultLang: 'Current source language',
+      secondarySourceLanguage: 'Secondary Source Language',
+      secondarySourceLanguageHint:
+        'Optional secondary source language. When primary source text is missing, the secondary source will be used as translation source',
+      noSecondarySource: 'No secondary source language',
+      enableDualSourceTranslation: 'Enable dual-source reference translation',
+      enableDualSourceTranslationHint:
+        'When enabled, both source languages will be provided to AI as reference for more accurate translations. Uses an independent translation flow without affecting the existing process',
+      defaultLang: 'Primary source language',
       defaultLangSuffix: ' (always first)',
+      secondaryLang: 'Secondary source',
       enabledLanguages: 'Enabled languages',
       dragHint: 'Drag to reorder, click × to remove',
       noEnabledLanguages: 'No other languages enabled',
