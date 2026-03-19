@@ -2,8 +2,10 @@
   <el-dialog
     :model-value="visible"
     :title="$t('settings.title')"
-    width="860px"
-    top="50px"
+    width="85vw"
+    style="max-width: 1100px"
+    top="5vh"
+    class="settings-dialog"
     :close-on-click-modal="false"
     :show-close="false"
     :lock-scroll="true"
@@ -28,7 +30,7 @@
         <el-form
           label-width="140px"
           :model="form"
-          style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y"
+          class="settings-tab-content"
         >
           <el-form-item :label="$t('settings.general.maxItemsPerRequest')">
             <el-input-number v-model="form.maxItemsPerRequest" :min="1" :max="100" />
@@ -51,7 +53,7 @@
       </el-tab-pane>
 
       <el-tab-pane :label="$t('settings.tabs.language')" name="language">
-        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y">
+        <div class="settings-tab-content">
           <!-- 默认源语言设置 -->
           <div style="margin-bottom: 20px">
             <div style="font-weight: 600; margin-bottom: 8px">
@@ -78,88 +80,6 @@
               >{{ $t('settings.language.defaultLangSuffix') }}
             </template>
           </el-alert>
-
-          <div style="margin-bottom: 20px">
-            <div
-              style="
-                font-weight: 600;
-                margin-bottom: 8px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
-            >
-              <span>{{ $t('settings.language.enabledLanguages') }}</span>
-              <div style="display: flex; gap: 8px">
-                <el-button size="small" plain @click="addDefaultLanguages">
-                  {{ $t('settings.language.addDefault') }}
-                </el-button>
-                <el-button size="small" type="primary" plain @click="addAllLanguages">
-                  {{ $t('settings.language.addAll', { count: availableLangInfos.length }) }}
-                </el-button>
-                <el-button
-                  size="small"
-                  type="danger"
-                  plain
-                  :disabled="!enabledLangCodes.length"
-                  @click="clearAllLanguages"
-                >
-                  {{ $t('settings.language.clear') }}
-                </el-button>
-              </div>
-            </div>
-            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px">
-              <span>{{ $t('settings.language.dragHint') }}</span>
-            </div>
-            <div
-              style="
-                min-height: 60px;
-                padding: 12px;
-                border: 1px solid var(--el-border-color);
-                border-radius: 8px;
-                background: var(--el-fill-color-lighter);
-              "
-            >
-              <div
-                v-if="enabledLangCodes.length === 0"
-                style="color: var(--el-text-color-secondary); text-align: center; padding: 12px"
-              >
-                {{ $t('settings.language.noEnabledLanguages') }}
-              </div>
-              <div v-else style="display: flex; flex-wrap: wrap; gap: 8px">
-                <el-tag
-                  v-for="(code, idx) in enabledLangCodes"
-                  :key="code"
-                  closable
-                  @close="removeLanguage(code)"
-                  :draggable="true"
-                  @dragstart="onDragStart($event, idx)"
-                  @dragover.prevent
-                  @drop="onDrop($event, idx)"
-                >
-                  {{ idx + 2 }}. {{ langLabel(code) }}
-                </el-tag>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div style="font-weight: 600; margin-bottom: 8px">
-              {{ $t('settings.language.availableLanguages') }}
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px">
-              <el-tag
-                v-for="info in availableLangInfos"
-                :key="info.code"
-                type="info"
-                effect="plain"
-                @click="addLanguage(info.code)"
-                style="cursor: pointer"
-              >
-                {{ langLabel(info.code) }}
-              </el-tag>
-            </div>
-          </div>
 
           <!-- 自定义语言管理 -->
           <div style="margin-top: 30px">
@@ -271,8 +191,27 @@
         </div>
       </el-tab-pane>
 
+      <el-tab-pane :label="$t('settings.tabs.languageList')" name="languageList">
+        <div class="settings-tab-content settings-tab-content--no-scroll">
+          <!-- 方案管理栏 -->
+          <PresetManager
+            @preset-changed="onPresetChanged"
+            @save-project-config="onSaveProjectConfig"
+            @create-project-config="onCreateProjectConfig"
+            @unknown-languages="onUnknownLanguages"
+            compact
+          />
+          <LanguageTransfer
+            v-model="enabledLangCodes"
+            :all-languages="transferLangInfos"
+            @add-default="addDefaultLanguages"
+            @clear="clearAllLanguages"
+          />
+        </div>
+      </el-tab-pane>
+
       <el-tab-pane :label="$t('settings.tabs.ai')" name="ai">
-        <div style="padding: 16px 20px; max-height: 400px; overflow-y: auto; touch-action: pan-y">
+        <div class="settings-tab-content">
           <div style="margin-bottom: 20px">
             <div style="font-weight: 600; margin-bottom: 12px">
               {{ $t('settings.ai.apiConfig') }}
@@ -493,8 +432,12 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Close, InfoFilled } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import { useConfigStore } from '@/stores/config'
 import { useTranslationStore } from '@/stores/translation'
+import PresetManager from './PresetManager.vue'
+import LanguageTransfer from './LanguageTransfer.vue'
+import { usePresetStore } from '@/stores/preset'
 import {
   LANGUAGE,
   type Language,
@@ -519,6 +462,7 @@ const emit = defineEmits<{ (e: 'update:visible', v: boolean): void }>()
 
 const configStore = useConfigStore()
 const translationStore = useTranslationStore()
+const presetStore = usePresetStore()
 
 const form = computed({
   get: () => configStore.config,
@@ -584,6 +528,11 @@ const availableLangInfos = computed(() => {
   )
 })
 
+/** 穿梭框用的所有语言信息列表（不含 DEF） */
+const transferLangInfos = computed(() =>
+  allLangInfos.value.filter(info => info.code !== defLang)
+)
+
 function addLanguage(code: Language) {
   enabledLangCodes.value = [...enabledLangCodes.value, code]
 }
@@ -628,10 +577,10 @@ watch(
   visible => {
     if (visible) {
       activeTab.value = 'general'
-      const current = form.value.enabledLanguages || []
+      const current = presetStore.effectiveEnabledLanguages
       enabledLangCodes.value = current.filter(l => l !== LANGUAGE.DEF)
-      // 加载当前配置的源语言
       selectedSourceLanguage.value = form.value.defaultSourceLanguage || LANGUAGE.DEF
+      loadCustomLanguages()
     }
   }
 )
@@ -719,8 +668,18 @@ watch(
 async function onSave() {
   try {
     const langs: Language[] = [LANGUAGE.DEF, ...enabledLangCodes.value]
+
+    // 如果当前是项目配置模式，更新项目配置的语言列表
+    if (presetStore.isProjectPresetActive) {
+      presetStore.updateProjectConfigLanguages(langs)
+    }
+    // 如果当前选中了用户方案，更新该方案
+    else if (presetStore.activePreset) {
+      presetStore.updatePresetLanguages(presetStore.activePreset.id, langs)
+    }
+
+    // 始终同步到 config（默认方案兜底）
     configStore.update('enabledLanguages', langs)
-    // 保存源语言设置
     configStore.update('defaultSourceLanguage', selectedSourceLanguage.value)
     await configStore.save()
     toast.success(t('settings.toast.saved'))
@@ -732,6 +691,41 @@ async function onSave() {
 
 function closeDialog() {
   emit('update:visible', false)
+}
+
+// ========== 方案管理事件 ==========
+function onPresetChanged() {
+  const langs = presetStore.effectiveEnabledLanguages.filter(l => l !== LANGUAGE.DEF)
+  enabledLangCodes.value = langs
+}
+
+async function onSaveProjectConfig() {
+  try {
+    const langs: Language[] = [LANGUAGE.DEF, ...enabledLangCodes.value]
+    presetStore.updateProjectConfigLanguages(langs)
+    await presetStore.saveProjectConfig()
+    toast.success(t('settings.language.projectConfigSaved'))
+  } catch (err: any) {
+    toast.fromError(err, t('settings.language.projectConfigSaveFailed'))
+  }
+}
+
+async function onCreateProjectConfig() {
+  try {
+    await presetStore.createProjectConfig()
+    toast.success(t('settings.language.projectConfigCreated'))
+    onPresetChanged()
+  } catch (err: any) {
+    toast.fromError(err, t('settings.language.projectConfigSaveFailed'))
+  }
+}
+
+function onUnknownLanguages(languages: string[]) {
+  ElMessageBox.alert(
+    `${t('settings.language.unknownLanguagesMessage')}\n\n${languages.join(', ')}`,
+    t('settings.language.unknownLanguagesTitle'),
+    { confirmButtonText: t('common.confirm') }
+  )
 }
 
 // ========== 自定义语言管理 ==========
@@ -896,18 +890,73 @@ function loadCustomLanguages() {
     }))
 }
 
-watch(
-  () => props.visible,
-  visible => {
-    if (visible) {
-      activeTab.value = 'general'
-      const current = form.value.enabledLanguages || []
-      enabledLangCodes.value = current.filter(l => l !== LANGUAGE.DEF)
-      loadCustomLanguages()
-    }
-  }
-)
 </script>
+
+<style scoped>
+.settings-tab-content {
+  padding: 16px 20px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  /* 高度由 dialog body 的 flex 布局自动分配 */
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-tab-content.settings-tab-content--no-scroll {
+  overflow: hidden;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+</style>
+
+<style>
+/* 设置对话框：固定高度，内容区弹性填充 */
+.el-overlay-dialog:has(.settings-dialog) {
+  overflow: hidden;
+}
+.settings-dialog.el-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+.settings-dialog .el-dialog__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px;
+}
+.settings-dialog .el-dialog__body .el-tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.settings-dialog .el-dialog__body .el-tabs__header {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.settings-dialog .el-dialog__body .el-tabs__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.settings-dialog .el-dialog__body .el-tab-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+</style>
 
 <style>
 /* 全局样式：模型选择器下拉框（popper 挂载在 body 下，需要全局样式） */
