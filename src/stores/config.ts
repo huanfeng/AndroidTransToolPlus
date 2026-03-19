@@ -10,6 +10,7 @@ import {
 } from '@/models/language'
 import { DEFAULT_AI_MODEL_PRESET } from '@/models/ai'
 import { setLocale, type LocaleType } from '@/locales'
+import type { LanguagePreset } from '@/models/preset'
 
 /**
  * 应用配置接口
@@ -22,6 +23,8 @@ export interface AppConfig {
   enabledLanguages: Language[]
   targetLanguages: Language[]
   customLanguages: CustomLanguage[]
+  presets: LanguagePreset[]
+  activePresetId: string | null
   maxItemsPerRequest: number
   autoUpdateTranslated: boolean
   maxRetries: number
@@ -45,6 +48,8 @@ const DEFAULT_CONFIG: AppConfig = {
   enabledLanguages: getDefaultEnabledBuiltinLanguages(),
   targetLanguages: [],
   customLanguages: [],
+  presets: [],
+  activePresetId: null,
   maxItemsPerRequest: 20,
   autoUpdateTranslated: false,
   maxRetries: 3,

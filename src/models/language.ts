@@ -633,3 +633,11 @@ export class LanguageManager {
     return custom ? custom.androidCode : null
   }
 }
+
+/**
+ * 检查语言代码是否为已知语言（内置或自定义）
+ */
+export function isKnownLanguageCode(code: string): boolean {
+  if (BUILTIN_LANGUAGES[code]) return true
+  return LanguageManager.getInstance().getLanguageInfoByCode(code) !== null
+}

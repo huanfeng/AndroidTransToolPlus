@@ -267,6 +267,7 @@ import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
+import { usePresetStore } from '@/stores/preset'
 import type { ResItem } from '@/models/resource'
 import { LANGUAGE, type Language, getLanguageLabel } from '@/models/language'
 import { MoreFilled } from '@element-plus/icons-vue'
@@ -279,6 +280,7 @@ const { t, locale } = useI18n()
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const configStore = useConfigStore()
+const presetStore = usePresetStore()
 
 const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
@@ -348,9 +350,7 @@ const pagedRows = computed(() => {
   return filteredRows.value.slice(start, start + pageSize.value)
 })
 
-const targetLangs = computed<Language[]>(() =>
-  configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
-)
+const targetLangs = computed<Language[]>(() => presetStore.effectiveTargetLanguages)
 
 function langName(l: Language) {
   return getLanguageLabel(l, locale.value === 'en' ? 'en' : 'cn')

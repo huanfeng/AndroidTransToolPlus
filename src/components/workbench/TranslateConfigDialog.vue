@@ -99,6 +99,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '@/stores/config'
+import { usePresetStore } from '@/stores/preset'
 import { LANGUAGE, type Language } from '@/models/language'
 import LanguageSelector from '@/components/common/LanguageSelector.vue'
 
@@ -177,6 +178,7 @@ const emit = defineEmits<{
 }>()
 
 const configStore = useConfigStore()
+const presetStore = usePresetStore()
 const selectedScope = ref('')
 const selectedContent = ref('') // 第二层选择
 const selectedLanguages = ref<Language[]>([])
@@ -254,7 +256,7 @@ const allTargetLanguagesComputed = computed(() => {
   }
   return (
     props.config.allTargetLanguages ||
-    configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
+    presetStore.effectiveTargetLanguages
   )
 })
 

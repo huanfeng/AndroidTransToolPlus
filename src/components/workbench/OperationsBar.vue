@@ -78,6 +78,7 @@ import toast from '@/utils/toast'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { useConfigStore } from '@/stores/config'
+import { usePresetStore } from '@/stores/preset'
 import { LANGUAGE, type Language } from '@/models/language'
 import { Search, MessageBox } from '@element-plus/icons-vue'
 import type { ResItem } from '@/models/resource'
@@ -88,6 +89,7 @@ const { t } = useI18n()
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const configStore = useConfigStore()
+const presetStore = usePresetStore()
 
 // 批量翻译对话框状态
 const showBatchDialog = ref(false)
@@ -95,9 +97,7 @@ const batchDialogConfig = ref<any>(null)
 const showProjectDialog = ref(false)
 const projectDialogConfig = ref<any>(null)
 
-const allTargetLanguages = computed(() =>
-  configStore.config.enabledLanguages.filter(l => l !== LANGUAGE.DEF)
-)
+const allTargetLanguages = computed(() => presetStore.effectiveTargetLanguages)
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)
