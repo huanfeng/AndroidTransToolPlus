@@ -180,7 +180,7 @@ const { t } = useI18n()
 const presetStore = usePresetStore()
 const projectStore = useProjectStore()
 
-const props = defineProps<{
+defineProps<{
   compact?: boolean
 }>()
 

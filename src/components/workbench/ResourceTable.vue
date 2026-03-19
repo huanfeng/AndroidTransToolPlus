@@ -266,7 +266,6 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
-import { useConfigStore } from '@/stores/config'
 import { usePresetStore } from '@/stores/preset'
 import type { ResItem } from '@/models/resource'
 import { LANGUAGE, type Language, getLanguageLabel } from '@/models/language'
@@ -279,7 +278,6 @@ const { t, locale } = useI18n()
 
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
-const configStore = useConfigStore()
 const presetStore = usePresetStore()
 
 const editable = reactive<Record<string, string | undefined>>({})

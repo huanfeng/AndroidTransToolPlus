@@ -98,9 +98,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useConfigStore } from '@/stores/config'
 import { usePresetStore } from '@/stores/preset'
-import { LANGUAGE, type Language } from '@/models/language'
+import { type Language } from '@/models/language'
 import LanguageSelector from '@/components/common/LanguageSelector.vue'
 
 const { t } = useI18n()
@@ -177,7 +176,6 @@ const emit = defineEmits<{
   ): void
 }>()
 
-const configStore = useConfigStore()
 const presetStore = usePresetStore()
 const selectedScope = ref('')
 const selectedContent = ref('') // 第二层选择

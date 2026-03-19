@@ -573,36 +573,13 @@ const sourceLanguageDisplayLabel = computed(() => {
   return getSourceLanguageLabel(selectedSourceLanguage.value, localeType)
 })
 
-const langLabel = (lang: Language) => {
-  return getLanguageLabel(lang, locale.value === 'en' ? 'en' : 'cn')
-}
-
 // Language management
 const enabledLangCodes = ref<Language[]>([])
-const dragIndex = ref<number | null>(null)
-
-const availableLangInfos = computed(() => {
-  return allLangInfos.value.filter(
-    info => info.code !== defLang && !enabledLangCodes.value.includes(info.code)
-  )
-})
 
 /** 穿梭框用的所有语言信息列表（不含 DEF） */
 const transferLangInfos = computed(() =>
   allLangInfos.value.filter(info => info.code !== defLang)
 )
-
-function addLanguage(code: Language) {
-  enabledLangCodes.value = [...enabledLangCodes.value, code]
-}
-
-function removeLanguage(code: Language) {
-  enabledLangCodes.value = enabledLangCodes.value.filter(c => c !== code)
-}
-
-function addAllLanguages() {
-  enabledLangCodes.value = allLangInfos.value.filter(l => l.code !== defLang).map(l => l.code)
-}
 
 function addDefaultLanguages() {
   const merged = new Set([
@@ -614,21 +591,6 @@ function addDefaultLanguages() {
 
 function clearAllLanguages() {
   enabledLangCodes.value = []
-}
-
-function onDragStart(_event: DragEvent, index: number) {
-  dragIndex.value = index
-}
-
-function onDrop(event: DragEvent, targetIndex: number) {
-  event.preventDefault()
-  if (dragIndex.value === null || dragIndex.value === targetIndex) return
-
-  const codes = enabledLangCodes.value.slice()
-  const [moved] = codes.splice(dragIndex.value, 1)
-  codes.splice(targetIndex, 0, moved)
-  enabledLangCodes.value = codes
-  dragIndex.value = null
 }
 
 watch(
