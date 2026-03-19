@@ -61,6 +61,7 @@
       </template>
     </el-dialog>
     <div class="btn-row">
+      <PresetSelector />
       <LanguageSwitcher />
       <el-button :icon="Setting" @click="$emit('open-settings')">{{
         $t('header.settings')
@@ -77,6 +78,7 @@ import { Setting, InfoFilled } from '@element-plus/icons-vue'
 import { computed, ref } from 'vue'
 import { useTranslationStore } from '@/stores/translation'
 import LanguageSwitcher from './LanguageSwitcher.vue'
+import PresetSelector from '@/components/common/PresetSelector.vue'
 
 const translationStore = useTranslationStore()
 const isTranslating = computed(() => translationStore.isTranslating)
