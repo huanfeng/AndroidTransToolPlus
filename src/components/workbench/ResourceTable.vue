@@ -199,7 +199,7 @@
       </div>
 
       <!-- Key列菜单下拉 -->
-      <el-dropdown ref="keyMenu" trigger="click" :hide-on-click="true" @command="onKeyMenuCommand">
+      <el-dropdown :key="keyMenuKey" ref="keyMenu" trigger="click" :hide-on-click="true" @command="onKeyMenuCommand">
         <span />
         <template #dropdown>
           <el-dropdown-menu>
@@ -215,6 +215,7 @@
 
       <!-- 语言表头菜单下拉 -->
       <el-dropdown
+        :key="langHeaderMenuKey"
         ref="langHeaderMenu"
         trigger="click"
         :hide-on-click="true"
@@ -235,6 +236,7 @@
 
       <!-- 单元格菜单下拉 -->
       <el-dropdown
+        :key="cellMenuKey"
         ref="cellMenu"
         trigger="click"
         :hide-on-click="true"
@@ -276,7 +278,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
@@ -409,6 +411,10 @@ function getCellValue(row: ResItem, lang: Language): string {
 const keyMenu = ref()
 const langHeaderMenu = ref()
 const cellMenu = ref()
+// 用于强制重新挂载 dropdown，解决同类型菜单切换时 Popper 位置缓存问题
+const keyMenuKey = ref(0)
+const langHeaderMenuKey = ref(0)
+const cellMenuKey = ref(0)
 
 // 当前菜单数据
 const currentKeyRow = ref<any | null>(null)
@@ -722,41 +728,37 @@ function onSelectionChange(rows: any[]) {
 }
 
 // 菜单相关函数
-function openKeyMenu(row: any, event: MouseEvent) {
-  currentKeyRow.value = row
-  const dropdown = keyMenu.value as any
-  // 先关闭可能已打开的菜单，确保位置更新
-  dropdown.handleClose?.()
-  // 更新位置
+
+/** 通用菜单打开辅助：定位并打开 dropdown */
+function positionAndOpen(dropdown: any, x: number, y: number) {
+  if (!dropdown) return
   const el = dropdown.$el as HTMLElement
   el.style.position = 'fixed'
-  el.style.left = event.clientX + 'px'
-  el.style.top = event.clientY + 'px'
-  // 打开菜单
+  el.style.left = x + 'px'
+  el.style.top = y + 'px'
   dropdown.handleOpen()
+}
+
+function openKeyMenu(row: any, event: MouseEvent) {
+  currentKeyRow.value = row
+  const x = event.clientX, y = event.clientY
+  keyMenuKey.value++ // 强制重新挂载，确保 Popper 以新位置创建
+  nextTick(() => positionAndOpen(keyMenu.value, x, y))
 }
 
 function openLangHeaderMenu(lang: Language, event: MouseEvent) {
   currentLang.value = lang
-  const dropdown = langHeaderMenu.value as any
-  dropdown.handleClose?.()
-  const el = dropdown.$el as HTMLElement
-  el.style.position = 'fixed'
-  el.style.left = event.clientX + 'px'
-  el.style.top = event.clientY + 'px'
-  dropdown.handleOpen()
+  const x = event.clientX, y = event.clientY
+  langHeaderMenuKey.value++
+  nextTick(() => positionAndOpen(langHeaderMenu.value, x, y))
 }
 
 function openCellMenu(row: any, lang: Language, event: MouseEvent) {
   currentCellRow.value = row
   currentLang.value = lang
-  const dropdown = cellMenu.value as any
-  dropdown.handleClose?.()
-  const el = dropdown.$el as HTMLElement
-  el.style.position = 'fixed'
-  el.style.left = event.clientX + 'px'
-  el.style.top = event.clientY + 'px'
-  dropdown.handleOpen()
+  const x = event.clientX, y = event.clientY
+  cellMenuKey.value++
+  nextTick(() => positionAndOpen(cellMenu.value, x, y))
 }
 
 const hasEditedRow = computed(() => {
