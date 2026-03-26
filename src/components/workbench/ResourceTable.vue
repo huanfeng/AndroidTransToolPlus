@@ -57,6 +57,20 @@
               </template>
             </el-table-column>
             <el-table-column :label="langName(LANGUAGE.DEF)" min-width="220">
+              <template #header>
+                <div class="header-container">
+                  <span>{{ langName(LANGUAGE.DEF) }}</span>
+                  <el-button
+                    v-if="hasSecondarySource"
+                    class="header-menu-btn"
+                    text
+                    size="small"
+                    @click="openLangHeaderMenu(LANGUAGE.DEF, $event)"
+                  >
+                    <el-icon><MoreFilled /></el-icon>
+                  </el-button>
+                </div>
+              </template>
               <template #default="{ row }">
                 <div class="cell-with-menu">
                   <template v-if="row.type === 'string'">
@@ -229,10 +243,10 @@
         <span />
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="quick-translate">{{
+            <el-dropdown-item v-if="canTranslateCell" command="quick-translate">{{
               $t('workbench.menu.quickTranslate')
             }}</el-dropdown-item>
-            <el-dropdown-item command="translate-custom">{{
+            <el-dropdown-item v-if="canTranslateCell" command="translate-custom">{{
               $t('workbench.menu.translate')
             }}</el-dropdown-item>
             <el-dropdown-item v-if="hasEditedCell" command="restore-cell" divided>{{
@@ -267,6 +281,7 @@ import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/stores/project'
 import { useTranslationStore } from '@/stores/translation'
 import { usePresetStore } from '@/stores/preset'
+import { useConfigStore } from '@/stores/config'
 import type { ResItem } from '@/models/resource'
 import { LANGUAGE, type Language, getLanguageLabel } from '@/models/language'
 import { MoreFilled } from '@element-plus/icons-vue'
@@ -279,6 +294,7 @@ const { t, locale } = useI18n()
 const projectStore = useProjectStore()
 const translationStore = useTranslationStore()
 const presetStore = usePresetStore()
+const configStore = useConfigStore()
 
 const editable = reactive<Record<string, string | undefined>>({})
 const editing = ref<string | null>(null)
@@ -349,6 +365,25 @@ const pagedRows = computed(() => {
 })
 
 const targetLangs = computed<Language[]>(() => presetStore.effectiveTargetLanguages)
+
+/** 是否配置了第二源语言 */
+const hasSecondarySource = computed(() => !!configStore.config.secondarySourceLanguage)
+
+/** 所有可翻译的目标语言（配置了第二源语言时包含 DEF） */
+const allTranslatableLanguages = computed<Language[]>(() => {
+  const langs = targetLangs.value
+  if (hasSecondarySource.value) {
+    return [LANGUAGE.DEF, ...langs]
+  }
+  return langs
+})
+
+/** 当前单元格菜单是否可显示翻译选项 */
+const canTranslateCell = computed(() => {
+  if (!currentLang.value) return true
+  if (currentLang.value === LANGUAGE.DEF) return hasSecondarySource.value
+  return true
+})
 
 function langName(l: Language) {
   return getLanguageLabel(l, locale.value === 'en' ? 'en' : 'cn')
@@ -601,7 +636,8 @@ function getTargetLanguagesForItem(itemName: string, mode: string): Language[] {
   const it = def.items.get(itemName)
   if (!it) return []
 
-  const langs = targetLangs.value
+  // 配置了第二源语言时包含 DEF
+  const langs = allTranslatableLanguages.value
   if (mode === 'all') return langs
 
   // mode === 'missing'
@@ -744,8 +780,8 @@ function onKeyMenuCommand(cmd: string) {
   const row = currentKeyRow.value
 
   if (cmd === 'translate') {
-    // 打开翻译配置对话框，提供翻译语言选项
-    const allLangs = targetLangs.value
+    // 打开翻译配置对话框，提供翻译语言选项（配置了第二源语言时包含 DEF）
+    const allLangs = allTranslatableLanguages.value
     const missingLangs = getTargetLanguagesForItem(row.name, 'missing')
 
     // 先关闭菜单
@@ -866,24 +902,73 @@ function onLangHeaderMenuCommand(cmd: string) {
   }
 }
 
+/**
+ * 校验默认语言列翻译：检查第二源语言配置和文本可用性
+ * @returns true 表示可以继续翻译
+ */
+function validateDefColumnTranslation(itemName: string): boolean {
+  const secLang = configStore.config.secondarySourceLanguage
+  if (!secLang) {
+    toast.warning(t('workbench.toast.noSecondarySourceLanguage'))
+    return false
+  }
+  const fileMap = projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
+  if (!fileMap) return false
+  const secData = fileMap.get(secLang)
+  const secItem = secData?.items.get(itemName)
+  const secText = secItem?.valueMap.get(secLang)
+  if (!secText) {
+    toast.warning(t('workbench.toast.noSourceTextForDefault'))
+    return false
+  }
+  return true
+}
+
 function onCellMenuCommand(cmd: string) {
   if (!currentCellRow.value || !currentLang.value) return
   const row = currentCellRow.value
   const lang = currentLang.value
 
   if (cmd === 'quick-translate') {
+    // DEF 列翻译校验
+    if (lang === LANGUAGE.DEF && !validateDefColumnTranslation(row.name)) {
+      currentCellRow.value = null
+      currentLang.value = null
+      return
+    }
     // 快速翻译：直接翻译当前单元格，不弹出对话框
     const items = getItemsByScope('all', undefined, row.name)
     executeTranslation(items, [lang], true)
     currentCellRow.value = null
     currentLang.value = null
   } else if (cmd === 'translate-custom') {
+    // DEF 列翻译校验
+    if (lang === LANGUAGE.DEF && !validateDefColumnTranslation(row.name)) {
+      currentCellRow.value = null
+      currentLang.value = null
+      return
+    }
     // 自定义翻译：打开配置对话框
     // 先关闭菜单
     currentCellRow.value = null
     currentLang.value = null
 
-    // 准备对话框配置
+    // 准备对话框配置（DEF 列翻译时显示第二源语言文本作为源文本）
+    const isDefTarget = lang === LANGUAGE.DEF
+    const sourceTextLabel = isDefTarget
+      ? langName(configStore.config.secondarySourceLanguage!)
+      : t('workbench.table.defaultText')
+    const sourceTextValue = isDefTarget
+      ? (() => {
+          const secLang = configStore.config.secondarySourceLanguage!
+          const fileMap = projectStore.selectedXmlData?.getFileData(projectStore.selectedXmlFile!)
+          const secData = fileMap?.get(secLang)
+          const secItem = secData?.items.get(row.name)
+          const v = secItem?.valueMap.get(secLang)
+          return typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : ''
+        })()
+      : getCellValue(row, LANGUAGE.DEF)
+
     const dialogConfig = {
       type: 'cell' as const,
       title: t('translateConfig.translateCell'),
@@ -891,8 +976,8 @@ function onCellMenuCommand(cmd: string) {
       description: {
         key: { label: 'Key', value: row.name },
         defaultText: {
-          label: t('workbench.table.defaultText'),
-          value: getCellValue(row, LANGUAGE.DEF),
+          label: sourceTextLabel,
+          value: sourceTextValue,
         },
         language: {
           label: t('translateConfig.targetLanguage'),
@@ -948,8 +1033,8 @@ async function onTranslateConfirm(data: {
       const itemName = translateDialogConfig.value.context.itemName
       if (!itemName) return
       items = getItemsByScope('all', undefined, itemName)
-      // Key翻译通过languageFilter确定目标语言
-      const allLangs = targetLangs.value
+      // Key翻译通过languageFilter确定目标语言（配置了第二源语言时包含 DEF）
+      const allLangs = allTranslatableLanguages.value
       const missingLangs = getTargetLanguagesForItem(itemName, 'missing')
       languages = data.languageFilter === 'missing' ? missingLangs : allLangs
       autoUpdateTranslated = data.autoUpdateTranslated ?? data.languageFilter === 'all'

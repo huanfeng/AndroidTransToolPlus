@@ -97,7 +97,14 @@ const batchDialogConfig = ref<any>(null)
 const showProjectDialog = ref(false)
 const projectDialogConfig = ref<any>(null)
 
-const allTargetLanguages = computed(() => presetStore.effectiveTargetLanguages)
+/** 目标语言列表：配置了第二源语言时包含 DEF（可通过第二源语言翻译默认语言） */
+const allTargetLanguages = computed(() => {
+  const langs = presetStore.effectiveTargetLanguages
+  if (configStore.config.secondarySourceLanguage && !langs.includes(LANGUAGE.DEF)) {
+    return [LANGUAGE.DEF, ...langs]
+  }
+  return langs
+})
 
 const canTranslate = computed(() => {
   const hasFile = !!(projectStore.selectedXmlData && projectStore.selectedXmlFile)

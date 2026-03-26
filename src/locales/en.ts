@@ -297,6 +297,8 @@ export default {
       projectTranslateFailed: 'Project translation failed',
       restoreFailed: 'Failed to restore',
       selectTargetLanguage: 'Please select target languages',
+      noSecondarySourceLanguage: 'Configure a secondary source language in settings to translate the default language',
+      noSourceTextForDefault: 'Secondary source language has no text available for this item',
     },
   },
 

@@ -290,6 +290,8 @@ export default {
       projectTranslateFailed: '项目翻译失败',
       restoreFailed: '还原失败',
       selectTargetLanguage: '请先选择目标语言',
+      noSecondarySourceLanguage: '翻译默认语言需要先在设置中配置第二源语言',
+      noSourceTextForDefault: '第二源语言无可用文本，无法翻译默认语言',
     },
   },
 

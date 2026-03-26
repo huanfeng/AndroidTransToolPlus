@@ -352,13 +352,27 @@ export const useTranslationStore = defineStore('translation', () => {
         for (const [itemName, item] of items) {
           if (!item.translatable) continue
           const primaryText = item.valueMap.get(LANGUAGE.DEF)
-          // 回退：主源无文本时检查第二源语言
-          let hasText = !!primaryText
-          if (!hasText && preSecondarySourceLang) {
-            const secLangData = currentFileMap.get(preSecondarySourceLang)
-            const secItem = secLangData?.items.get(itemName)
-            const secText = secItem?.valueMap.get(preSecondarySourceLang)
-            hasText = !!secText
+          // 判断是否有可用的源文本
+          let hasText: boolean
+          if (targetLang === LANGUAGE.DEF) {
+            // 目标是默认语言时，源必须来自第二源语言
+            if (!preSecondarySourceLang) {
+              hasText = false
+            } else {
+              const secLangData = currentFileMap.get(preSecondarySourceLang)
+              const secItem = secLangData?.items.get(itemName)
+              const secText = secItem?.valueMap.get(preSecondarySourceLang)
+              hasText = !!secText
+            }
+          } else {
+            // 回退：主源无文本时检查第二源语言
+            hasText = !!primaryText
+            if (!hasText && preSecondarySourceLang) {
+              const secLangData = currentFileMap.get(preSecondarySourceLang)
+              const secItem = secLangData?.items.get(itemName)
+              const secText = secItem?.valueMap.get(preSecondarySourceLang)
+              hasText = !!secText
+            }
           }
           if (!hasText) continue
 
@@ -431,8 +445,15 @@ export const useTranslationStore = defineStore('translation', () => {
             secondaryText = secItem?.valueMap.get(secondarySourceLang)
           }
 
-          // 回退逻辑：主源语言无文本但第二源语言有文本时，用第二源语言作为源
-          const effectiveText = primaryText || secondaryText
+          // 确定有效的源文本
+          let effectiveText: string | string[] | undefined
+          if (targetLang === LANGUAGE.DEF) {
+            // 目标是默认语言时，源文本必须来自第二源语言
+            effectiveText = secondaryText
+          } else {
+            // 回退逻辑：主源语言无文本但第二源语言有文本时，用第二源语言作为源
+            effectiveText = primaryText || secondaryText
+          }
           if (!effectiveText) continue
 
           let shouldSkip = false
@@ -455,8 +476,8 @@ export const useTranslationStore = defineStore('translation', () => {
             continue
           }
 
-          // 双源翻译独立流程：主源和第二源文本都有时使用双源
-          if (useDualSource && primaryText && secondaryText) {
+          // 双源翻译独立流程：主源和第二源文本都有时使用双源（目标为默认语言时不使用双源）
+          if (targetLang !== LANGUAGE.DEF && useDualSource && primaryText && secondaryText) {
             dualSourceItems.push({
               key: itemName,
               primaryText,
@@ -579,9 +600,10 @@ export const useTranslationStore = defineStore('translation', () => {
           const chunk = batchItems.slice(i, i + maxItemsPerRequest)
           const batchIdx = i / maxItemsPerRequest + 1
 
-          // 确定实际源语言：对于回退场景，用第二源语言
-          // 判断逻辑：如果某条目在主源缺失但第二源存在，使用第二源语言
-          const effectiveSourceLang = primarySourceLang
+          // 确定实际源语言：目标为默认语言时使用第二源语言，回退场景也使用第二源语言
+          const effectiveSourceLang = targetLang === LANGUAGE.DEF && secondarySourceLang
+            ? secondarySourceLang
+            : primarySourceLang
 
           try {
             for (const c of chunk) {
