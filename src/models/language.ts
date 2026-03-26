@@ -701,8 +701,38 @@ export class LanguageManager {
 
 /**
  * 检查语言代码是否为已知语言（内置或自定义）
+ * 支持内部代码（如 cn, cnTw）和 Android 代码（如 zh-rCN, zh-rTW）
  */
 export function isKnownLanguageCode(code: string): boolean {
   if (BUILTIN_LANGUAGES[code]) return true
+  if (getLanguageByAndroidCode(code) !== null) return true
   return LanguageManager.getInstance().getLanguageInfoByCode(code) !== null
+}
+
+/**
+ * 将语言代码规范化为内部代码
+ * 支持内部代码和 Android 代码输入，统一返回内部代码
+ */
+export function normalizeToInternalCode(code: string): Language | null {
+  // 优先精确匹配内部代码
+  if (BUILTIN_LANGUAGES[code]) return code as Language
+  // 尝试匹配自定义语言（自定义语言的 code 就是 androidCode）
+  const custom = LanguageManager.getInstance().getLanguageInfoByCode(code)
+  if (custom) return code as Language
+  // 尝试从 androidCode 转换
+  return getLanguageByAndroidCode(code)
+}
+
+/**
+ * 将内部代码转换为 Android 代码（用于配置文件序列化）
+ * DEF 语言输出为 "def"（特殊标识）
+ */
+export function toAndroidCode(lang: Language): string {
+  const info = BUILTIN_LANGUAGES[lang]
+  if (info) {
+    // DEF 的 androidCode 为空字符串，配置文件中使用 "def" 标识
+    return info.androidCode || 'def'
+  }
+  // 自定义语言的 code 本身就是 androidCode
+  return lang
 }

@@ -1,5 +1,5 @@
 import type { Language } from './language'
-import { isKnownLanguageCode } from './language'
+import { normalizeToInternalCode, toAndroidCode } from './language'
 
 /** 方案配置文件版本 */
 export const PRESET_FILE_VERSION = 1
@@ -77,6 +77,7 @@ export function validatePresetFile(data: unknown): string[] {
 
 /**
  * 解析方案文件内容，返回去重后的语言列表和未识别的语言
+ * 支持内部代码（如 cn, cnTw）和 Android 代码（如 zh-rCN, zh-rTW）两种格式
  */
 export function parsePresetLanguages(languages: string[]): {
   known: Language[]
@@ -91,9 +92,11 @@ export function parsePresetLanguages(languages: string[]): {
     if (!trimmed || seen.has(trimmed)) continue
     seen.add(trimmed)
 
-    if (isKnownLanguageCode(trimmed)) {
-      known.push(trimmed)
-    } else {
+    // 规范化为内部代码（同时支持内部代码和 Android 代码）
+    const internalCode = normalizeToInternalCode(trimmed)
+    if (internalCode && !known.includes(internalCode)) {
+      known.push(internalCode)
+    } else if (!internalCode) {
       unknown.push(trimmed)
     }
   }
@@ -120,12 +123,13 @@ export function uniquePresetName(baseName: string, existingNames: string[]): str
 
 /**
  * 将方案序列化为导出/配置文件格式
+ * 语言代码统一使用 Android 格式（如 zh-rCN, zh-rTW）
  */
 export function serializePreset(preset: { name: string; enabledLanguages: Language[] }): string {
   const data: PresetFileFormat = {
     version: PRESET_FILE_VERSION,
     name: preset.name,
-    enabledLanguages: preset.enabledLanguages,
+    enabledLanguages: preset.enabledLanguages.map(toAndroidCode),
   }
   return JSON.stringify(data, null, 2)
 }
