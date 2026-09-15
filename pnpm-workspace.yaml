@@ -1,0 +1,9 @@
+# pnpm 10+ 默认不执行依赖的安装脚本（供应链安全），需在此显式放行。
+# 删除本文件会让 pnpm 重新询问 approve-builds。
+allowBuilds:
+  # vite 的可选原生文件监听器，缺失会退化为轮询
+  '@parcel/watcher': true
+  # vite/vitest 的构建内核，需要 postinstall 落地平台二进制，必须放行
+  esbuild: true
+  # pinia 依赖，postinstall 按 Vue 版本切换适配层，必须放行
+  vue-demi: true
