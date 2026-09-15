@@ -37,6 +37,8 @@ export interface AppConfig {
   aiModelPreset: string
   aiCustomModel: string
   aiPromptExtra: string
+  /** 上次从服务端拉取到的模型列表，持久化后下次打开设置即可直接选择 */
+  aiAvailableModels: string[]
 }
 
 /**
@@ -64,6 +66,7 @@ const DEFAULT_CONFIG: AppConfig = {
   aiModelPreset: DEFAULT_AI_MODEL_PRESET,
   aiCustomModel: '',
   aiPromptExtra: '',
+  aiAvailableModels: [],
 }
 
 /**
@@ -192,6 +195,8 @@ export const useConfigStore = defineStore('config', () => {
   function validate(): { valid: boolean; errors: string[] } {
     const errors: string[] = []
 
+    // URL 的形态校验交给 normalizeApiBaseUrl：它接受裸域名并自动补协议，
+    // 在这里再加一条「必须带 http://」的规则只会和它互相打架。
     if (!config.value.apiUrl) {
       errors.push('API URL is required')
     }

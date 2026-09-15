@@ -6,7 +6,6 @@ import {
   AI_MODEL_PRESETS,
   DEFAULT_AI_MODEL_PRESET,
   resolveAiModel,
-  getModelLabel,
   SINGLE_PROMPT_TEMPLATE,
   BATCH_PROMPT_TEMPLATE,
   renderPromptTemplate,
@@ -39,13 +38,20 @@ describe('AI 模型', () => {
       expect(resolveAiModel('custom', 'my-custom-model')).toBe('my-custom-model')
     })
 
-    it('应该返回自定义模型当预设无效时', () => {
-      expect(resolveAiModel('invalid-preset', 'gpt-4')).toBe('gpt-4')
+    // 模型下拉开了 allow-create，用户能填任意模型名，
+    // 因此不在内置预设里的值也必须原样采用，不能当作无效值丢弃。
+    it('应该直接采用不在内置预设里的模型名', () => {
+      expect(resolveAiModel('my-private-model', '')).toBe('my-private-model')
+      expect(resolveAiModel('gpt-5.5', '')).toBe('gpt-5.5')
     })
 
-    it('应该返回默认模型当没有自定义模型时', () => {
+    it('选中值非空时应该优先于自定义输入框', () => {
+      expect(resolveAiModel('gpt-5.5', 'gpt-4')).toBe('gpt-5.5')
+    })
+
+    it('应该返回默认模型当选中 custom 且没有自定义模型时', () => {
       expect(resolveAiModel('custom', '')).toBe(DEFAULT_AI_MODEL_PRESET)
-      expect(resolveAiModel('invalid', '')).toBe(DEFAULT_AI_MODEL_PRESET)
+      expect(resolveAiModel('', '')).toBe(DEFAULT_AI_MODEL_PRESET)
     })
 
     it('应该处理空格', () => {
@@ -55,30 +61,6 @@ describe('AI 模型', () => {
     it('应该返回默认模型当预设和自定义都无效时', () => {
       expect(resolveAiModel('', '')).toBe(DEFAULT_AI_MODEL_PRESET)
       expect(resolveAiModel('custom', '   ')).toBe(DEFAULT_AI_MODEL_PRESET)
-    })
-  })
-
-  describe('getModelLabel', () => {
-    it('应该为预设模型返回带描述的标签', () => {
-      const label = getModelLabel('gpt-5-mini')
-      expect(label).toContain('gpt-5-mini')
-      expect(label).toContain('默认推荐')
-    })
-
-    it('应该为带描述的模型返回完整标签', () => {
-      const label = getModelLabel('gpt-5')
-      expect(label).toContain('gpt-5')
-      expect(label).toContain('标准模型')
-    })
-
-    it('应该为没有描述的模型返回模型名', () => {
-      const label = getModelLabel('gpt-4.1-mini')
-      expect(label).toBe('gpt-4.1-mini')
-    })
-
-    it('应该为自定义模型返回模型名', () => {
-      const label = getModelLabel('my-custom-model')
-      expect(label).toBe('my-custom-model')
     })
   })
 

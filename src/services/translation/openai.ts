@@ -7,6 +7,13 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios'
 import { LANGUAGE, type Language, getFullLanguageInfo } from '@/models/language'
 import {
+  classifyApiError,
+  diagnoseEndpoint,
+  fetchModels,
+  normalizeApiBaseUrl,
+  type DiagnosticReport,
+} from './endpoint'
+import {
   BATCH_PROMPT_TEMPLATE,
   SINGLE_PROMPT_TEMPLATE,
   DUAL_SOURCE_SINGLE_PROMPT_TEMPLATE,
@@ -134,7 +141,7 @@ export class OpenAITranslator {
    */
   private createClient(): AxiosInstance {
     const axiosConfig: AxiosRequestConfig = {
-      baseURL: this.config.apiUrl,
+      baseURL: normalizeApiBaseUrl(this.config.apiUrl),
       timeout: this.config.timeout,
       headers: {
         'Content-Type': 'application/json',
@@ -529,13 +536,13 @@ export class OpenAITranslator {
       throw new Error('Translation cancelled')
     }
 
-    const errorMsg =
-      (lastError && 'response' in lastError && lastError.response?.data
-        ? (lastError.response.data as any)?.error?.message
-        : undefined) ||
-      lastError?.message ||
-      'Unknown error'
-    throw new Error(`OpenAI API call failed after ${maxRetries} attempts: ${errorMsg}`)
+    const classified = classifyApiError(lastError)
+    const errorMsg = classified.detail || lastError?.message || 'Unknown error'
+    // 保留分类信息，供诊断流程区分「鉴权失败 / 模型不存在 / 网络不可达」
+    throw Object.assign(
+      new Error(`OpenAI API call failed after ${maxRetries} attempts: ${errorMsg}`),
+      { classified }
+    )
   }
 
   /**
@@ -596,7 +603,84 @@ export class OpenAITranslator {
   }
 
   /**
-   * 测试连接
+   * 拉取服务端支持的模型列表
+   *
+   * 同时会探测出真正可用的 base URL（用户可能只填了域名而没带 /v1）。
+   */
+  async listModels(signal?: AbortSignal): Promise<{ apiUrl: string; models: string[] }> {
+    const result = await fetchModels({
+      apiUrl: this.config.apiUrl,
+      apiKey: this.config.apiToken,
+      timeout: Math.min(this.config.timeout ?? 30000, 20000),
+      signal,
+    })
+    return { apiUrl: result.resolvedApiUrl, models: result.models }
+  }
+
+  /**
+   * 分步诊断当前配置
+   *
+   * 相比 {@link testConnection} 的「一次翻译成功与否」，这里会逐环给出结论，
+   * 定位到底是 URL、Key、模型还是网络出了问题。
+   */
+  async diagnose(signal?: AbortSignal): Promise<DiagnosticReport> {
+    return diagnoseEndpoint({
+      apiUrl: this.config.apiUrl,
+      apiKey: this.config.apiToken,
+      model: this.config.model || DEFAULT_CONFIG.model || '',
+      timeout: Math.min(this.config.timeout ?? 30000, 20000),
+      signal,
+      probeChat: baseUrl => this.probeChatOnce(baseUrl, signal),
+    })
+  }
+
+  /**
+   * 发一次最小的对话请求做端到端验证
+   *
+   * 刻意不走 callOpenAI：诊断要的是「立刻看到真实失败原因」，
+   * 而 callOpenAI 会重试并退避，既慢又会把首次错误掩盖掉。
+   */
+  private async probeChatOnce(baseUrl: string, signal?: AbortSignal): Promise<string> {
+    try {
+      const response = await axios.post(
+        `${baseUrl}/chat/completions`,
+        {
+          model: this.config.model || DEFAULT_CONFIG.model,
+          messages: [
+            { role: 'system', content: 'You are a professional translator.' },
+            {
+              role: 'user',
+              content: 'Translate to Chinese, reply with the translation only: Hello',
+            },
+          ],
+          temperature: this.config.temperature,
+          max_tokens: 64,
+        },
+        {
+          timeout: Math.min(this.config.timeout ?? 30000, 20000),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.apiToken}`,
+          },
+          signal,
+        }
+      )
+
+      const content = response.data?.choices?.[0]?.message?.content?.trim()
+      if (!content) {
+        throw Object.assign(new Error('Empty response'), {
+          classified: { kind: 'badResponse' as const },
+        })
+      }
+      return content
+    } catch (error: any) {
+      if (error?.classified) throw error
+      throw Object.assign(error, { classified: classifyApiError(error) })
+    }
+  }
+
+  /**
+   * 测试连接（简化结果，保留给不需要分步细节的调用方）
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {

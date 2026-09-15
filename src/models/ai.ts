@@ -18,22 +18,26 @@ export const AI_MODEL_PRESETS: Record<string, string> = {
 
 export const DEFAULT_AI_MODEL_PRESET = 'gpt-5-mini'
 
+/**
+ * 解析最终使用的模型名
+ *
+ * 选中值只要非空且不是 'custom' 就直接采用，不再校验它是否属于某份已知列表。
+ * 模型下拉开了 allow-create，用户本就能填任意模型名；再拿白名单去卡，
+ * 只会让手填的、或服务端列表里没列出的模型被静默替换成默认模型。
+ *
+ * @param presetId 下拉框选中的值，'custom' 表示改用下方的手填输入框
+ * @param customModel 手填的模型名
+ */
 export function resolveAiModel(presetId: string, customModel: string): string {
-  if (presetId && presetId !== 'custom' && presetId in AI_MODEL_PRESETS) {
-    return presetId
+  const selected = presetId?.trim()
+  if (selected && selected !== 'custom') {
+    return selected
   }
   const trimmed = customModel?.trim()
   if (trimmed) {
     return trimmed
   }
   return DEFAULT_AI_MODEL_PRESET
-}
-
-/**
- * 获取模型标签（不含描述）
- */
-export function getModelLabel(model: string): string {
-  return model
 }
 
 export const SINGLE_PROMPT_TEMPLATE = `Translate the following text from {{sourceLanguage}} to {{targetLanguage}}.

@@ -9,6 +9,12 @@ import { LANGUAGE, type Language } from '@/models/language'
 import { resolveAiModel } from '@/models/ai'
 import type { ResItem } from '@/models/resource'
 import { OpenAITranslator, type OpenAIConfig } from '@/services/translation/openai'
+import {
+  classifyApiError,
+  normalizeApiBaseUrl,
+  probeReachableWithoutCors,
+  type DiagnosticReport,
+} from '@/services/translation/endpoint'
 import type { XmlData } from '@/services/project/xmldata'
 import toast from '@/utils/toast'
 import { i18n } from '@/locales'
@@ -143,6 +149,96 @@ export const useTranslationStore = defineStore('translation', () => {
       translator.value.updateConfig(translatorConfig)
       logStore.debug('Translation service config refreshed')
     }
+  }
+
+  /**
+   * 把服务端拉到的模型列表写回配置，并保住当前选中的模型
+   *
+   * 下拉开了 allow-create，用户可能填了服务端没列出的模型；直接整体覆盖
+   * 会让它从下拉里消失，选中值变成一个无对应选项的孤值。
+   */
+  function persistModels(models: string[]): void {
+    const current = configStore.config.aiModelPreset?.trim()
+    const keepCurrent = current && current !== 'custom' && !models.includes(current)
+    configStore.update('aiAvailableModels', keepCurrent ? [...models, current] : models)
+  }
+
+  /**
+   * 拉取服务端模型列表
+   *
+   * 拉取成功后会把结果写回配置缓存；若探测出的 base URL 与用户填写的不同
+   * （常见于只填了域名没带 /v1），一并纠正，省得用户自己猜。
+   */
+  async function fetchAvailableModels(): Promise<string[]> {
+    initTranslator()
+
+    logStore.info('Fetching available models...')
+
+    let apiUrl: string
+    let models: string[]
+    try {
+      ;({ apiUrl, models } = await translator.value!.listModels())
+    } catch (error: any) {
+      // 跨域被拦时 axios 只给一句 Network Error，这里补一次探测把原因说清楚
+      const classified = error?.classified ?? classifyApiError(error)
+      if (classified.kind === 'network') {
+        const reachable = await probeReachableWithoutCors(
+          normalizeApiBaseUrl(configStore.config.apiUrl)
+        )
+        throw Object.assign(error, {
+          messageKey: reachable ? 'endpointCorsBlocked' : 'endpointUnreachable',
+        })
+      }
+      throw error
+    }
+
+    persistModels(models)
+    if (apiUrl && apiUrl !== configStore.config.apiUrl) {
+      logStore.info(`API URL normalized to ${apiUrl}`)
+      configStore.update('apiUrl', apiUrl)
+    }
+
+    logStore.info(`Fetched ${models.length} models`)
+    return models
+  }
+
+  /**
+   * 分步诊断 API 配置
+   *
+   * 配置不全时直接给出对应步骤的错误，不必先构造翻译器再让它抛异常。
+   */
+  async function diagnoseConnection(): Promise<DiagnosticReport> {
+    const config = configStore.config
+
+    if (!config.apiUrl?.trim()) {
+      return { ok: false, steps: [{ id: 'config', status: 'error', messageKey: 'missingUrl' }] }
+    }
+    if (!config.apiKey?.trim()) {
+      return { ok: false, steps: [{ id: 'config', status: 'error', messageKey: 'missingKey' }] }
+    }
+
+    initTranslator()
+    logStore.info('Diagnosing API configuration...')
+
+    const report = await translator.value!.diagnose()
+
+    // 诊断顺带确定了可用的 base URL 与模型列表，回写省去用户再点一次刷新
+    if (report.resolvedApiUrl && report.resolvedApiUrl !== config.apiUrl) {
+      logStore.info(`API URL normalized to ${report.resolvedApiUrl}`)
+      configStore.update('apiUrl', report.resolvedApiUrl)
+    }
+    if (report.models && report.models.length > 0) {
+      persistModels(report.models)
+    }
+
+    for (const step of report.steps) {
+      const line = `[diagnose:${step.id}] ${step.status} - ${step.messageKey}${step.detail ? ` (${step.detail})` : ''}`
+      if (step.status === 'error') logStore.error(line)
+      else if (step.status === 'warning') logStore.warning(line)
+      else logStore.info(line)
+    }
+
+    return report
   }
 
   /**
@@ -523,7 +619,12 @@ export const useTranslationStore = defineStore('translation', () => {
           let batchErrorCount = 0
           for (const [itemName, translatedText] of chunkResult.results) {
             try {
-              xmlData.updateItem(fileName, itemName, targetLang, translatedText as string | string[])
+              xmlData.updateItem(
+                fileName,
+                itemName,
+                targetLang,
+                translatedText as string | string[]
+              )
               const task = tasks.value.find(
                 t => t.itemName === itemName && t.targetLanguage === targetLang
               )
@@ -601,9 +702,10 @@ export const useTranslationStore = defineStore('translation', () => {
           const batchIdx = i / maxItemsPerRequest + 1
 
           // 确定实际源语言：目标为默认语言时使用第二源语言，回退场景也使用第二源语言
-          const effectiveSourceLang = targetLang === LANGUAGE.DEF && secondarySourceLang
-            ? secondarySourceLang
-            : primarySourceLang
+          const effectiveSourceLang =
+            targetLang === LANGUAGE.DEF && secondarySourceLang
+              ? secondarySourceLang
+              : primarySourceLang
 
           try {
             for (const c of chunk) {
@@ -1191,6 +1293,8 @@ export const useTranslationStore = defineStore('translation', () => {
     // 方法
     initTranslator,
     testConnection,
+    fetchAvailableModels,
+    diagnoseConnection,
     startTranslation,
     batchTranslate,
     translateProject,
