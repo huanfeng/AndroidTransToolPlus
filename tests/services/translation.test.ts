@@ -21,6 +21,11 @@ describe('翻译服务', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // 翻译器走的是 axios.create() 返回的实例，而自动 mock 让 create() 返回 undefined。
+    // 让它返回 axios 自身，this.client.post 就等同于 axios.post，下面的断言才有对象可查。
+    // 注意必须放在 clearAllMocks 之后，否则返回值会被一并清掉。
+    vi.mocked(axios.create).mockReturnValue(axios as any)
+    ;(axios as any).defaults = { timeout: mockConfig.timeout }
     translator = new OpenAITranslator(mockConfig)
   })
 
@@ -117,12 +122,14 @@ describe('翻译服务', () => {
       await translator.translate(request)
 
       expect(mockPost).toHaveBeenCalled()
+      // axios.post(url, data, config)：请求体就是第二个参数本身
       const callArgs = mockPost.mock.calls[0]
-      const messages = JSON.parse(callArgs[1].data).messages
+      const messages = (callArgs[1] as any).messages
+      // 未指定源语言时回落到 LANGUAGE.DEF，其 nameEn 为 'Default(English)'
       expect(messages).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            content: expect.stringContaining('from English to French'),
+            content: expect.stringContaining('from Default(English) to French'),
           }),
         ])
       )
@@ -166,8 +173,7 @@ describe('翻译服务', () => {
           choices: [
             {
               message: {
-                content:
-                  '{"greeting": "你好", "farewell": "再见", "thanks": "谢谢"}',
+                content: '{"greeting": "你好", "farewell": "再见", "thanks": "谢谢"}',
               },
             },
           ],
@@ -183,7 +189,9 @@ describe('翻译服务', () => {
         targetLanguage: LANGUAGE.CN,
       }
 
-      const result = await translator.batchTranslate(request)
+      // mock 的是一次性返回全部译文的批量 JSON，对应 batchTranslateChunked；
+      // batchTranslate 是逐条调用、不解析 JSON 的另一条路径。
+      const result = await translator.batchTranslateChunked(request, 20)
 
       expect(result.results.size).toBe(3)
       expect(result.results.get('greeting')).toBe('你好')
@@ -215,7 +223,7 @@ describe('翻译服务', () => {
         targetLanguage: LANGUAGE.CN,
       }
 
-      const result = await translator.batchTranslate(request)
+      const result = await translator.batchTranslateChunked(request, 20)
 
       expect(result.results.get('weekdays')).toEqual(['周一', '周二', '周三'])
     })
