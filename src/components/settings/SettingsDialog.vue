@@ -27,11 +27,7 @@
 
     <el-tabs v-model="activeTab">
       <el-tab-pane :label="$t('settings.tabs.general')" name="general">
-        <el-form
-          label-width="140px"
-          :model="form"
-          class="settings-tab-content"
-        >
+        <el-form label-width="140px" :model="form" class="settings-tab-content">
           <el-form-item :label="$t('settings.general.maxItemsPerRequest')">
             <el-input-number v-model="form.maxItemsPerRequest" :min="1" :max="100" />
           </el-form-item>
@@ -98,12 +94,25 @@
           <!-- 双源翻译选项 -->
           <div
             v-if="selectedSecondarySourceLanguage"
-            style="margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--el-border-color-light); border-radius: 8px; background: var(--el-fill-color-lighter)"
+            style="
+              margin-bottom: 16px;
+              padding: 10px 12px;
+              border: 1px solid var(--el-border-color-light);
+              border-radius: 8px;
+              background: var(--el-fill-color-lighter);
+            "
           >
             <el-checkbox v-model="enableDualSourceTranslation">
               {{ $t('settings.language.enableDualSourceTranslation') }}
             </el-checkbox>
-            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; padding-left: 24px">
+            <div
+              style="
+                font-size: 12px;
+                color: var(--el-text-color-secondary);
+                margin-top: 4px;
+                padding-left: 24px;
+              "
+            >
               {{ $t('settings.language.enableDualSourceTranslationHint') }}
             </div>
           </div>
@@ -287,25 +296,49 @@
             </div>
             <el-form label-width="100px" :model="form">
               <el-form-item :label="$t('settings.ai.modelName')">
-                <el-select
-                  v-model="form.aiModelPreset"
-                  style="width: 100%"
-                  popper-class="model-select-popper"
-                >
-                  <el-option
-                    v-for="preset in modelPresets"
-                    :key="preset.model"
-                    :label="preset.model"
-                    :value="preset.model"
+                <div style="display: flex; gap: 8px; width: 100%">
+                  <el-select
+                    v-model="form.aiModelPreset"
+                    filterable
+                    allow-create
+                    default-first-option
+                    :reserve-keyword="false"
+                    :placeholder="$t('settings.ai.modelSearchPlaceholder')"
+                    style="flex: 1; min-width: 0"
+                    popper-class="model-select-popper"
+                    @change="onModelChange"
                   >
-                    <div class="model-option">
-                      <span class="model-name">{{ preset.model }}</span>
-                      <span v-if="preset.descKey" class="model-desc">
-                        {{ getModelDescription(preset.descKey) }}
-                      </span>
-                    </div>
-                  </el-option>
-                </el-select>
+                    <el-option-group
+                      v-if="serverModels.length > 0"
+                      :label="$t('settings.ai.modelGroupServer')"
+                    >
+                      <el-option
+                        v-for="model in serverModels"
+                        :key="model"
+                        :label="model"
+                        :value="model"
+                      />
+                    </el-option-group>
+                    <el-option-group :label="$t('settings.ai.modelGroupPreset')">
+                      <el-option
+                        v-for="preset in modelPresets"
+                        :key="preset.model"
+                        :label="preset.model"
+                        :value="preset.model"
+                      >
+                        <div class="model-option">
+                          <span class="model-name">{{ preset.model }}</span>
+                          <span v-if="preset.descKey" class="model-desc">
+                            {{ getModelDescription(preset.descKey) }}
+                          </span>
+                        </div>
+                      </el-option>
+                    </el-option-group>
+                  </el-select>
+                  <el-button :loading="modelsLoading" @click="onRefreshModels">
+                    {{ $t('settings.ai.refreshModels') }}
+                  </el-button>
+                </div>
               </el-form-item>
               <el-form-item v-if="isCustomModel" :label="$t('settings.ai.customModelName')">
                 <el-input
@@ -314,12 +347,39 @@
                 />
               </el-form-item>
               <el-form-item>
-                <el-button @click="onTest" :loading="testLoading">
-                  {{ $t('settings.ai.testConnection') }}
-                  <template v-if="testStatus">
-                    <span style="margin-left: 8px">{{ testStatus }}</span>
-                  </template>
-                </el-button>
+                <div style="width: 100%">
+                  <el-button type="primary" plain :loading="diagnosing" @click="onDiagnose">
+                    {{ $t('settings.ai.diagnose.run') }}
+                  </el-button>
+                  <el-button :loading="testLoading" @click="onTest">
+                    {{ $t('settings.ai.testConnection') }}
+                    <template v-if="testStatus">
+                      <span style="margin-left: 8px">{{ testStatus }}</span>
+                    </template>
+                  </el-button>
+
+                  <div v-if="diagnosticSteps.length > 0" class="diagnose-result">
+                    <div class="diagnose-summary" :class="diagnosticOk ? 'is-ok' : 'is-fail'">
+                      {{
+                        diagnosticOk
+                          ? $t('settings.ai.diagnose.passed')
+                          : $t('settings.ai.diagnose.failed')
+                      }}
+                    </div>
+                    <div
+                      v-for="step in diagnosticSteps"
+                      :key="step.id"
+                      class="diagnose-step"
+                      :class="`is-${step.status}`"
+                    >
+                      <span class="diagnose-step-name">
+                        {{ $t(`settings.ai.diagnose.step.${step.id}`) }}
+                      </span>
+                      <span class="diagnose-step-msg">{{ describeStep(step) }}</span>
+                      <span v-if="step.detail" class="diagnose-step-detail">{{ step.detail }}</span>
+                    </div>
+                  </div>
+                </div>
               </el-form-item>
             </el-form>
           </div>
@@ -368,8 +428,7 @@
                   overflow-y: auto;
                   touch-action: pan-y;
                 "
-                >{{ singlePromptPreview }}</pre
-              >
+                >{{ singlePromptPreview }}</pre>
             </div>
 
             <div style="margin-top: 16px">
@@ -401,8 +460,7 @@
                   overflow-y: auto;
                   touch-action: pan-y;
                 "
-                >{{ batchPromptPreview }}</pre
-              >
+                >{{ batchPromptPreview }}</pre>
             </div>
           </div>
         </div>
@@ -494,6 +552,7 @@ import {
   SINGLE_PROMPT_TEMPLATE,
   renderPromptTemplate,
 } from '@/models/ai'
+import type { DiagnosticStep } from '@/services/translation/endpoint'
 import toast from '@/utils/toast'
 
 const { t, locale } = useI18n()
@@ -577,9 +636,7 @@ const sourceLanguageDisplayLabel = computed(() => {
 const enabledLangCodes = ref<Language[]>([])
 
 /** 穿梭框用的所有语言信息列表（不含 DEF） */
-const transferLangInfos = computed(() =>
-  allLangInfos.value.filter(info => info.code !== defLang)
-)
+const transferLangInfos = computed(() => allLangInfos.value.filter(info => info.code !== defLang))
 
 function addDefaultLanguages() {
   const merged = new Set([
@@ -657,6 +714,81 @@ const batchPromptPreview = computed(() => {
   })
 })
 
+/** 从服务端拉取到的模型，排除掉已在内置预设里的，避免下拉出现重复项 */
+const isBuiltinPreset = (model: string) =>
+  Object.prototype.hasOwnProperty.call(AI_MODEL_PRESETS, model)
+
+const serverModels = computed(() =>
+  (form.value.aiAvailableModels || []).filter(model => !isBuiltinPreset(model))
+)
+
+const modelsLoading = ref(false)
+
+async function onRefreshModels() {
+  modelsLoading.value = true
+  try {
+    const previousUrl = form.value.apiUrl
+    const models = await translationStore.fetchAvailableModels()
+    toast.success(t('settings.ai.modelsFetched', { count: models.length }))
+    // store 探测到更合适的 base URL 时会回写配置，这里提示用户 URL 变了
+    if (form.value.apiUrl !== previousUrl) {
+      toast.info(t('settings.ai.urlNormalized', { url: form.value.apiUrl }))
+    }
+  } catch (error: any) {
+    // store 判定出具体原因时优先用它，否则退回 axios 的原始信息
+    const reason = error?.messageKey ? t(`settings.ai.diagnose.msg.${error.messageKey}`) : undefined
+    if (reason) {
+      toast.error(`${t('settings.ai.modelsFetchFailed')}: ${reason}`)
+    } else {
+      toast.fromError(error, t('settings.ai.modelsFetchFailed'))
+    }
+  } finally {
+    modelsLoading.value = false
+  }
+}
+
+/**
+ * 记住用户手填的模型名
+ *
+ * allow-create 创建的选项只存在于组件内部，重开对话框就没了。
+ * 记进配置才能让它下次仍出现在下拉里。
+ */
+function onModelChange(value: string) {
+  if (!value || value === 'custom' || isBuiltinPreset(value)) return
+  const known = form.value.aiAvailableModels || []
+  if (!known.includes(value)) {
+    configStore.update('aiAvailableModels', [...known, value])
+  }
+}
+
+const diagnosing = ref(false)
+const diagnosticSteps = ref<DiagnosticStep[]>([])
+const diagnosticOk = ref(false)
+
+async function onDiagnose() {
+  diagnosing.value = true
+  diagnosticSteps.value = []
+  try {
+    const previousUrl = form.value.apiUrl
+    const report = await translationStore.diagnoseConnection()
+    diagnosticSteps.value = report.steps
+    diagnosticOk.value = report.ok
+    if (form.value.apiUrl !== previousUrl) {
+      toast.info(t('settings.ai.urlNormalized', { url: form.value.apiUrl }))
+    }
+  } catch (error: any) {
+    diagnosticOk.value = false
+    toast.fromError(error, t('settings.ai.diagnose.failed'))
+  } finally {
+    diagnosing.value = false
+  }
+}
+
+/** 把诊断步骤的 i18n key + 参数翻译成展示文案 */
+function describeStep(step: DiagnosticStep): string {
+  return t(`settings.ai.diagnose.msg.${step.messageKey}`, step.messageParams ?? {})
+}
+
 const testLoading = ref(false)
 const testStatus = ref('')
 
@@ -685,6 +817,7 @@ watch(
   ],
   () => {
     testStatus.value = ''
+    diagnosticSteps.value = []
   }
 )
 
@@ -917,10 +1050,83 @@ function loadCustomLanguages() {
       valuesDirName: l.valuesDirName,
     }))
 }
-
 </script>
 
 <style scoped>
+.diagnose-result {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  line-height: 1.7;
+  font-size: 13px;
+}
+
+.diagnose-summary {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.diagnose-summary.is-ok {
+  color: var(--el-color-success);
+}
+
+.diagnose-summary.is-fail {
+  color: var(--el-color-danger);
+}
+
+.diagnose-step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* 用左侧色条标记每步结论，避免再引入一套图标 */
+.diagnose-step-name {
+  flex: 0 0 auto;
+  min-width: 68px;
+  padding-left: 8px;
+  border-left: 3px solid var(--el-border-color);
+  color: var(--el-text-color-regular);
+}
+
+.diagnose-step.is-success .diagnose-step-name {
+  border-left-color: var(--el-color-success);
+}
+
+.diagnose-step.is-warning .diagnose-step-name {
+  border-left-color: var(--el-color-warning);
+}
+
+.diagnose-step.is-error .diagnose-step-name {
+  border-left-color: var(--el-color-danger);
+}
+
+.diagnose-step-msg {
+  flex: 1 1 200px;
+  min-width: 0;
+  color: var(--el-text-color-primary);
+}
+
+.diagnose-step.is-error .diagnose-step-msg {
+  color: var(--el-color-danger);
+}
+
+.diagnose-step.is-skipped .diagnose-step-msg {
+  color: var(--el-text-color-secondary);
+}
+
+/* 服务端原始错误信息可能很长，允许换行并弱化显示 */
+.diagnose-step-detail {
+  flex: 1 1 100%;
+  padding-left: 76px;
+  color: var(--el-text-color-secondary);
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12px;
+  word-break: break-all;
+}
+
 .settings-tab-content {
   padding: 16px 20px;
   overflow-y: auto;
